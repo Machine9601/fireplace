@@ -112,6 +112,10 @@ class Player(Entity, TargetableByAuras):
         self.cards_played_this_game = CardList()
         self.hero_power_damage_this_game = 0
         self.hero_attacks_this_game = 0
+        # The death knight's Corpses: every class tracks them (patch 25.4.0),
+        # only the death knight cards read and spend them.
+        self.corpses = 0
+        self.corpses_spent_this_game = 0
         self.spent_mana_on_spells_this_game = 0
         self.healed_this_game = 0
         self.armor_gained_this_game = 0

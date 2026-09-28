@@ -385,11 +385,16 @@ class Death(GameAction):
         for card in cards:
             if not card.dead:
                 continue
-            if card.zone == Zone.PLAY:
+            in_play = card.zone == Zone.PLAY
+            if in_play:
                 card._dead_position = card.zone_position - 1
             card.zone = Zone.GRAVEYARD
             source.game.check_for_end_game()
             source.game.refresh_auras()
+            if in_play and card.type == CardType.MINION and not card.leaves_no_corpse:
+                # A friendly minion that dies leaves a Corpse to its controller,
+                # before its Deathrattle (every class tracks them, patch 25.4.0).
+                card.controller.corpses += 1
             log.info("Processing Deathrattle for %r", card)
             self._trigger = False
             source.game.manager.game_action(self, source, card)

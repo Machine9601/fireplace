@@ -28,6 +28,9 @@ INCOMING_DAMAGE_MULTIPLIER_FROM_SPELL = -31
 HEALED_THIS_TURN = -32
 NUM_HERO_ATTACKS_THIS_GAME = -33
 DAMAGED_ON_OPPONENT_TURN = -34
+# A minion that "doesn't leave a Corpse" when it dies (the Risen tokens of the
+# death knight: Risen Groom...)
+LEAVES_NO_CORPSE = -35
 
 
 class SpellType(IntEnum):

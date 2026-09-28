@@ -1,6 +1,6 @@
 import re
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from hearthstone.enums import (
     CardClass,
@@ -33,6 +33,16 @@ if TYPE_CHECKING:
 THE_COIN = "GAME_005"
 
 
+class Runes(NamedTuple):
+    """The runes a death knight card asks of its deck (COST_BLOOD, COST_FROST,
+    COST_UNHOLY). The deck-building rule itself (three runes at most) is not
+    the engine's."""
+
+    blood: int
+    frost: int
+    unholy: int
+
+
 def Card(id):
     data = cards.db[id]
     subclass = {
@@ -61,6 +71,18 @@ def Card(id):
 class BaseCard(BaseEntity):
     Manager = CardManager
     delayed_destruction = False
+    # The death knight: its runes, the Corpses (see Runes, actions.Death and
+    # actions.SpendCorpses). A card without the tag has none.
+    cost_blood = 0
+    cost_frost = 0
+    cost_unholy = 0
+    corpse_spender = False
+    leaves_no_corpse = False
+    can_target_cards_in_hand = False
+
+    @property
+    def runes(self) -> Runes:
+        return Runes(self.cost_blood, self.cost_frost, self.cost_unholy)
 
     def __init__(self, data: "cardxml.CardXML"):
         self.data = data
