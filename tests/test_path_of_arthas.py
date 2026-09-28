@@ -272,3 +272,18 @@ def test_ymirjar_frostbreaker():
     assert game.player1.give("RLK_110").play().atk == 3
 
 
+# --- RLK_516
+def test_bone_breaker():
+    game = dk_game()
+    enemy = game.player2.summon(WAR_GOLEM)
+    game.player1.give("RLK_516").play()
+    game.player1.hero.attack(enemy)
+    assert enemy.damage == 2
+    assert game.player2.hero.health == 28
+    game.end_turn()
+    game.end_turn()
+    game.player1.hero.attack(game.player2.hero)
+    assert game.player2.hero.health == 26  # the attack itself, no trigger
+    assert not game.player1.weapon
+
+

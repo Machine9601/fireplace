@@ -36,3 +36,11 @@ class RLK_110:
 RLK_110e = buff(atk=1)
 
 
+# --- RLK_516
+class RLK_516:
+    """Bone Breaker"""
+
+    # After your hero attacks a minion, deal 2 damage to the enemy hero.
+    events = Attack(FRIENDLY_HERO, ALL_MINIONS).after(Hit(ENEMY_HERO, 2))
+
+
