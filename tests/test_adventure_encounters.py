@@ -69,3 +69,24 @@ def test_scarvash_swaps_his_hero_power():
         assert fireball.cost == 4
         with pytest.raises(InvalidAction):
             boss.hero.power.use()
+
+
+def test_lady_nazjar_pearl_of_the_tides():
+    # Lady Naz'jar: "At the end of your turn, replace all minions with new ones
+    # that cost (1) more."; heroic: "replace all minions with new ones. Yours
+    # cost (1) more."
+    for hero, enemy_more in (("LOEA12_1", 1), ("LOEA12_1H", 0)):
+        game, boss, other = _boss_game(hero)
+        assert db_passive(boss.hero.power.id)
+        with pytest.raises(InvalidAction):
+            boss.hero.power.use()
+        mine = boss.summon("CS2_182")  # Chillwind Yeti, 4
+        theirs = other.summon(WISP)  # Wisp, 0
+        game.end_turn()
+        assert len(boss.field) == 1 and len(other.field) == 1
+        assert boss.field[0] is not mine and boss.field[0].cost == 5
+        assert other.field[0] is not theirs and other.field[0].cost == enemy_more
+        # Only at the end of her own turn.
+        kept = boss.field[0]
+        game.end_turn()
+        assert boss.field[0] is kept

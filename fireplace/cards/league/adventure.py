@@ -452,6 +452,28 @@ class LOEA10_5H:
 
 
 ##
+# Lady Naz'jar
+
+
+class LOEA12_2:
+    """Pearl of the Tides"""
+
+    # "At the end of your turn, replace all minions with new ones that cost
+    # (1) more." It acts by itself, at the end of her turn: it is not used.
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_END.on(Evolve(ALL_MINIONS, 1))
+
+
+class LOEA12_2H:
+    """Pearl of the Tides (Heroic)"""
+
+    # "At the end of your turn, replace all minions with new ones. Yours cost
+    # (1) more."
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_END.on(Evolve(FRIENDLY_MINIONS, 1), Evolve(ENEMY_MINIONS, 0))
+
+
+##
 # Skelesaurus Hex
 
 
