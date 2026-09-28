@@ -202,3 +202,15 @@ class RLK_025o:
     events = OWN_SPELL_PLAY.on(Destroy(SELF))
 
 
+# --- RLK_731
+class RLK_731:
+    """Darkfallen Neophyte"""
+
+    # <b>Battlecry:</b> Spend 2 <b>Corpses</b> to give all minions in your
+    # hand +2 Attack.
+    play = SpendCorpses(CONTROLLER, 2).then(Buff(FRIENDLY_HAND + MINION, "RLK_731e"))
+
+
+RLK_731e = buff(atk=2)
+
+

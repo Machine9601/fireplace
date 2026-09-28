@@ -471,3 +471,28 @@ def test_glacial_advance_lasts_this_turn():
     assert fireball.cost == 4
 
 
+# --- RLK_731
+def test_darkfallen_neophyte():
+    game = dk_game()
+    wisp = game.player1.give(WISP)
+    game.player1.corpses = 1
+    game.player1.give("RLK_731").play()
+    assert wisp.atk == 1 and game.player1.corpses == 1
+    game.player1.corpses = 2
+    neophyte = game.player1.give("RLK_731").play()
+    assert (wisp.atk, wisp.health) == (3, 1)
+    assert neophyte.atk == 2 and game.player1.corpses == 0
+
+
+def test_darkfallen_neophyte_with_brann_spends_twice():
+    game = dk_game()
+    game.player1.summon("LOE_077")  # Brann Bronzebeard
+    wisp = game.player1.give(WISP)
+    game.player1.corpses = 5
+    game.player1.give("RLK_731").play()
+    assert wisp.atk == 5 and game.player1.corpses == 1
+    game.player1.corpses = 3
+    game.player1.give("RLK_731").play()
+    assert wisp.atk == 7 and game.player1.corpses == 1
+
+
