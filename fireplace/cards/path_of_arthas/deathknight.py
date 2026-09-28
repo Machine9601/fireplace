@@ -179,3 +179,11 @@ class RLK_015:
     play = Hit(TARGET, 3), Freeze(TARGET), Hit(ENEMY_CHARACTERS - TARGET, 1)
 
 
+# --- RLK_087
+class RLK_087:
+    """Asphyxiate"""
+
+    # Destroy the highest Attack enemy minion. (A tie: at random.)
+    play = Destroy(HIGHEST_ATK(ENEMY_MINIONS))
+
+

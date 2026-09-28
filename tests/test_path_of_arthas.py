@@ -439,3 +439,14 @@ def test_howling_blast_freezes_its_target():
     assert golem.damage == 3 and golem.frozen
 
 
+# --- RLK_087
+def test_asphyxiate():
+    game = dk_game()
+    wisp = game.player2.summon(WISP)
+    golem = game.player2.summon(WAR_GOLEM)
+    mine = game.player1.summon(WAR_GOLEM)
+    game.player1.give("RLK_087").play()
+    assert golem.zone == Zone.GRAVEYARD
+    assert wisp.zone == Zone.PLAY and mine.zone == Zone.PLAY
+
+
