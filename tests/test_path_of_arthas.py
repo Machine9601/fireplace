@@ -164,6 +164,28 @@ def test_corpses_survive_a_deep_copy():
     assert game.player1.corpses == 1
 
 
+def test_spend_corpses():
+    from fireplace.actions import SpendCorpses
+
+    game = dk_game()
+    player = game.player1
+    hero = player.hero
+    player.corpses = 3
+    armor = GainArmor(FRIENDLY_HERO, SpendCorpses.AMOUNT)
+    # Not enough: nothing is spent, nothing happens
+    game.queue_actions(hero, [SpendCorpses(CONTROLLER, 4).then(armor)])
+    assert player.corpses == 3 and hero.armor == 0
+    game.queue_actions(hero, [SpendCorpses(CONTROLLER, 2).then(armor)])
+    assert player.corpses == 1 and hero.armor == 2
+    assert player.corpses_spent_this_game == 2
+    # Up to: as many as the player has
+    game.queue_actions(hero, [SpendCorpses(CONTROLLER, 5, up_to=True).then(armor)])
+    assert player.corpses == 0 and hero.armor == 3
+    game.queue_actions(hero, [SpendCorpses(CONTROLLER, 5, up_to=True).then(armor)])
+    assert player.corpses == 0 and hero.armor == 3
+    assert player.corpses_spent_this_game == 3
+
+
 # --- the hero and its Hero Power ------------------------------------------
 
 

@@ -31,6 +31,9 @@ DAMAGED_ON_OPPONENT_TURN = -34
 # A minion that "doesn't leave a Corpse" when it dies (the Risen tokens of the
 # death knight: Risen Groom...)
 LEAVES_NO_CORPSE = -35
+# The damage this entity deals has Lifesteal, without giving Lifesteal to what
+# it enchants (Blood Boil's infection, an enchantment on an enemy minion)
+LIFESTEAL_DAMAGE = -36
 
 
 class SpellType(IntEnum):

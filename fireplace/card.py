@@ -79,6 +79,7 @@ class BaseCard(BaseEntity):
     corpse_spender = False
     leaves_no_corpse = False
     can_target_cards_in_hand = False
+    lifesteal_damage = False
 
     @property
     def runes(self) -> Runes:
@@ -828,6 +829,13 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
 
     @property
     def play_targets(self):
+        if self.can_target_cards_in_hand:
+            # "Give a minion in your hand..." (Vicious Bloodworm,
+            # CAN_TARGET_CARDS_IN_HAND): the target is a card of the hand,
+            # never a character in play.
+            return [
+                card for card in self.controller.hand if is_valid_target(self, card)
+            ]
         return [card for card in self.game.characters if is_valid_target(self, card)]
 
     @property
@@ -1694,6 +1702,11 @@ class Enchantment(BaseCard):
 
     def remove(self):
         self.zone = Zone.REMOVEDFROMGAME
+
+    def heal(self, target, amount):
+        # The damage of an enchantment with LIFESTEAL_DAMAGE (Blood Boil's
+        # infection) heals its controller's hero.
+        return self.game.cheat_action(self, [actions.Heal(target, amount)])
 
 
 class Weapon(rules.WeaponRules, LiveEntity):

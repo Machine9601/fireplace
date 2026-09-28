@@ -328,6 +328,7 @@ CARD_ATTRIBUTE_MAP = {
     enums.ACTIVATIONS_THIS_TURN: "activations_this_turn",
     enums.TEMPORARY: "temporary",
     enums.LEAVES_NO_CORPSE: "leaves_no_corpse",
+    enums.LIFESTEAL_DAMAGE: "lifesteal_damage",
     GameTag.CARDTEXT_ENTITY_0: "cardtext_entity_0",
     GameTag.CARDTEXT_ENTITY_1: "cardtext_entity_1",
     GameTag.CARDTEXT_ENTITY_2: "cardtext_entity_2",
