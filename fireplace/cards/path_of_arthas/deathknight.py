@@ -253,3 +253,11 @@ class RLK_118:
     play = TombGuardiansSummon(CONTROLLER)
 
 
+# --- RLK_713
+class RLK_713:
+    """Lady Deathwhisper"""
+
+    # <b>Deathrattle:</b> Copy all Frost spells in your hand.
+    deathrattle = Give(CONTROLLER, ExactCopy(FRIENDLY_HAND + FROST + SPELL))
+
+

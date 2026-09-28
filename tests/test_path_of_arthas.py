@@ -530,3 +530,18 @@ def test_tomb_guardians_needs_room():
     assert not game.player1.give("RLK_118").is_playable()
 
 
+# --- RLK_713
+def test_lady_deathwhisper():
+    game = dk_game()
+    game.player1.give("RLK_038")
+    game.player1.give(FIREBALL)
+    game.player1.give("RLK_015")
+    lady = game.player1.give("RLK_713").play()
+    game.player1.give(MOONFIRE).play(target=lady)
+    game.player1.give(MOONFIRE).play(target=lady)
+    game.player1.give(MOONFIRE).play(target=lady)
+    assert lady.zone == Zone.GRAVEYARD
+    ids = [c.id for c in game.player1.hand]
+    assert sorted(ids) == sorted(["RLK_038", FIREBALL, "RLK_015", "RLK_038", "RLK_015"])
+
+
