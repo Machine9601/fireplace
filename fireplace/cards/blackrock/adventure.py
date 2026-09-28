@@ -296,23 +296,53 @@ class BRMA12_10:
     activate = Discard(RANDOM(FRIENDLY_HAND))
 
 
+# Lord Victor Nefarius (the wiki): "At the start of his first turn Lord Victor
+# Nefarius will use True Form, changing into his dragon form and thus
+# replacing himself with the Nefarian hero. This will also cause the boss to
+# gain a significant amount of Armor, immediately set his mana to 10, and draw
+# 2 additional cards for free." and "Starting with turn 3, at the start of
+# each turn Ragnaros will grant the player one of the following cards at
+# random. In Heroic mode this happens only once, at the start of turn 3".
+
+RAGNAROS_HELPS = RandomID("BRMA13_5", "BRMA13_6", "BRMA13_7", "BRMA13_8")
+
+
+class RagnarosHelps(TargetedAction):
+    """At the start of the player's turn, from turn 3, a card from Ragnaros
+    (once only in heroic)."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        if source.game.turn < 3:
+            return
+        if source.id.endswith("H") and getattr(target, "ragnaros_helped", False):
+            return
+        target.ragnaros_helped = True
+        return source.game.queue_actions(source, [Give(target, RAGNAROS_HELPS)])
+
+
 class BRMA13_2:
     """True Form"""
 
-    activate = (
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_BEGIN.on(
         Summon(CONTROLLER, "BRMA13_3"),
         Draw(CONTROLLER) * 2,
         GainArmor(FRIENDLY_HERO, 30),
+        GainMana(CONTROLLER, 10),
     )
 
 
 class BRMA13_2H:
     """True Form (Heroic)"""
 
-    activate = (
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_BEGIN.on(
         Summon(CONTROLLER, "BRMA13_3H"),
         Draw(CONTROLLER) * 2,
         GainArmor(FRIENDLY_HERO, 30),
+        GainMana(CONTROLLER, 10),
     )
 
 
@@ -320,12 +350,14 @@ class BRMA13_4:
     """Wild Magic"""
 
     activate = Give(CONTROLLER, RandomSpell(card_class=ENEMY_CLASS))
+    events = BeginTurn(OPPONENT).on(RagnarosHelps(OPPONENT))
 
 
 class BRMA13_4H:
     """Wild Magic (Heroic)"""
 
     activate = Give(CONTROLLER, RandomSpell(card_class=ENEMY_CLASS))
+    events = BeginTurn(OPPONENT).on(RagnarosHelps(OPPONENT))
 
 
 class BRMA14_2:

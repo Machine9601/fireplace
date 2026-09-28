@@ -14,6 +14,13 @@ class RealManaGame(CoinRules, BaseGame):
     """A game whose players start at 0 Mana Crystals, as in a real game."""
 
 
+class BossFirstGame(RealManaGame):
+    """Player1 (the boss) plays first."""
+
+    def pick_first_player(self):
+        return self.players[0], self.players[1]
+
+
 def _boss_game(hero1, hero2="HERO_01", deck=None, deck2=None, game_class=BaseTestGame):
     """A game where player1 (the first to play) is the boss `hero1`."""
     deck = deck if deck is not None else [WISP] * 20
@@ -162,6 +169,32 @@ def test_nefarian_killed_at_once_skips_the_stages():
         game.cheat_action(other.hero, [Hit(boss.hero, 31)])
     assert other.playstate == PlayState.WON
     assert boss.hero.id == "BRMA17_2H"
+
+
+def test_lord_victor_nefarius_true_form():
+    # "At the start of his first turn Lord Victor Nefarius will use True Form
+    # [...] replacing himself with the Nefarian hero [...] gain a significant
+    # amount of Armor, immediately set his mana to 10, and draw 2 additional
+    # cards" and "Starting with turn 3, at the start of each turn Ragnaros
+    # will grant the player one of the following cards at random. In Heroic
+    # mode this happens only once".
+    helps = ("BRMA13_5", "BRMA13_6", "BRMA13_7", "BRMA13_8")
+    for hero, nefarian, gifts in (("BRMA13_1", "BRMA13_3", 2), ("BRMA13_1H", "BRMA13_3H", 1)):
+        player1 = Player("Player1", [WISP] * 30, hero)
+        player2 = Player("Player2", [WISP] * 30, "HERO_08")
+        game = BossFirstGame(players=(player1, player2))
+        game.start()
+        _empty_mulligan(game)
+        boss, other = player1, player2
+        assert db_passive(hero.replace("_1", "_2"))
+        # Turn 1, his: True Form. The player's turns 2 (nothing), 4 and 6.
+        assert boss.hero.id == nefarian
+        assert boss.hero.armor == 30
+        assert boss.max_mana == 10 and boss.mana == 10
+        for _ in range(3):
+            game.end_turn()
+            game.end_turn()
+        assert len([c for c in other.hand if c.id in helps]) == gifts
 
 
 def _choose(player, id):
