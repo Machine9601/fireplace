@@ -304,3 +304,23 @@ class RLK_745:
     )
 
 
+# --- RLK_504
+class RLK_504:
+    """Corpse Bride"""
+
+    # <b>Battlecry:</b> Spend up to 10 <b>Corpses</b> to summon a Risen Groom
+    # with <b>Taunt</b> and that much Attack and Health.
+    play = SpendCorpses(CONTROLLER, 10, up_to=True).then(
+        SummonCustomMinion(
+            CONTROLLER, "RLK_506t", 1, SpendCorpses.AMOUNT, SpendCorpses.AMOUNT
+        )
+    )
+
+
+class RLK_506t:
+    """Risen Groom"""
+
+    # <b>Taunt</b> <i>Doesn't leave a <b>Corpse</b>.</i>
+    tags = {enums.LEAVES_NO_CORPSE: True}
+
+

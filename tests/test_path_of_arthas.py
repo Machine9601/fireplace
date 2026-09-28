@@ -581,3 +581,30 @@ def test_malignant_horror():
     assert game.player1.corpses == 0
 
 
+# --- RLK_504
+def test_corpse_bride():
+    game = dk_game()
+    game.player1.corpses = 3
+    game.player1.give("RLK_504").play()
+    groom = game.player1.field[-1]
+    assert groom.id == "RLK_506t"
+    assert (groom.atk, groom.health) == (3, 3) and groom.taunt
+    assert game.player1.corpses == 0
+    # A Risen Groom doesn't leave a Corpse
+    game.player1.give(FIREBALL).play(target=groom)
+    assert groom.zone == Zone.GRAVEYARD
+    assert game.player1.corpses == 0
+
+
+def test_corpse_bride_up_to_ten():
+    game = dk_game()
+    game.player1.corpses = 12
+    game.player1.give("RLK_504").play()
+    groom = game.player1.field[-1]
+    assert (groom.atk, groom.health) == (10, 10)
+    assert game.player1.corpses == 2
+    game.player1.corpses = 0
+    game.player1.give("RLK_504").play()
+    assert len(game.player1.field) == 3  # two brides, one groom
+
+
