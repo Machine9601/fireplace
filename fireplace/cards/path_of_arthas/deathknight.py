@@ -352,3 +352,14 @@ class RLK_086:
     )
 
 
+# --- RLK_505
+class RLK_505:
+    """Marrow Manipulator"""
+
+    # <b>Battlecry:</b> Spend up to 5 <b>Corpses</b>. Deal 2 damage to a random
+    # enemy for each.
+    play = SpendCorpses(CONTROLLER, 5, up_to=True).then(
+        Hit(RANDOM_ENEMY_CHARACTER, 2) * SpendCorpses.AMOUNT
+    )
+
+

@@ -649,3 +649,17 @@ def test_frostmourne():
     assert sorted(m.id for m in game.player1.field) == sorted([WISP, CROCOLISK])
 
 
+# --- RLK_505
+def test_marrow_manipulator():
+    game = dk_game()
+    game.player1.corpses = 3
+    game.player1.give("RLK_505").play()
+    assert game.player2.hero.damage == 6
+    assert game.player1.corpses == 0
+    game.player1.corpses = 7
+    game.player1.used_mana = 0
+    game.player1.give("RLK_505").play()
+    assert game.player2.hero.damage == 16
+    assert game.player1.corpses == 2
+
+
