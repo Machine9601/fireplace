@@ -370,6 +370,19 @@ def test_mrgl_mrgl_nyah_nyah():
         assert len(game.player1.field) == count
 
 
+def test_drakkisath_intense_gaze():
+    # "Passive Hero Power: All cards cost (1). Players are capped at 1 Mana
+    # Crystal."; heroic: "You are capped at 2 Mana Crystals, and opponent at 1."
+    for hero, mine in (("BRMA08_1", 1), ("BRMA08_1H", 2)):
+        game, boss, other = _boss_game(hero, game_class=RealManaGame)
+        for _ in range(3):
+            game.end_turn()
+            game.end_turn()
+        assert boss.max_mana == mine
+        assert other.max_mana == 1
+        assert other.give("CS2_029").cost == 1
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None
