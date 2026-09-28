@@ -545,3 +545,24 @@ def test_lady_deathwhisper():
     assert sorted(ids) == sorted(["RLK_038", FIREBALL, "RLK_015", "RLK_038", "RLK_015"])
 
 
+# --- RLK_740
+def test_might_of_menethil():
+    game = dk_game()
+    minions = [game.player2.summon(CROCOLISK) for _ in range(4)]
+    game.player1.corpses = 2
+    game.player1.give("RLK_740").play()
+    assert sum(m.frozen for m in minions) == 2
+    assert game.player1.corpses == 0
+    assert game.player1.weapon.id == "RLK_740"
+    assert game.player1.weapon.durability == 2
+
+
+def test_might_of_menethil_up_to_three():
+    game = dk_game()
+    minions = [game.player2.summon(CROCOLISK) for _ in range(4)]
+    game.player1.corpses = 5
+    game.player1.give("RLK_740").play()
+    assert sum(m.frozen for m in minions) == 3
+    assert game.player1.corpses == 2
+
+

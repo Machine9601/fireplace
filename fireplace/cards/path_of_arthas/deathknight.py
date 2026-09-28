@@ -261,3 +261,35 @@ class RLK_713:
     deathrattle = Give(CONTROLLER, ExactCopy(FRIENDLY_HAND + FROST + SPELL))
 
 
+# --- RLK_740
+class RandomSample(Selector):
+    """`count` distinct random targets among `child`; `count` may be lazy
+    (SpendCorpses.AMOUNT)."""
+
+    def __init__(self, child, count):
+        self.child = child
+        self.count = count
+
+    def __repr__(self):
+        return "RandomSample(%r, %r)" % (self.child, self.count)
+
+    def eval(self, entities, source):
+        count = self.count
+        if isinstance(count, LazyValue):
+            count = count.evaluate(source)
+        child_entities = self.child.eval(entities, source)
+        return source.game.random.sample(
+            child_entities, max(0, min(len(child_entities), count or 0))
+        )
+
+
+class RLK_740:
+    """Might of Menethil"""
+
+    # <b>Battlecry:</b> Spend up to 3 <b>Corpses</b>. <b>Freeze</b> that many
+    # enemy minions. (At random: the wiki.)
+    play = SpendCorpses(CONTROLLER, 3, up_to=True).then(
+        Freeze(RandomSample(ENEMY_MINIONS - DEAD, SpendCorpses.AMOUNT))
+    )
+
+
