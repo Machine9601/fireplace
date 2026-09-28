@@ -281,15 +281,19 @@ class BRMA11_2H:
 class BRMA12_2:
     """Brood Affliction"""
 
+    # "At the end of your turn, add a Brood Affliction card to your
+    # opponent's hand.": it acts by itself, it is not used.
+    tags = {enums.PASSIVE_HERO_POWER: True}
     entourage = ["BRMA12_6", "BRMA12_5", "BRMA12_7", "BRMA12_4", "BRMA12_3"]
-    activate = Give(OPPONENT, RandomEntourage())
+    events = OWN_TURN_END.on(Give(OPPONENT, RandomEntourage()))
 
 
 class BRMA12_2H:
     """Brood Affliction (Heroic)"""
 
+    tags = {enums.PASSIVE_HERO_POWER: True}
     entourage = ["BRMA12_3H", "BRMA12_4H", "BRMA12_5H", "BRMA12_6H", "BRMA12_7H"]
-    activate = Give(OPPONENT, RandomEntourage())
+    events = OWN_TURN_END.on(Give(OPPONENT, RandomEntourage()))
 
 
 class BRMA12_10:

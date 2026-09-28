@@ -213,6 +213,24 @@ def test_thaurissan_power_of_the_firelord():
         assert other.playstate == PlayState.LOST
 
 
+def test_chromaggus_brood_affliction():
+    # "At the end of your turn, add a Brood Affliction card to your
+    # opponent's hand."
+    for hero in ("BRMA12_1", "BRMA12_1H"):
+        game, boss, other = _boss_game(hero)
+        assert db_passive(boss.hero.power.id)
+        with pytest.raises(InvalidAction):
+            boss.hero.power.use()
+        before = len(other.hand)
+        game.end_turn()
+        afflictions = [c for c in other.hand if c.id.startswith("BRMA12_")]
+        assert len(afflictions) == 1
+        game.end_turn()
+        assert len([c for c in other.hand if c.id.startswith("BRMA12_")]) == 1
+        game.end_turn()
+        assert len([c for c in other.hand if c.id.startswith("BRMA12_")]) == 2
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None
