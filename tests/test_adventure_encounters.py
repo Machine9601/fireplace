@@ -299,6 +299,55 @@ def test_prohibited_cards():
     assert not doomsayer.dead
 
 
+def test_rafaam_unleashed_staff_of_origination():
+    # "Staff of Origination takes 3 turns to charge. Once fully charged, at
+    # the start of the turn it will summon one of the random boss minions
+    # [...] but lose its normal Immune effect. The next turn the Staff will
+    # return to normal and begin the cycle afresh."
+    bosses = ("LOEA16_18", "LOEA16_19", "LOEA16_21", "LOEA16_22", "LOEA16_23",
+              "LOEA16_24", "LOEA16_25", "LOEA16_26", "LOEA16_27")
+    for hero, h in (("LOEA16_1", ""), ("LOEA16_1H", "H")):
+        game, boss, other = _boss_game(hero, game_class=BossFirstGame)
+        immune = []
+        for turn in range(8):
+            immune.append(boss.hero.immune)
+            if turn == 3:
+                assert len(boss.field) == 1 and boss.field[0].id in [b + h for b in bosses]
+            game.end_turn()
+            immune.append(boss.hero.immune)
+            game.end_turn()
+        # Turns 1-3 charging; turn 4 fires (and through the player's turn);
+        # turns 5-7 charging; turn 8 fires.
+        assert immune == [True] * 6 + [False, False] + [True] * 6 + [False, False]
+
+
+def test_rummage_finds_each_artifact_once_then_boom_bots():
+    game, boss, other = _boss_game("LOEA16_1")
+    game.end_turn()
+    other.summon("LOEA16_16")
+    found = []
+    for _ in range(11):
+        other.hero.power.activations_this_turn = 0
+        other.used_mana = 0
+        other.hero.power.use()
+        found.append(other.hand[-1].id)
+        other.hand[-1].zone = Zone.SETASIDE
+    assert sorted(found[:10]) == sorted(
+        "LOEA16_%d" % i for i in range(6, 16)
+    )
+    assert found[10] == "GVG_110t"
+
+
+def test_eye_of_orsis():
+    # "Discover a minion and gain 3 copies of it."
+    game = prepare_empty_game()
+    game.player1.give("LOEA16_13").play()
+    choice = game.player1.choice
+    picked = choice.cards[0]
+    choice.choose(picked)
+    assert len(game.player1.hand.filter(id=picked.id)) == 3
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None

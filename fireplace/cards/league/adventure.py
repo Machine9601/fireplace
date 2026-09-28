@@ -1,5 +1,6 @@
 from hearthstone.enums import PlayState, Zone
 
+from ...dsl.evaluator import Evaluator
 from ...logging import log
 from ..utils import *
 
@@ -788,52 +789,113 @@ class LOEA09_4H:
 # Rafaam Unleashed
 
 
+# The wiki (Rafaam Unleashed): "Staff of Origination takes 3 turns to charge.
+# Once fully charged, at the start of the turn it will summon one of the
+# random boss minions listed below, but lose its normal Immune effect. The
+# next turn the Staff will return to normal and begin the cycle afresh."
+# Rafaam is Immune while the staff charges: he can only be hurt from the turn
+# the staff fires until the start of his next turn.
+
+RAFAAM_BOSSES = (
+    "LOEA16_18", "LOEA16_19", "LOEA16_21", "LOEA16_22", "LOEA16_23",
+    "LOEA16_24", "LOEA16_25", "LOEA16_26", "LOEA16_27",
+)
+
+
+class StaffOfOrigination(TargetedAction):
+    """The staff (target) charges at the start of Rafaam's turn; the fourth
+    turn, it summons a boss and Rafaam loses his Immune."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        charge = getattr(target, "staff_charge", 0) + 1
+        if charge <= 3:
+            target.staff_charge = charge
+            target.staff_fired = False
+            return
+        target.staff_charge = 0
+        target.staff_fired = True
+        heroic = target.id.endswith("H")
+        bosses = RandomID(*(id + ("H" if heroic else "") for id in RAFAAM_BOSSES))
+        return source.game.queue_actions(source, [Summon(CONTROLLER, bosses)])
+
+
+class StaffCharging(Evaluator):
+    def check(self, source):
+        return not getattr(source, "staff_fired", False)
+
+
 class LOEA16_2:
     """Staff of Origination"""
 
-    update = Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    update = StaffCharging() & Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    events = OWN_TURN_BEGIN.on(StaffOfOrigination(SELF))
 
 
 class LOEA16_2H:
     """Staff of Origination (Heroic)"""
 
-    update = Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    update = StaffCharging() & Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    events = OWN_TURN_BEGIN.on(StaffOfOrigination(SELF))
+
+
+class Rummage(TargetedAction):
+    """
+    Rummage (the wiki): "Once the player has used Rummage to receive each of
+    the special cards listed below, using the Hero Power will instead
+    generate a Boom Bot each time." Each artifact is found once.
+    """
+
+    TARGET = ActionArg()
+    ARTIFACTS = (
+        "LOEA16_6", "LOEA16_7", "LOEA16_8", "LOEA16_9", "LOEA16_10",
+        "LOEA16_11", "LOEA16_12", "LOEA16_13", "LOEA16_14", "LOEA16_15",
+    )
+
+    def do(self, source, target):
+        found = getattr(target, "artifacts_found", ())
+        left = [id for id in self.ARTIFACTS if id not in found]
+        if not left:
+            return source.game.queue_actions(source, [Give(target, "GVG_110t")])
+        artifact = source.game.random.choice(left)
+        target.artifacts_found = tuple(found) + (artifact,)
+        return source.game.queue_actions(source, [Give(target, artifact)])
 
 
 class LOEA16_16:
     """Rummage"""
 
-    entourage = [
-        "LOEA16_10",
-        "LOEA16_11",
-        "LOEA16_14",
-        "LOEA16_15",
-        "LOEA16_6",
-        "LOEA16_7",
-        "LOEA16_9",
-        "LOEA16_12",
-        "LOEA16_13",
-        "LOEA16_8",
-    ]
-    activate = Give(CONTROLLER, RandomEntourage())
+    activate = Rummage(CONTROLLER)
 
 
 class LOEA16_16H:
     """Rummage (Heroic)"""
 
-    entourage = [
-        "LOEA16_10",
-        "LOEA16_11",
-        "LOEA16_14",
-        "LOEA16_15",
-        "LOEA16_6",
-        "LOEA16_7",
-        "LOEA16_9",
-        "LOEA16_12",
-        "LOEA16_13",
-        "LOEA16_8",
-    ]
-    activate = Give(CONTROLLER, RandomEntourage())
+    activate = Rummage(CONTROLLER)
+
+
+class LOEA16_13:
+    """Eye of Orsis"""
+
+    # "Discover a minion and gain 3 copies of it."
+    play = Discover(CONTROLLER, RandomMinion()).then(
+        Give(CONTROLLER, Discover.CARD), Give(CONTROLLER, Copy(Discover.CARD)) * 2
+    )
+
+
+class LOEA16_25:
+    """Lady Naz'jar"""
+
+    # "At the end of your turn, replace all other minions with new ones of
+    # the same Cost."
+    events = OWN_TURN_END.on(Evolve(ALL_MINIONS - SELF, 0))
+
+
+class LOEA16_25H:
+    """Lady Naz'jar (Heroic)"""
+
+    events = OWN_TURN_END.on(Evolve(ALL_MINIONS - SELF, 0))
 
 
 class LOEA16_6:
