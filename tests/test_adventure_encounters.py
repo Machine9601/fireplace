@@ -271,6 +271,34 @@ def test_kelthuzad_phase_2_at_turn_11_and_chains():
     assert yeti.controller is other
 
 
+def test_prohibited_cards():
+    # Loatheb: Alexstrasza is destroyed, her Battlecry never happens; the Four
+    # Horsemen: Doomsayer is destroyed, Equality fails; no Mana refunded.
+    game, boss, other = _boss_game("NAX6_01")
+    game.end_turn()
+    alex = other.give("EX1_561")
+    alex.play(target=boss.hero)
+    assert alex.dead
+    assert boss.hero.health == 75
+    assert other.used_mana == 9
+
+    game, boss, other = _boss_game("NAX9_01")
+    horseman = boss.summon("NAX9_02")
+    game.end_turn()
+    doomsayer = other.give("NEW1_021")
+    doomsayer.play()
+    assert doomsayer.dead
+    other.give("EX1_619").play()
+    assert horseman.health == 7
+    assert other.used_mana == 5
+    # Another boss: they are allowed.
+    game, boss, other = _boss_game("NAX1_01")
+    game.end_turn()
+    doomsayer = other.give("NEW1_021")
+    doomsayer.play()
+    assert not doomsayer.dead
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None

@@ -81,16 +81,27 @@ class NAX5_02H:
     activate = Hit(ENEMY_MINIONS[0], 3)
 
 
+# The prohibited cards (the wiki): Loatheb, "If summoned, Kel'Thuzad will
+# destroy Alexstrasza, refund no mana"; the Four Horsemen, "Playing Doomsayer
+# will cause the minion to be instantly destroyed, while Equality will simply
+# fail to take effect. No mana will be refunded". "If you manage to transform
+# [the boss] into a different hero [...] you will be able to play [them]
+# normally": the rule lives on the boss's Hero Power.
+PROHIBITED_MINION = Counter(Play.CARD), Destroy(Play.CARD)
+
+
 class NAX6_02:
     """Necrotic Aura"""
 
     activate = Hit(ENEMY_HERO, 3)
+    events = Play(OPPONENT, ID("EX1_561")).on(*PROHIBITED_MINION)
 
 
 class NAX6_02H:
     """Necrotic Aura (Heroic)"""
 
     activate = Hit(ENEMY_HERO, 3)
+    events = Play(OPPONENT, ID("EX1_561")).on(*PROHIBITED_MINION)
 
 
 class NAX7_03:
@@ -123,6 +134,10 @@ class NAX9_06:
     """Unholy Shadow"""
 
     activate = Draw(CONTROLLER) * 2
+    events = (
+        Play(OPPONENT, ID("NEW1_021")).on(*PROHIBITED_MINION),
+        Play(OPPONENT, ID("EX1_619")).on(Counter(Play.CARD)),
+    )
 
 
 class NAX10_03:
