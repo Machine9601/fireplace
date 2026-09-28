@@ -169,3 +169,13 @@ class RLK_712:
 RLK_712e = buff(+1, +1)
 
 
+# --- RLK_015
+class RLK_015:
+    """Howling Blast"""
+
+    # Deal $3 damage to an enemy and <b>Freeze</b> it. Deal $1 damage to all
+    # other enemies.
+    requirements = {PlayReq.REQ_ENEMY_TARGET: 0, PlayReq.REQ_TARGET_TO_PLAY: 0}
+    play = Hit(TARGET, 3), Freeze(TARGET), Hit(ENEMY_CHARACTERS - TARGET, 1)
+
+

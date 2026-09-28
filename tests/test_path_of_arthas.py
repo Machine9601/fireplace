@@ -419,3 +419,23 @@ def test_blood_tap():
     assert game.player1.corpses == 1
 
 
+# --- RLK_015
+def test_howling_blast():
+    game = dk_game()
+    mine = game.player1.summon(CROCOLISK)
+    crocolisk1 = game.player2.summon(CROCOLISK)
+    crocolisk2 = game.player2.summon(CROCOLISK)
+    game.player1.give("RLK_015").play(target=crocolisk1)
+    assert crocolisk1.zone == Zone.GRAVEYARD
+    assert crocolisk2.damage == 1 and not crocolisk2.frozen
+    assert game.player2.hero.damage == 1
+    assert mine.damage == 0 and game.player1.hero.damage == 0
+
+
+def test_howling_blast_freezes_its_target():
+    game = dk_game()
+    golem = game.player2.summon(WAR_GOLEM)
+    game.player1.give("RLK_015").play(target=golem)
+    assert golem.damage == 3 and golem.frozen
+
+
