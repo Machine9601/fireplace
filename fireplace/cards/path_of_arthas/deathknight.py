@@ -16,3 +16,12 @@ class RLK_042:
     play = FillMana(CONTROLLER, 2)
 
 
+# --- RLK_038
+class RLK_038:
+    """Icy Touch"""
+
+    # Deal $2 damage to an enemy and <b>Freeze</b> it.
+    requirements = {PlayReq.REQ_ENEMY_TARGET: 0, PlayReq.REQ_TARGET_TO_PLAY: 0}
+    play = Hit(TARGET, 2), Freeze(TARGET)
+
+

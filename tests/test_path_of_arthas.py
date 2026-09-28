@@ -249,3 +249,15 @@ def test_horn_of_winter():
     assert game.player1.used_mana == 0
 
 
+# --- RLK_038
+def test_icy_touch():
+    game = dk_game()
+    mine = game.player1.summon(CROCOLISK)
+    enemy = game.player2.summon(CROCOLISK)
+    icy_touch = game.player1.give("RLK_038")
+    assert mine not in icy_touch.targets
+    assert game.player2.hero in icy_touch.targets
+    icy_touch.play(target=enemy)
+    assert enemy.health == 1 and enemy.frozen
+
+
