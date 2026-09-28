@@ -104,3 +104,31 @@ class RLK_057:
     play = Morph(TARGET, "RLK_057t")
 
 
+# --- RLK_066
+def _blood_rune_card(card):
+    """A Blood Rune card that may be generated: at least one Blood rune, and
+    not a triple-rune card (they cannot be generated nor Discovered since
+    patch 26.0.4, the wiki « Rune »)."""
+    blood = card.tags.get(GameTag.COST_BLOOD, 0)
+    runes = (
+        blood
+        + card.tags.get(GameTag.COST_FROST, 0)
+        + card.tags.get(GameTag.COST_UNHOLY, 0)
+    )
+    return blood > 0 and runes < 3
+
+
+class RLK_066:
+    """Hematurge"""
+
+    # <b>Battlecry:</b> Spend a <b>Corpse</b> to <b>Discover</b> a Blood Rune
+    # card.
+    play = SpendCorpses(CONTROLLER, 1).then(
+        DISCOVER(
+            RandomCollectible(
+                card_class=CardClass.DEATHKNIGHT, custom_filter=_blood_rune_card
+            )
+        )
+    )
+
+

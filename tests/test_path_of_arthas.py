@@ -357,3 +357,21 @@ def test_dark_transformation_needs_an_undead():
     assert not game.player1.give("RLK_057").is_playable()
 
 
+# --- RLK_066
+def test_hematurge():
+    game = dk_game()
+    game.player1.give("RLK_066").play()
+    assert not game.player1.choice
+    game.player1.corpses = 1
+    game.player1.give("RLK_066").play()
+    choice = game.player1.choice
+    assert choice and len(choice.cards) == 3
+    for card in choice.cards:
+        assert card.cost_blood > 0, card
+        assert sum(card.runes) < 3, card
+    picked = choice.cards[0]
+    choice.choose(picked)
+    assert game.player1.hand[-1].id == picked.id
+    assert game.player1.corpses == 0
+
+
