@@ -334,3 +334,26 @@ def test_unholy_frenzy_stops_when_the_target_dies():
     assert game.player1.corpses == 0
 
 
+# --- RLK_057
+def test_dark_transformation():
+    game = dk_game()
+    wisp = game.player1.summon(WISP)
+    ghoul = game.player1.summon("HERO_11bpt")
+    enemy_ghoul = game.player2.summon("HERO_11bpt")
+    dark = game.player1.give("RLK_057")
+    assert wisp not in dark.targets
+    assert ghoul in dark.targets and enemy_ghoul in dark.targets
+    dark.play(target=enemy_ghoul)
+    monstrosity = game.player2.field[0]
+    assert monstrosity.id == "RLK_057t"
+    assert monstrosity.atk == 4 and monstrosity.health == 5 and monstrosity.rush
+    assert Race.UNDEAD in monstrosity.races
+    assert ghoul.zone == Zone.PLAY and ghoul.id == "HERO_11bpt"
+
+
+def test_dark_transformation_needs_an_undead():
+    game = dk_game()
+    game.player1.summon(WISP)
+    assert not game.player1.give("RLK_057").is_playable()
+
+

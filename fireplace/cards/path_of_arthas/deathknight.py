@@ -91,3 +91,16 @@ class RLK_056:
     play = UnholyFrenzyAttack(TARGET)
 
 
+# --- RLK_057
+class RLK_057:
+    """Dark Transformation"""
+
+    # Transform an Undead into a 4/5 Undead Monstrosity with <b>Rush</b>.
+    requirements = {
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+        PlayReq.REQ_TARGET_WITH_RACE: Race.UNDEAD,
+    }
+    play = Morph(TARGET, "RLK_057t")
+
+
