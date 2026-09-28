@@ -363,3 +363,12 @@ class RLK_505:
     )
 
 
+# --- RLK_063
+class RLK_063:
+    """Frostwyrm's Fury"""
+
+    # Deal $5 damage. <b>Freeze</b> all enemy minions. Summon a 5/5 Frostwyrm.
+    requirements = {PlayReq.REQ_TARGET_TO_PLAY: 0}
+    play = Hit(TARGET, 5), Freeze(ENEMY_MINIONS), Summon(CONTROLLER, "RLK_063t")
+
+

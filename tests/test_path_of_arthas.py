@@ -663,3 +663,15 @@ def test_marrow_manipulator():
     assert game.player1.corpses == 2
 
 
+# --- RLK_063
+def test_frostwyrms_fury():
+    game = dk_game()
+    crocolisk = game.player2.summon(CROCOLISK)
+    golem = game.player2.summon(WAR_GOLEM)
+    game.player1.give("RLK_063").play(target=game.player2.hero)
+    assert game.player2.hero.damage == 5
+    assert crocolisk.frozen and golem.frozen
+    wyrm = game.player1.field[-1]
+    assert wyrm.id == "RLK_063t" and (wyrm.atk, wyrm.health) == (5, 5)
+
+
