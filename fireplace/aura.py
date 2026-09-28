@@ -1,12 +1,20 @@
 from .logging import log
-from .managers import CardManager
+from .managers import CardManager, PlayerManager
+
+
+class PlayerAuraManager(CardManager):
+    """The tags an aura sets on a player: those of a card, and those only a
+    player has (Intense Gaze sets MAXRESOURCES, the cap of Mana Crystals)."""
+
+    map = {**CardManager.map, **PlayerManager.map}
 
 
 class AuraBuff:
     def __init__(self, source, entity):
         self.source = source
         self.entity = entity
-        self.tags = CardManager(self)
+        is_player = getattr(entity, "Manager", None) is PlayerManager
+        self.tags = (PlayerAuraManager if is_player else CardManager)(self)
 
     def __repr__(self):
         return "<AuraBuff %r -> %r>" % (self.source, self.entity)
