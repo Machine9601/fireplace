@@ -222,3 +222,34 @@ class RLK_062:
     play = Summon(CONTROLLER, ExactCopy(SELF)) * 2
 
 
+# --- RLK_118
+class TombGuardiansSummon(TargetedAction):
+    """Summon two Menacing Zombies for TARGET (a player); spend 4 Corpses to
+    give them Reborn."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        game = source.game
+        zombies = []
+        for _ in range(2):
+            for cards in game.queue_actions(source, [Summon(target, "RLK_118t3")])[0]:
+                zombies += [c for c in cards if c.zone == Zone.PLAY]
+        if not zombies:
+            return
+        spent = game.queue_actions(source, [SpendCorpses(target, 4)])[0]
+        if spent and spent[0]:
+            for zombie in zombies:
+                if zombie.zone == Zone.PLAY:
+                    game.queue_actions(source, [GiveReborn(zombie)])
+
+
+class RLK_118:
+    """Tomb Guardians"""
+
+    # Summon two 2/2 Zombies with <b>Taunt</b>. Spend 4 <b>Corpses</b> to give
+    # them <b>Reborn</b>.
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = TombGuardiansSummon(CONTROLLER)
+
+

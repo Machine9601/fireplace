@@ -508,3 +508,25 @@ def test_nerubian_swarmguard():
         assert (minion.atk, minion.health) == (2, 4) and minion.taunt
 
 
+# --- RLK_118
+def test_tomb_guardians():
+    game = dk_game()
+    game.player1.give("RLK_118").play()
+    assert [m.id for m in game.player1.field] == ["RLK_118t3", "RLK_118t3"]
+    for zombie in game.player1.field:
+        assert (zombie.atk, zombie.health) == (2, 2) and zombie.taunt
+        assert not zombie.reborn
+    game.player1.corpses = 4
+    game.player1.give("RLK_118").play()
+    assert len(game.player1.field) == 4
+    assert [m.reborn for m in game.player1.field] == [False, False, True, True]
+    assert game.player1.corpses == 0
+
+
+def test_tomb_guardians_needs_room():
+    game = dk_game()
+    for _ in range(7):
+        game.player1.summon(WISP)
+    assert not game.player1.give("RLK_118").is_playable()
+
+
