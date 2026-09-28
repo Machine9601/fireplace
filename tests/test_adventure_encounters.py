@@ -348,6 +348,18 @@ def test_eye_of_orsis():
     assert len(game.player1.hand.filter(id=picked.id)) == 3
 
 
+def test_gluth_decimate():
+    # Normal: "Change the Health of all minions to 1."; heroic: "Change the
+    # Health of enemy minions to 1."
+    for hero, own in (("NAX12_01", 1), ("NAX12_01H", 5)):
+        game, boss, other = _boss_game(hero)
+        mine = boss.summon("CS2_182")
+        theirs = other.summon("CS2_182")
+        boss.hero.power.use()
+        assert theirs.health == 1
+        assert mine.health == own
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None

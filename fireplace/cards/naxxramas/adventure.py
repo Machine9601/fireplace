@@ -173,8 +173,9 @@ class NAX11_02H:
 class NAX12_02:
     """Decimate"""
 
-    requirements = {PlayReq.REQ_MINIMUM_ENEMY_MINIONS: 1}
-    activate = Buff(ENEMY_MINIONS, "NAX12_02e")
+    # "Change the Health of all minions to 1." (heroic: "of enemy minions")
+    requirements = {PlayReq.REQ_MINIMUM_TOTAL_MINIONS: 1}
+    activate = Buff(ALL_MINIONS, "NAX12_02e")
 
 
 class NAX12_02H:
