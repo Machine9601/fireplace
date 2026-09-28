@@ -832,9 +832,11 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
         if self.can_target_cards_in_hand:
             # "Give a minion in your hand..." (Vicious Bloodworm,
             # CAN_TARGET_CARDS_IN_HAND): the target is a card of the hand,
-            # never a character in play.
+            # never a character in play; only a minion can be such a target.
             return [
-                card for card in self.controller.hand if is_valid_target(self, card)
+                card
+                for card in self.controller.hand
+                if card.type == CardType.MINION and is_valid_target(self, card)
             ]
         return [card for card in self.game.characters if is_valid_target(self, card)]
 
