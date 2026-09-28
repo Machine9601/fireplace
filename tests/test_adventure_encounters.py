@@ -96,6 +96,30 @@ def test_lady_nazjar_pearl_of_the_tides():
         assert boss.field[0] is kept
 
 
+def test_majordomo_then_ragnaros():
+    # Ragnaros the Firelord (boss): "Defeating the flamewaker causes him to
+    # summon forth Ragnaros the Firelord, and the second stage of the battle
+    # begins." (8 Health and DIE, INSECT!; heroic 30 and DIE, INSECTS!)
+    for hero, ragnaros, health, power in (
+        ("BRMA06_1", "BRMA06_3", 8, "BRM_027p"),
+        ("BRMA06_1H", "BRMA06_3H", 30, "BRM_027pH"),
+    ):
+        game, boss, other = _boss_game(hero)
+        game.end_turn()
+        boss.hero.set_current_health(3)
+        other.give("CS2_029").play(target=boss.hero)  # Fireball: 6 damage
+        assert game.state != State.COMPLETE
+        assert boss.playstate == PlayState.PLAYING
+        assert boss.hero.id == ragnaros
+        assert boss.hero.health == health and boss.hero.damage == 0
+        assert boss.hero.power.id == power
+        # Ragnaros falls: the boss is defeated.
+        boss.hero.set_current_health(2)
+        with pytest.raises(GameOver):
+            other.give("CS2_029").play(target=boss.hero)
+        assert other.playstate == PlayState.WON
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None

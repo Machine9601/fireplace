@@ -1,4 +1,57 @@
+from hearthstone.enums import Zone
+
+from ...dsl.evaluator import Evaluator
+from ...logging import log
 from ..utils import *
+
+
+##
+# The bosses in several phases (Majordomo then Ragnaros, Nefarian and
+# Onyxia, Kel'Thuzad): the next phase comes while the auras refresh, before
+# the deaths are processed, so a boss whose hero falls is replaced, not
+# defeated.
+
+
+class HeroFallen(Evaluator):
+    """The hero of the source's controller has fallen (no Health left, or
+    destroyed) and is still in play: its deaths are not processed yet."""
+
+    def check(self, source):
+        hero = source.controller.hero
+        return hero.zone == Zone.PLAY and (hero.health <= 0 or hero.to_be_destroyed)
+
+
+class ArmorBroken(Evaluator):
+    """The hero of the source's controller had Armor, has none left, and is
+    still standing. The source (a Hero Power) remembers the Armor it saw."""
+
+    def check(self, source):
+        hero = source.controller.hero
+        if hero.armor > 0:
+            source.armor_seen = True
+            return False
+        if not getattr(source, "armor_seen", False):
+            return False
+        return hero.health > 0 and not hero.to_be_destroyed
+
+
+class NextPhase(TargetedAction):
+    """
+    The boss (target, a player) goes into its next phase: `hero` replaces its
+    hero, with its own Health and its own Hero Power (the wiki: "Defeating the
+    flamewaker causes him to summon forth Ragnaros the Firelord").
+    """
+
+    TARGET = ActionArg()
+    HERO = ActionArg()
+
+    def get_target_args(self, source, target):
+        return [self._args[1]]
+
+    def do(self, source, target, hero):
+        log.info("%r goes into its next phase: %s", target, hero)
+        source.game.queue_actions(source, [Summon(target, hero)])
+
 
 ##
 # Hero Powers
@@ -76,6 +129,11 @@ class BRMA06_2:
 
     requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
     activate = Summon(CONTROLLER, "BRMA06_4")
+    # The wiki (Ragnaros the Firelord (boss)): "The encounter begins with the
+    # player facing Majordomo Executus. Defeating the flamewaker causes him to
+    # summon forth Ragnaros the Firelord, and the second stage of the battle
+    # begins." Ragnaros (BRMA06_3) has his own 8 Health and DIE, INSECT!.
+    update = HeroFallen() & NextPhase(CONTROLLER, "BRMA06_3")
 
 
 class BRMA06_2H:
@@ -83,6 +141,8 @@ class BRMA06_2H:
 
     requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
     activate = Summon(CONTROLLER, "BRMA06_4H")
+    # Heroic: Ragnaros (BRMA06_3H) has 30 Health and DIE, INSECTS!.
+    update = HeroFallen() & NextPhase(CONTROLLER, "BRMA06_3H")
 
 
 class BRMA07_2:
