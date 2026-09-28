@@ -287,3 +287,21 @@ def test_bone_breaker():
     assert not game.player1.weapon
 
 
+# --- RLK_018
+def test_plague_strike():
+    game = dk_game()
+    wisp = game.player2.summon(WISP)
+    crocolisk = game.player2.summon(CROCOLISK)
+    game.player1.give("RLK_018").play(target=crocolisk)
+    assert crocolisk.health == 0 or crocolisk.dead
+    assert game.player1.field[-1].id == "RLK_018t"
+    zombie = game.player1.field[-1]
+    assert zombie.atk == 2 and zombie.health == 2 and zombie.rush
+    assert Race.UNDEAD in zombie.races
+    game.player2.summon(WAR_GOLEM)
+    golem = game.player2.field[-1]
+    game.player1.give("RLK_018").play(target=golem)
+    assert len(game.player1.field) == 1
+    assert wisp.zone == Zone.PLAY
+
+

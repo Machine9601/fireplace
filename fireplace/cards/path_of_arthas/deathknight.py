@@ -44,3 +44,14 @@ class RLK_516:
     events = Attack(FRIENDLY_HERO, ALL_MINIONS).after(Hit(ENEMY_HERO, 2))
 
 
+# --- RLK_018
+class RLK_018:
+    """Plague Strike"""
+
+    # Deal $3 damage to a minion. If it dies, summon a 2/2 Zombie with
+    # <b>Rush</b>. (The wiki: it checks whether the minion was dealt lethal
+    # damage.)
+    requirements = {PlayReq.REQ_MINION_TARGET: 0, PlayReq.REQ_TARGET_TO_PLAY: 0}
+    play = Hit(TARGET, 3), Dead(TARGET) & Summon(CONTROLLER, "RLK_018t")
+
+
