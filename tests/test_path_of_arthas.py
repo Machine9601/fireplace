@@ -305,3 +305,32 @@ def test_plague_strike():
     assert wisp.zone == Zone.PLAY
 
 
+# --- RLK_056
+def test_unholy_frenzy():
+    game = dk_game()
+    wisp1 = game.player1.summon(WISP)
+    wisp2 = game.player1.summon(WISP)
+    crocolisk = game.player1.summon(CROCOLISK)
+    golem = game.player2.summon(WAR_GOLEM)
+    game.player1.give("RLK_056").play(target=golem)
+    assert golem.damage == 4
+    # All three died, and were resummoned: new ones
+    assert [m.id for m in game.player1.field] == [WISP, WISP, CROCOLISK]
+    for old in (wisp1, wisp2, crocolisk):
+        assert old.zone == Zone.GRAVEYARD
+    assert all(m.damage == 0 for m in game.player1.field)
+    assert game.player1.corpses == 3
+
+
+def test_unholy_frenzy_stops_when_the_target_dies():
+    game = dk_game()
+    crocolisk1 = game.player1.summon(CROCOLISK)
+    crocolisk2 = game.player1.summon(CROCOLISK)
+    wisp = game.player2.summon(WISP)
+    game.player1.give("RLK_056").play(target=wisp)
+    assert wisp.zone == Zone.GRAVEYARD
+    assert crocolisk1.damage == 1 and crocolisk2.damage == 0
+    assert game.player1.field == [crocolisk1, crocolisk2]
+    assert game.player1.corpses == 0
+
+

@@ -55,3 +55,39 @@ class RLK_018:
     play = Hit(TARGET, 3), Dead(TARGET) & Summon(CONTROLLER, "RLK_018t")
 
 
+# --- RLK_056
+class UnholyFrenzyAttack(TargetedAction):
+    """Your minions attack TARGET, left to right, while it lives; then
+    resummon (a new copy of) any of them that died."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        game = source.game
+        died = []
+        for minion in list(source.controller.field):
+            if target.dead or target.zone != Zone.PLAY:
+                break
+            if minion.dead or minion.zone != Zone.PLAY or minion.dormant:
+                continue
+            game.queue_actions(source, [Attack(minion, target)])
+            if minion.dead:
+                died.append(minion.id)
+        if died:
+            game.queue_actions(source, [Deaths()])
+            for id in died:
+                game.queue_actions(source, [Summon(CONTROLLER, id)])
+
+
+class RLK_056:
+    """Unholy Frenzy"""
+
+    # Choose an enemy minion. Your minions attack it. Resummon any that die.
+    requirements = {
+        PlayReq.REQ_ENEMY_TARGET: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+    }
+    play = UnholyFrenzyAttack(TARGET)
+
+
