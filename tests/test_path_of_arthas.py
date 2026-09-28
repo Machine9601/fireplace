@@ -71,6 +71,22 @@ def test_path_of_arthas_stats():
             assert (card.cost, card.atk, card.health) == (cost, atk, health), id
 
 
+def test_texts_as_carddefs_gives_them():
+    # A text on several lines keeps its lines as they are (no stray tab)
+    db = cards_db.db
+    ids = [id for id, card in db.items() if card.dbf_id and (
+        card.card_set == CardSet.PATH_OF_ARTHAS or id.startswith(("HERO_11", "RLK_")))]
+    assert len(ids) >= 43
+    for id in ids:
+        for tag in (GameTag.CARDNAME, GameTag.CARDTEXT, GameTag.FLAVORTEXT):
+            for text in db[id].strings.get(tag, {}).values():
+                assert "\t" not in (text or ""), (id, tag, text)
+    assert db["RLK_730"].description == (
+        "<b>Lifesteal</b>\nInfect all enemy minions. At the end of your turns, "
+        "they take 2 damage."
+    )
+
+
 def test_death_knight_hero_and_hero_power():
     db = cards_db.db
     assert CardClass.DEATHKNIGHT.default_hero == "HERO_11"
