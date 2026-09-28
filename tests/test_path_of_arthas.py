@@ -261,3 +261,14 @@ def test_icy_touch():
     assert enemy.health == 1 and enemy.frozen
 
 
+# --- RLK_110
+def test_ymirjar_frostbreaker():
+    game = dk_game()
+    game.player1.give("RLK_038")  # Icy Touch, a Frost spell
+    game.player1.give("RLK_038")
+    game.player1.give(FIREBALL)  # a Fire spell
+    ymirjar = game.player1.give("RLK_110").play()
+    assert ymirjar.atk == 3 and ymirjar.health == 2
+    assert game.player1.give("RLK_110").play().atk == 3
+
+

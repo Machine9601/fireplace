@@ -25,3 +25,14 @@ class RLK_038:
     play = Hit(TARGET, 2), Freeze(TARGET)
 
 
+# --- RLK_110
+class RLK_110:
+    """Ymirjar Frostbreaker"""
+
+    # <b>Battlecry:</b> Gain +1 Attack for each Frost spell in your hand.
+    play = Buff(SELF, "RLK_110e") * Count(FRIENDLY_HAND + FROST + SPELL)
+
+
+RLK_110e = buff(atk=1)
+
+
