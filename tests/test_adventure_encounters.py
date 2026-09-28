@@ -231,6 +231,46 @@ def test_chromaggus_brood_affliction():
         assert len([c for c in other.hand if c.id.startswith("BRMA12_")]) == 2
 
 
+def test_kelthuzad_phase_2_when_his_armor_is_gone():
+    # "He starts in Phase 1 and will enter Phase 2 immediately as soon as all
+    # of his Armor is gone [...] his hero power will change to Chains and he
+    # will summon 2 Guardian of Icecrown."
+    for hero, chains, guardian in (
+        ("NAX15_01", "NAX15_04", "NAX15_03n"),
+        ("NAX15_01H", "NAX15_04H", "NAX15_03t"),
+    ):
+        game, boss, other = _boss_game(hero)
+        boss.hero.armor = 10
+        game.end_turn()
+        game.end_turn()
+        assert boss.hero.power.id.startswith("NAX15_02")
+        game.end_turn()
+        other.give("CS2_029").play(target=boss.hero)
+        assert boss.hero.power.id.startswith("NAX15_02")
+        other.give("CS2_029").play(target=boss.hero)
+        assert boss.hero.armor == 0 and boss.hero.damage == 2
+        assert boss.hero.power.id == chains
+        assert len(boss.field.filter(id=guardian)) == 2
+
+
+def test_kelthuzad_phase_2_at_turn_11_and_chains():
+    game, boss, other = _boss_game("NAX15_01", game_class=BossFirstGame)
+    while game.turn < 11:
+        assert boss.hero.power.id == "NAX15_02"
+        game.end_turn()
+    assert game.current_player is boss
+    assert boss.hero.power.id == "NAX15_04"
+    game.end_turn()
+    yeti = other.summon("CS2_182")
+    game.end_turn()
+    boss.max_mana = 10
+    boss.used_mana = 0
+    boss.hero.power.use()
+    assert yeti.controller is boss
+    game.end_turn()
+    assert yeti.controller is other
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None

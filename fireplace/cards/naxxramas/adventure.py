@@ -1,3 +1,4 @@
+from ..blackrock.adventure import ArmorBroken
 from ..utils import *
 
 ##
@@ -187,34 +188,81 @@ class NAX14_02:
     activate = Destroy(ENEMY_MINIONS - FROZEN - ADJACENT(ID("NAX14_03")))
 
 
+# Kel'Thuzad (the wiki): "He starts in Phase 1 and will enter Phase 2
+# immediately as soon as all of his Armor is gone [...] Kel'Thuzad is also
+# capable of switching to Phase 2 preemptively [...] at turn 11. When
+# Kel'Thuzad enters Phase 2, his hero power will change to Chains and he will
+# summon 2 Guardian of Icecrown." The guides: 10 Armor, 20 in heroic; the
+# Guardians are 3/3, 5/5 in heroic.
+
+
+class KelThuzadPhase2(TargetedAction):
+    """Phase 2 of Kel'Thuzad (target, the boss player): Chains, and two
+    Guardians of Icecrown."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        if getattr(target, "kelthuzad_phase", 1) != 1:
+            return
+        target.kelthuzad_phase = 2
+        heroic = source.id.endswith("H")
+        guardian = "NAX15_03t" if heroic else "NAX15_03n"
+        return source.game.queue_actions(
+            source,
+            [
+                Summon(target, "NAX15_04H" if heroic else "NAX15_04"),
+                Summon(target, guardian) * 2,
+            ],
+        )
+
+
+class KelThuzadTurn(TargetedAction):
+    """At the start of his turn, from turn 11: Phase 2."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        if source.game.turn >= 11:
+            return source.game.queue_actions(source, [KelThuzadPhase2(target)])
+
+
 class NAX15_02:
     """Frost Blast"""
 
     activate = Hit(ENEMY_HERO, 2), Freeze(ENEMY_HERO)
+    update = ArmorBroken() & KelThuzadPhase2(CONTROLLER)
+    events = OWN_TURN_BEGIN.on(KelThuzadTurn(CONTROLLER))
 
 
 class NAX15_02H:
     """Frost Blast (Heroic)"""
 
     activate = Hit(ENEMY_HERO, 3), Freeze(ENEMY_HERO)
+    update = ArmorBroken() & KelThuzadPhase2(CONTROLLER)
+    events = OWN_TURN_BEGIN.on(KelThuzadTurn(CONTROLLER))
 
 
 class NAX15_04:
     """Chains"""
 
-    activate = Steal(TARGET), Buff(TARGET, "NAX15_04a")
+    # "Take control of a random enemy minion until end of turn."
+    requirements = {PlayReq.REQ_MINIMUM_ENEMY_MINIONS: 1}
+    activate = Steal(RANDOM_ENEMY_MINION).then(Buff(Steal.TARGET, "NAX15_04a"))
 
 
 class NAX15_04a:
-    events = TURN_END.on(Destroy(SELF))
-
-    def destroy(self):
-        self.controller.opponent.steal(self.owner)
+    # "Until end of turn" (as Shadow Madness gives it back).
+    events = (
+        TURN_END.on(Destroy(SELF), Steal(OWNER, OPPONENT)),
+        Silence(OWNER).on(Steal(OWNER, OPPONENT)),
+    )
 
 
 class NAX15_04H:
     """Chains (Heroic)"""
 
+    requirements = {PlayReq.REQ_MINIMUM_ENEMY_MINIONS: 1}
     activate = Steal(RANDOM_ENEMY_MINION)
 
 
