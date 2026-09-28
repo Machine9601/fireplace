@@ -293,3 +293,14 @@ class RLK_740:
     )
 
 
+# --- RLK_745
+class RLK_745:
+    """Malignant Horror"""
+
+    # <b>Reborn</b> At the end of your turn, spend 4 <b>Corpses</b> to summon a
+    # copy of this minion.
+    events = OWN_TURN_END.on(
+        SpendCorpses(CONTROLLER, 4).then(Summon(CONTROLLER, ExactCopy(SELF)))
+    )
+
+

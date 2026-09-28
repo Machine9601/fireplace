@@ -566,3 +566,18 @@ def test_might_of_menethil_up_to_three():
     assert game.player1.corpses == 2
 
 
+# --- RLK_745
+def test_malignant_horror():
+    game = dk_game()
+    horror = game.player1.give("RLK_745").play()
+    assert horror.reborn
+    game.player1.corpses = 3
+    game.end_turn()
+    assert len(game.player1.field) == 1 and game.player1.corpses == 3
+    game.end_turn()
+    game.player1.corpses = 4
+    game.end_turn()
+    assert [m.id for m in game.player1.field] == ["RLK_745", "RLK_745"]
+    assert game.player1.corpses == 0
+
+
