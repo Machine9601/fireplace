@@ -360,6 +360,16 @@ def test_gluth_decimate():
         assert mine.health == own
 
 
+def test_mrgl_mrgl_nyah_nyah():
+    # Normal: "Summon 3 Murlocs that died this game."; heroic: 5.
+    for spell, count in (("LOEA10_5", 3), ("LOEA10_5H", 5)):
+        game = prepare_empty_game()
+        for _ in range(6):
+            game.player1.summon("CS2_168").destroy()  # Murloc Raider
+        game.player1.give(spell).play()
+        assert len(game.player1.field) == count
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None

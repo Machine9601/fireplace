@@ -683,7 +683,8 @@ class LOEA10_2H:
 class LOEA10_5:
     """Mrgl Mrgl Nyah Nyah"""
 
-    play = Summon(CONTROLLER, Copy(RANDOM(KILLED + MURLOC) * 5))
+    # "Summon 3 Murlocs that died this game." (heroic: 5)
+    play = Summon(CONTROLLER, Copy(RANDOM(KILLED + MURLOC) * 3))
 
 
 class LOEA10_5H:
