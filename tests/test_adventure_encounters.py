@@ -213,6 +213,18 @@ def test_thaurissan_power_of_the_firelord():
         assert other.playstate == PlayState.LOST
 
 
+def test_moira_never_attacks_minions_unless_they_have_taunt():
+    for moira in ("BRMA03_3", "BRMA03_3H"):
+        game, boss, other = _boss_game("BRMA03_1")
+        guard = boss.summon(moira)
+        guard.turns_in_play = 1
+        yeti = other.summon("CS2_182")
+        assert guard.attack_targets == [other.hero]
+        footman = other.summon("CS1_042")  # Taunt
+        assert guard.attack_targets == [footman]
+        assert yeti not in guard.attack_targets
+
+
 def test_chromaggus_brood_affliction():
     # "At the end of your turn, add a Brood Affliction card to your
     # opponent's hand."

@@ -573,13 +573,17 @@ class BRMA17_8H:
 class BRMA03_3:
     """Moira Bronzebeard"""
 
+    # "Thaurissan's Hero Power can't be used. Never attacks minions unless
+    # they have Taunt."
     update = Refresh(ALL_HERO_POWERS + ID("BRMA03_2"), {GameTag.CANT_PLAY: True})
+    attacks_minions_only_with_taunt = True
 
 
 class BRMA03_3H:
     """Moira Bronzebeard (Heroic)"""
 
     update = Refresh(ALL_HERO_POWERS + ID("BRMA03_2"), {GameTag.CANT_PLAY: True})
+    attacks_minions_only_with_taunt = True
 
 
 class BRMA10_4:

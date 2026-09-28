@@ -970,6 +970,10 @@ class Character(LiveEntity):
         if not self.ignore_taunt:
             taunts = targets.filter(taunt=True).filter(attackable=True)
 
+        if not taunts and getattr(self.data.scripts, "attacks_minions_only_with_taunt", False):
+            # "Never attacks minions unless they have Taunt." (Moira Bronzebeard)
+            targets = targets.filter(type=CardType.HERO)
+
         return (taunts or targets).filter(attackable=True)
 
     @property
