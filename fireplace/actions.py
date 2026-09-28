@@ -1986,6 +1986,7 @@ class Shuffle(TargetedAction):
             cards = [cards]
 
         for card in cards:
+            old_zone = card.zone
             if card.controller != target:
                 card.zone = Zone.SETASIDE
                 card.controller = target
@@ -1993,6 +1994,10 @@ class Shuffle(TargetedAction):
                 log.info("Shuffle(%r) fails because %r's deck is full", card, target)
                 continue
             card.zone = Zone.DECK
+            if old_zone != card.old_zone and card.returns_to_card(old_zone, Zone.DECK):
+                # Through SETASIDE into the other player's deck: the card is
+                # reset as it would be in its own deck.
+                card.becomes_card_again()
             target.shuffle_deck()
             source.game.manager.targeted_action(self, source, target, card)
             self.broadcast(source, EventListener.AFTER, target, card)
