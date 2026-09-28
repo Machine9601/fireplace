@@ -117,13 +117,14 @@ class BRMA04_2:
 class BRMA05_2:
     """Ignite Mana"""
 
-    activate = (MANA(OPPONENT) <= USED_MANA(OPPONENT)) & Hit(ENEMY_HERO, 5)
+    # "Deal 5 damage to the enemy hero if they have any unspent Mana."
+    activate = (CURRENT_MANA(OPPONENT) > 0) & Hit(ENEMY_HERO, 5)
 
 
 class BRMA05_2H:
     """Ignite Mana (Heroic)"""
 
-    activate = (MANA(OPPONENT) <= USED_MANA(OPPONENT)) & Hit(ENEMY_HERO, 10)
+    activate = (CURRENT_MANA(OPPONENT) > 0) & Hit(ENEMY_HERO, 10)
 
 
 class BRMA06_2:

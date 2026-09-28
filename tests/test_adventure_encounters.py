@@ -371,6 +371,23 @@ def test_heigan_eruption_hits_the_left_most_enemy_minion():
         assert golem.damage == 0
 
 
+def test_baron_geddon_ignite_mana():
+    # "Deal 5 damage to the enemy hero if they have any unspent Mana."
+    # (heroic: 10)
+    for hero, damage in (("BRMA05_1", 5), ("BRMA05_1H", 10)):
+        game, boss, other = _boss_game(hero, game_class=BossFirstGame)
+        game.end_turn()
+        other.used_mana = other.max_mana - 1  # one Mana left unspent
+        game.end_turn()
+        boss.hero.power.use()
+        assert other.hero.damage == damage
+        game.end_turn()
+        other.used_mana = other.max_mana  # all spent
+        game.end_turn()
+        boss.hero.power.use()
+        assert other.hero.damage == damage
+
+
 def test_gluth_decimate():
     # Normal: "Change the Health of all minions to 1."; heroic: "Change the
     # Health of enemy minions to 1."
