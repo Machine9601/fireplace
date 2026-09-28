@@ -197,32 +197,39 @@ class LOE_024t:
 class LOEA05_02:
     """Trogg Hate Minions!"""
 
-    # Hearthstone implements Scarvash's Hero Power with LOEA05_02(h) which
-    # switches every turn between LOEA05_02a and LOEA05_03. We don't need
-    # to do that, we implement it as a Summon every turn instead.
-    pass
+    # "Passive Hero Power: Enemy minions cost (2) more. Swap at the start of
+    # your turn." Scarvash starts with it; at the start of each of his turns
+    # it becomes Trogg Hate Spells! (LOEA05_03), which becomes Trogg Hate
+    # Minions! again (LOEA05_02a, the same power after a swap), and so on.
+    update = Refresh(ENEMY_HAND + MINION, {GameTag.COST: +2})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_03"))
 
 
 class LOEA05_02a:
     update = Refresh(ENEMY_HAND + MINION, {GameTag.COST: +2})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_03"))
 
 
 class LOEA05_02h:
-    pass
+    update = Refresh(ENEMY_HAND + MINION, {GameTag.COST: SET(11)})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_03h"))
 
 
 class LOEA05_02ha:
     update = Refresh(ENEMY_HAND + MINION, {GameTag.COST: SET(11)})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_03h"))
 
 
 class LOEA05_03:
     """Trogg Hate Spells!"""
 
     update = Refresh(ENEMY_HAND + SPELL, {GameTag.COST: +2})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_02a"))
 
 
 class LOEA05_03h:
     update = Refresh(ENEMY_HAND + SPELL, {GameTag.COST: SET(11)})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_02ha"))
 
 
 ##
