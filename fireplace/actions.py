@@ -385,11 +385,16 @@ class Death(GameAction):
         for card in cards:
             if not card.dead:
                 continue
-            if card.zone == Zone.PLAY:
+            in_play = card.zone == Zone.PLAY
+            if in_play:
                 card._dead_position = card.zone_position - 1
             card.zone = Zone.GRAVEYARD
             source.game.check_for_end_game()
             source.game.refresh_auras()
+            if in_play and card.type == CardType.MINION and not card.leaves_no_corpse:
+                # A friendly minion that dies leaves a Corpse to its controller,
+                # before its Deathrattle (every class tracks them, patch 25.4.0).
+                card.controller.corpses += 1
             log.info("Processing Deathrattle for %r", card)
             self._trigger = False
             source.game.manager.game_action(self, source, card)
@@ -1045,8 +1050,10 @@ class Damage(TargetedAction):
             # check hasattr: some sources of damage are game or player (like fatigue)
             # weapon damage itself after hero attack, but does not trigger lifesteal
             if (
-                hasattr(source, "lifesteal")
-                and source.lifesteal
+                (
+                    (hasattr(source, "lifesteal") and source.lifesteal)
+                    or getattr(source, "lifesteal_damage", False)
+                )
                 and source.type != CardType.WEAPON
             ):
                 if source.controller.lifesteal_damages_opposing_hero:
@@ -1698,6 +1705,59 @@ class FillMana(TargetedAction):
     def do(self, source, target, amount):
         target.used_mana = max(0, target.used_mana - amount)
         source.game.manager.targeted_action(self, source, target, amount)
+
+
+class SpendCorpses(TargetedAction):
+    """
+    Make player targets spend \a amount Corpses (the death knight).
+    "Spend N Corpses to X": the Corpses are spent only if the player has them
+    all, and the callbacks (`then`) only happen when they were spent.
+    `up_to=True` ("Spend up to N Corpses"): the player spends as many as he
+    has, up to \a amount; the callbacks see how many (`SpendCorpses.AMOUNT`),
+    and none spent, nothing happens.
+    """
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+
+    def get_target_args(self, source, target):
+        amount = super().get_target_args(source, target)[0] or 0
+        if self._kwargs.get("up_to"):
+            amount = min(amount, target.corpses)
+        return [amount]
+
+    def do(self, source, target, amount):
+        if amount <= 0 or target.corpses < amount:
+            log.info(
+                "%r cannot spend %i Corpses (has %i)", target, amount, target.corpses
+            )
+            return 0
+        log.info("%r spends %i Corpses", target, amount)
+        target.corpses -= amount
+        target.corpses_spent_this_game += amount
+        source.game.manager.targeted_action(self, source, target, amount)
+        return amount
+
+    def _trigger(self, i, source):
+        if source.controller.choice:
+            # Waits for the open choice, and comes back here
+            return super()._trigger(i, source)
+        ret = []
+        self.trigger_index = i
+        for target in self.get_targets(source):
+            if target is None:
+                continue
+            target_args = self.get_target_args(source, target)
+            spent = self.do(source, target, *target_args)
+            ret.append(spent)
+            if not spent:
+                continue
+            for action in self.callback:
+                log.info("%r queues up callback %r", self, action)
+                ret += source.game.queue_actions(
+                    source, [action], event_args=[target] + target_args
+                )
+        return ret
 
 
 class Retarget(TargetedAction):

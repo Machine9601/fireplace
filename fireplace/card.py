@@ -1,6 +1,6 @@
 import re
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from hearthstone.enums import (
     CardClass,
@@ -33,6 +33,16 @@ if TYPE_CHECKING:
 THE_COIN = "GAME_005"
 
 
+class Runes(NamedTuple):
+    """The runes a death knight card asks of its deck (COST_BLOOD, COST_FROST,
+    COST_UNHOLY). The deck-building rule itself (three runes at most) is not
+    the engine's."""
+
+    blood: int
+    frost: int
+    unholy: int
+
+
 def Card(id):
     data = cards.db[id]
     subclass = {
@@ -61,6 +71,19 @@ def Card(id):
 class BaseCard(BaseEntity):
     Manager = CardManager
     delayed_destruction = False
+    # The death knight: its runes, the Corpses (see Runes, actions.Death and
+    # actions.SpendCorpses). A card without the tag has none.
+    cost_blood = 0
+    cost_frost = 0
+    cost_unholy = 0
+    corpse_spender = False
+    leaves_no_corpse = False
+    can_target_cards_in_hand = False
+    lifesteal_damage = False
+
+    @property
+    def runes(self) -> Runes:
+        return Runes(self.cost_blood, self.cost_frost, self.cost_unholy)
 
     def __init__(self, data: "cardxml.CardXML"):
         self.data = data
@@ -806,6 +829,15 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
 
     @property
     def play_targets(self):
+        if self.can_target_cards_in_hand:
+            # "Give a minion in your hand..." (Vicious Bloodworm,
+            # CAN_TARGET_CARDS_IN_HAND): the target is a card of the hand,
+            # never a character in play; only a minion can be such a target.
+            return [
+                card
+                for card in self.controller.hand
+                if card.type == CardType.MINION and is_valid_target(self, card)
+            ]
         return [card for card in self.game.characters if is_valid_target(self, card)]
 
     @property
@@ -1672,6 +1704,11 @@ class Enchantment(BaseCard):
 
     def remove(self):
         self.zone = Zone.REMOVEDFROMGAME
+
+    def heal(self, target, amount):
+        # The damage of an enchantment with LIFESTEAL_DAMAGE (Blood Boil's
+        # infection) heals its controller's hero.
+        return self.game.cheat_action(self, [actions.Heal(target, amount)])
 
 
 class Weapon(rules.WeaponRules, LiveEntity):
