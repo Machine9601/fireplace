@@ -154,3 +154,18 @@ class RLK_711:
     play = Buff(TARGET, "RLK_711e", atk=ATK(SELF))
 
 
+# --- RLK_712
+class RLK_712:
+    """Blood Tap"""
+
+    # Give all minions in your hand +1/+1. Spend 2 <b>Corpses</b> to give them
+    # +1/+1 more.
+    play = (
+        Buff(FRIENDLY_HAND + MINION, "RLK_712e"),
+        SpendCorpses(CONTROLLER, 2).then(Buff(FRIENDLY_HAND + MINION, "RLK_712e")),
+    )
+
+
+RLK_712e = buff(+1, +1)
+
+

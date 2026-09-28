@@ -407,3 +407,15 @@ def test_vicious_bloodworm():
     lone.play()
 
 
+# --- RLK_712
+def test_blood_tap():
+    game = dk_game()
+    wisp = game.player1.give(WISP)
+    game.player1.give("RLK_712").play()
+    assert (wisp.atk, wisp.health) == (2, 2)
+    game.player1.corpses = 3
+    game.player1.give("RLK_712").play()
+    assert (wisp.atk, wisp.health) == (4, 4)
+    assert game.player1.corpses == 1
+
+
