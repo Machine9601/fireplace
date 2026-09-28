@@ -132,3 +132,11 @@ class RLK_066:
     )
 
 
+# --- RLK_083
+class RLK_083:
+    """Deathchiller"""
+
+    # After you cast a spell, deal 1 damage to two random enemies.
+    events = OWN_SPELL_PLAY.after(Hit(RANDOM(ENEMY_CHARACTERS - DEAD) * 2, 1))
+
+

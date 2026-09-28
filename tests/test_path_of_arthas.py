@@ -375,3 +375,16 @@ def test_hematurge():
     assert game.player1.corpses == 0
 
 
+# --- RLK_083
+def test_deathchiller():
+    game = dk_game()
+    crocolisk1 = game.player2.summon(CROCOLISK)
+    crocolisk2 = game.player2.summon(CROCOLISK)
+    game.player1.give("RLK_083").play()
+    game.player1.give(THE_COIN).play()
+    enemies = [game.player2.hero, crocolisk1, crocolisk2]
+    assert sorted(e.damage for e in enemies) == [0, 1, 1]
+    game.player1.summon(WISP)
+    assert all(m.damage == 0 for m in game.player1.field)
+
+
