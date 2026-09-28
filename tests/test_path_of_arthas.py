@@ -450,3 +450,24 @@ def test_asphyxiate():
     assert wisp.zone == Zone.PLAY and mine.zone == Zone.PLAY
 
 
+# --- RLK_512
+def test_glacial_advance():
+    game = dk_game()
+    fireball = game.player1.give(FIREBALL)
+    wisp = game.player1.give(WISP)
+    game.player1.give("RLK_512").play(target=game.player2.hero)
+    assert game.player2.hero.damage == 4
+    assert fireball.cost == 2 and wisp.cost == 0
+    game.player1.give(THE_COIN).play()
+    assert fireball.cost == 4
+
+
+def test_glacial_advance_lasts_this_turn():
+    game = dk_game()
+    fireball = game.player1.give(FIREBALL)
+    game.player1.give("RLK_512").play(target=game.player2.hero)
+    assert fireball.cost == 2
+    game.end_turn()
+    assert fireball.cost == 4
+
+

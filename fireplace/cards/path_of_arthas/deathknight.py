@@ -187,3 +187,18 @@ class RLK_087:
     play = Destroy(HIGHEST_ATK(ENEMY_MINIONS))
 
 
+# --- RLK_512
+class RLK_512:
+    """Glacial Advance"""
+
+    # Deal $4 damage. Your next spell this turn costs (2) less.
+    requirements = {PlayReq.REQ_TARGET_TO_PLAY: 0}
+    play = Hit(TARGET, 4), Buff(CONTROLLER, "RLK_025o")
+
+
+class RLK_025o:
+    # The next spell you cast this turn costs (2) less. (TAG_ONE_TURN_EFFECT)
+    update = Refresh(FRIENDLY_HAND + SPELL, {GameTag.COST: -2})
+    events = OWN_SPELL_PLAY.on(Destroy(SELF))
+
+
