@@ -324,3 +324,20 @@ class RLK_506t:
     tags = {enums.LEAVES_NO_CORPSE: True}
 
 
+# --- RLK_730
+class RLK_730:
+    """Blood Boil"""
+
+    # <b>Lifesteal</b> Infect all enemy minions. At the end of your turns, they
+    # take 2 damage.
+    play = Buff(ENEMY_MINIONS, "RLK_730e")
+
+
+class RLK_730e:
+    # The infection: at the end of its caster's turns, 2 damage to the minion,
+    # with the Lifesteal of Blood Boil (the CardDefs gives the enchantment
+    # LIFESTEAL); the minion itself does not gain Lifesteal.
+    tags = {GameTag.LIFESTEAL: False, enums.LIFESTEAL_DAMAGE: True}
+    events = OWN_TURN_END.on(Hit(OWNER, 2))
+
+

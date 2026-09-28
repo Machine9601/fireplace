@@ -608,3 +608,26 @@ def test_corpse_bride_up_to_ten():
     assert len(game.player1.field) == 3  # two brides, one groom
 
 
+# --- RLK_730
+def test_blood_boil():
+    game = dk_game()
+    game.player1.hero.set_current_health(20)
+    crocolisk = game.player2.summon(CROCOLISK)
+    golem = game.player2.summon(WAR_GOLEM)
+    mine = game.player1.summon(WAR_GOLEM)
+    game.player1.give("RLK_730").play()
+    assert not crocolisk.lifesteal
+    game.end_turn()
+    assert crocolisk.damage == 2 and golem.damage == 2 and mine.damage == 0
+    assert game.player1.hero.health == 24
+    game.end_turn()
+    assert golem.damage == 2
+    game.end_turn()
+    assert crocolisk.zone == Zone.GRAVEYARD and golem.damage == 4
+    assert game.player1.hero.health == 28
+    # The infected minion does not heal its own hero when it attacks
+    game.player2.hero.set_current_health(20)
+    golem.attack(game.player1.hero)
+    assert game.player2.hero.health == 20
+
+
