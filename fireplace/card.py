@@ -1860,4 +1860,10 @@ class HeroPower(PlayableCard):
             return False
         if self.passive_hero_power:
             return False
+        if self.cant_play or any(
+            getattr(slot, "cant_play", False) for slot in self.slots
+        ):
+            # "Can't be used", from an aura (Moira Bronzebeard: "Thaurissan's
+            # Hero Power can't be used.")
+            return False
         return super().is_playable()

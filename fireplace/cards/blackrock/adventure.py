@@ -102,8 +102,10 @@ class BRMA02_2H:
 class BRMA03_2:
     """Power of the Firelord"""
 
+    # "Hero Power: Deal 30 damage." (Moira Bronzebeard keeps it from being
+    # used while she lives).
     requirements = {PlayReq.REQ_TARGET_TO_PLAY: 0}
-    activate = Hit(TARGET, 2)
+    activate = Hit(TARGET, 30)
 
 
 class BRMA04_2:

@@ -197,6 +197,22 @@ def test_lord_victor_nefarius_true_form():
         assert len([c for c in other.hand if c.id in helps]) == gifts
 
 
+def test_thaurissan_power_of_the_firelord():
+    # "Hero Power: Deal 30 damage."; Moira Bronzebeard: "Thaurissan's Hero
+    # Power can't be used."
+    for hero, moira in (("BRMA03_1", "BRMA03_3"), ("BRMA03_1H", "BRMA03_3H")):
+        game, boss, other = _boss_game(hero)
+        guard = boss.summon(moira)
+        assert not boss.hero.power.is_usable()
+        guard.destroy()
+        game.end_turn()
+        game.end_turn()
+        assert boss.hero.power.is_usable()
+        with pytest.raises(GameOver):
+            boss.hero.power.use(target=other.hero)
+        assert other.playstate == PlayState.LOST
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None
