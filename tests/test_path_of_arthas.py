@@ -231,6 +231,31 @@ def test_ghoul_frenzy_by_justicar_trueheart():
     assert ghoul.zone == Zone.GRAVEYARD
 
 
+# --- nothing leaks where the death knight is not --------------------------
+
+
+def test_no_death_knight_card_where_it_is_not_expected():
+    from fireplace.utils import random_class
+
+    dk = {id for id, card in cards_db.db.items() if card.card_class == CardClass.DEATHKNIGHT}
+    assert len(dk) > 26
+    # A random deck of another class
+    for card_class in (CardClass.MAGE, CardClass.WARRIOR, CardClass.DEMONHUNTER):
+        assert not dk & set(random_draft(card_class))
+    # A random class (Maestra, a random opponent...)
+    game = prepare_empty_game()
+    for _ in range(100):
+        assert random_class(game) != CardClass.DEATHKNIGHT
+    # A Standard game: Path of Arthas is not in the fork's Standard sets
+    assert game.is_standard
+    source = game.player1.hero
+    for picker in (RandomMinion(), RandomCollectible(), RandomSpell()):
+        pool = picker.find_cards(source)
+        assert pool and not dk & set(pool)
+    # The death knight's hero is never a random collectible
+    assert "HERO_11" not in RandomCollectible(type=CardType.HERO).find_cards(source)
+
+
 # --- the cards --------------------------------------------------------------
 
 CROCOLISK = "CS2_120"  # 2/3
