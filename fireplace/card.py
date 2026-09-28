@@ -446,14 +446,28 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
             return self.controller.deck.index(self) + 1
         return 0
 
+    def returns_to_card(self, old_zone, zone):
+        """
+        Whether moving from \a old_zone to \a zone makes the card its card
+        again: it leaves the play for the hand, the deck or out of the game.
+        """
+        return old_zone == Zone.PLAY and zone not in (Zone.GRAVEYARD, Zone.SETASIDE)
+
+    def becomes_card_again(self):
+        """
+        Wiki (Return to hand): a card returned to the hand (or shuffled into
+        the deck) is reset to its card; it loses its enchantments.
+        """
+        if not self.keep_buff:
+            self.clear_buffs()
+        if self.id == self.controller.cthun.id:
+            self.controller.copy_cthun_buff(self)
+
     def _set_zone(self, zone):
         old_zone = self.zone
         super()._set_zone(zone)
-        if old_zone == Zone.PLAY and zone not in (Zone.GRAVEYARD, Zone.SETASIDE):
-            if not self.keep_buff:
-                self.clear_buffs()
-            if self.id == self.controller.cthun.id:
-                self.controller.copy_cthun_buff(self)
+        if self.returns_to_card(old_zone, zone):
+            self.becomes_card_again()
 
         if self.zone == Zone.HAND:
             # Create the "Choose One" subcards
@@ -1370,26 +1384,45 @@ class Minion(Character):
         if self.zone == Zone.PLAY:
             self.log("%r is removed from the field", self)
             self.controller.field.remove(self)
-            if value not in (Zone.GRAVEYARD, Zone.SETASIDE):
-                # Back in the hand or the deck, the minion is its card again:
-                # its keywords come back and the silence is gone.
-                for attr in self.silenceable_attributes:
-                    setattr(self, attr, False)
-                self.tags.update(
-                    {
-                        tag: tag_value
-                        for tag, tag_value in self.data.tags.items()
-                        if self.tags.map.get(tag) in self.silenceable_attributes
-                    }
-                )
-                if self.silenced:
-                    self.silenced = False
-                    self._events = self.data.scripts.events[:]
             if self.data.tags.get(GameTag.DORMANT, False):
                 self.dormant = True
             if getattr(self.data.scripts, "dormant_turns"):
                 self.dormant_turns = getattr(self.data.scripts, "dormant_turns")
         super()._set_zone(value)
+
+    def returns_to_card(self, old_zone, zone):
+        # A minion that comes back from the graveyard to the hand or the deck
+        # (Anub'arak, Malorne) is its card again too.
+        if old_zone == Zone.GRAVEYARD and zone in (Zone.HAND, Zone.DECK):
+            return True
+        return super().returns_to_card(old_zone, zone)
+
+    def becomes_card_again(self):
+        # Its keywords come back and the silence is gone.
+        for attr in self.silenceable_attributes:
+            setattr(self, attr, False)
+        self.tags.update(
+            {
+                tag: tag_value
+                for tag, tag_value in self.data.tags.items()
+                if self.tags.map.get(tag) in self.silenceable_attributes
+            }
+        )
+        if self.silenced:
+            self.silenced = False
+            self._events = self.data.scripts.events[:]
+        # Played again, it is a new minion: summoning sickness (unless Charge
+        # or Rush), no attack made this turn, not killed, nothing copied.
+        self.turns_in_play = 0
+        # (attack_target stays: a minion returned during its attack, by
+        # Freezing Trap, must still leave the combat, Character.should_exit_combat.)
+        self.num_attacks = 0
+        self.turn_killed = -1
+        self.damaged_this_turn = 0
+        self.damaged_on_opponent_turn = 0
+        self.healed_this_turn = 0
+        self.additional_deathrattles = []
+        super().becomes_card_again()
 
     def _hit(self, amount):
         if self.divine_shield:
