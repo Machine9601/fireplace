@@ -7,16 +7,20 @@ from utils import *
 from utils import _empty_mulligan
 
 from fireplace import enums
-from fireplace.exceptions import InvalidAction
+from fireplace.exceptions import GameOver, InvalidAction
 
 
-def _boss_game(hero1, hero2="HERO_01", deck=None, deck2=None):
+class RealManaGame(CoinRules, BaseGame):
+    """A game whose players start at 0 Mana Crystals, as in a real game."""
+
+
+def _boss_game(hero1, hero2="HERO_01", deck=None, deck2=None, game_class=BaseTestGame):
     """A game where player1 (the first to play) is the boss `hero1`."""
     deck = deck if deck is not None else [WISP] * 20
     deck2 = deck2 if deck2 is not None else [WISP] * 20
     player1 = Player("Player1", list(deck), hero1)
     player2 = Player("Player2", list(deck2), hero2)
-    game = BaseTestGame(players=(player1, player2))
+    game = game_class(players=(player1, player2))
     game.start()
     _empty_mulligan(game)
     if game.player1 is not player1:
@@ -90,3 +94,129 @@ def test_lady_nazjar_pearl_of_the_tides():
         kept = boss.field[0]
         game.end_turn()
         assert boss.field[0] is kept
+
+
+def _choose(player, id):
+    choice = player.choice
+    assert choice is not None
+    card = next(c for c in choice.cards if c.id == id)
+    choice.choose(card)
+
+
+def test_temple_escape():
+    # Temple Escape: the boss is Immune, has no deck, and the player wins when
+    # the "turns to escape" count (10, down at the end of the boss's turn)
+    # reaches 0; each boss's turn brings its obstacles, some a path to choose
+    # at the start of the player's turn (the wiki's "Event order").
+    game, boss, other = _boss_game("LOEA04_01", deck=[], deck2=[WISP] * 30)
+    power = boss.hero.power
+    assert power.id == "LOEA04_02" and db_passive("LOEA04_02")
+    with pytest.raises(InvalidAction):
+        power.use()
+    # Boss's turn 1: a Zombie Chow; the player then chooses at the pool.
+    assert [m.id for m in boss.field] == ["FP1_001"]
+    game.end_turn()
+    assert power.data_num_1 == 9
+    assert sorted(c.id for c in other.choice.cards) == ["LOEA04_28a", "LOEA04_28b"]
+    # The draw of the turn waits for the choice (as Pick Your Fate's does).
+    hand = len(other.hand)
+    _choose(other, "LOEA04_28a")  # Drink Deeply: draw a card
+    assert len(other.hand) == hand + 2
+    assert not other.hand.filter(id="LOEA04_28a")
+    # The boss is Immune.
+    other.give("CS2_029").play(target=boss.hero)
+    assert boss.hero.damage == 0
+    game.end_turn()
+    # Turn 2: an Oasis Snapjaw, then the Pit of Spikes.
+    assert boss.field.filter(id="CS2_119")
+    game.end_turn()
+    _choose(other, "LOEA04_06b")  # Walk Across Gingerly: take 5 damage
+    assert other.hero.damage == 5
+    game.end_turn()
+    # Turn 3: an Orsis Guard, and a Rolling Boulder on the player's side.
+    assert boss.field.filter(id="LOEA04_13bt")
+    assert other.field[-1].id == "LOE_024t"
+    game.end_turn()
+    assert other.choice is None
+    game.end_turn()
+    # Turn 4: the Eye; touching it heals and awakens the statue.
+    game.end_turn()
+    _choose(other, "LOEA04_29a")
+    assert other.hero.damage == 0
+    assert boss.field.filter(id="LOEA04_27")
+    game.end_turn()
+    # Turn 5: every minion is destroyed.
+    assert len(boss.field) == 0 and len(other.field) == 0
+    game.end_turn()
+    game.end_turn()
+    # Turn 6: an Anubisath Temple Guard.
+    assert [m.id for m in boss.field] == ["LOEA04_24"]
+    game.end_turn()
+    game.end_turn()
+    # Turn 7: an Obsidian Destroyer, then the Darkness: the Shortcut.
+    assert boss.field.filter(id="LOE_009")
+    game.end_turn()
+    assert power.data_num_1 == 3
+    _choose(other, "LOEA04_30a")
+    assert power.data_num_1 == 2
+    assert boss.field.filter(id="CS2_186")
+    game.end_turn()
+    # The Seething Statue is skipped: turn 9, the Giant Insects.
+    assert not boss.field.filter(id="LOEA04_25")
+    assert len(boss.field.filter(id="LOEA04_23")) == 2
+    game.end_turn()
+    assert power.data_num_1 == 1
+    assert game.state != State.COMPLETE
+    game.end_turn()
+    with pytest.raises(GameOver):
+        game.end_turn()
+    # The count reaches 0 at the end of the boss's turn: the player escaped.
+    assert game.state == State.COMPLETE
+    assert other.playstate == PlayState.WON
+    assert boss.playstate == PlayState.LOST
+
+
+def test_temple_escape_heroic():
+    game, boss, other = _boss_game("LOEA04_01h", deck=[], deck2=[WISP] * 30)
+    assert boss.hero.power.id == "LOEA04_02h"
+    assert [m.id for m in boss.field] == ["CS2_200"]
+    for _ in range(2):
+        game.end_turn()
+        if other.choice:
+            _choose(other, other.choice.cards[1].id)
+        game.end_turn()
+    assert len(boss.field.filter(id="LOEA04_13bth")) == 2
+
+
+def test_mine_cart_rush():
+    # Mine Cart Rush: the boss is Immune and summons 3 minions the first
+    # time, then 2 each turn; the Mine Cart is locked at two Mana Crystals;
+    # Barrel Forward gets the player 1 turn closer to the Exit.
+    game, boss, other = _boss_game(
+        "LOEA07_02", "LOEA07_01", deck=[], deck2=["LOEA07_25"] * 30, game_class=RealManaGame
+    )
+    power = boss.hero.power
+    assert power.id == "LOEA07_03" and db_passive("LOEA07_03")
+    troggs = ("LOEA07_09", "LOEA07_11", "LOEA07_12", "LOEA07_14")
+    assert len(boss.field) == 3 and all(m.id in troggs for m in boss.field)
+    game.end_turn()
+    assert other.max_mana == 2 and other.mana == 2
+    other.give("LOEA07_21").play()
+    assert power.data_num_1 == 8
+    game.end_turn()
+    assert len(boss.field) == 5
+    game.end_turn()
+    assert other.max_mana == 2
+    assert boss.hero.damage == 0 and boss.hero.immune
+    ends = 0
+    while game.state != State.COMPLETE:
+        ends += 1
+        try:
+            game.end_turn()
+        except GameOver:
+            break
+    # 10 turns to escape, less the Barrel Forward: 7 more turns of the boss,
+    # each after one of the player.
+    assert power.data_num_1 == 0
+    assert ends == 14
+    assert other.playstate == PlayState.WON

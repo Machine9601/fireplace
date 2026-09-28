@@ -1,3 +1,6 @@
+from hearthstone.enums import PlayState, Zone
+
+from ...logging import log
 from ..utils import *
 
 ##
@@ -99,7 +102,160 @@ class LOEA01_12h:
 
 
 ##
-# Temple Escape
+# The escapes: Temple Escape and Mine Cart Rush
+#
+# The wiki (Temple Escape, Mine Cart Rush): "the hero is Immune and does not
+# have a Health count. Rather than defeating the hero, the player has to
+# survive until the "turns to escape" count reaches 0. The "turns to escape"
+# count goes down at the end of the boss' turn." Both last 10 turns. The
+# count lives on the boss's Hero Power (TAG_SCRIPT_DATA_NUM_1, `data_num_1`),
+# which acts by itself ("Auto-cast"): it is never used.
+
+TURNS_TO_ESCAPE = 10
+
+
+class EscapeCountdown(TargetedAction):
+    """
+    Get the player `amount` turns closer to the Exit: the count of the escape
+    Hero Power `target` goes down; at 0, the player has escaped and the boss
+    (its controller) loses.
+    """
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+
+    def do(self, source, target, amount):
+        if target.data_num_1 <= 0:
+            return
+        target.data_num_1 = max(0, target.data_num_1 - amount)
+        log.info("%r: %i turns to escape", target, target.data_num_1)
+        if target.data_num_1 == 0:
+            target.controller.playstate = PlayState.LOSING
+            source.game.check_for_end_game()
+
+
+class PathChoice(Choice):
+    """
+    A path of Temple Escape: the player chooses one of two spells, which is
+    cast for him at once (no Mana, never through his hand); the other one is
+    gone.
+    """
+
+    def choose(self, card):
+        super().choose(card)
+        for other in self.cards:
+            if other is not card:
+                other.zone = Zone.REMOVEDFROMGAME
+        self.game.cheat_action(self.player, [CastSpell(card)])
+        if card.zone in (Zone.PLAY, Zone.SETASIDE, Zone.GRAVEYARD):
+            card.zone = Zone.REMOVEDFROMGAME
+
+
+class ChooseYourPath(TargetedAction):
+    """The player `target` chooses between the two paths of `card`."""
+
+    TARGET = ActionArg()
+    CARD = ActionArg()
+
+    PATHS = {
+        "LOEA04_28": ("LOEA04_28a", "LOEA04_28b"),
+        "LOEA04_06": ("LOEA04_06a", "LOEA04_06b"),
+        "LOEA04_29": ("LOEA04_29a", "LOEA04_29b"),
+        "LOEA04_30": ("LOEA04_30a", "LOEA04_31b"),
+    }
+
+    def get_target_args(self, source, target):
+        return [self._args[1]]
+
+    def do(self, source, target, card):
+        options = [target.card(id, source=target) for id in self.PATHS[card]]
+        return source.game.queue_actions(source, [PathChoice(target, options)])
+
+
+# Temple Escape, "Event order" (the wiki): what the boss's turn N brings, in
+# normal and heroic, and the path the player then chooses at the start of
+# his turn. Turn 3 also puts a Rolling Boulder on the right of the player's
+# side; turn 5 destroys every minion. "Take the Shortcut" gets the player 1
+# turn closer to the Exit, so the next turn (the Seething Statue) is skipped.
+TEMPLE_ESCAPE_EVENTS = {
+    1: (["FP1_001"], ["CS2_200"], "LOEA04_28"),
+    2: (["CS2_119"], ["LOE_009"], "LOEA04_06"),
+    3: (["LOEA04_13bt"], ["LOEA04_13bth", "LOEA04_13bth"], None),
+    4: ([], [], "LOEA04_29"),
+    5: ([], [], None),
+    6: (["LOEA04_24"], ["LOEA04_24h", "LOEA04_24h"], None),
+    7: (["LOE_009"], ["LOE_009"], "LOEA04_30"),
+    8: (["LOEA04_25"], ["LOEA04_25h"], None),
+    9: (["LOEA04_23"] * 2, ["LOEA04_23h"] * 3, None),
+}
+
+
+class TempleEscapeTurn(TargetedAction):
+    """The boss's turn of Temple Escape: its obstacles, then the path to come."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        step = TURNS_TO_ESCAPE + 1 - target.data_num_1
+        event = TEMPLE_ESCAPE_EVENTS.get(step)
+        target.escape_path = None
+        if event is None:
+            return
+        normal, heroic, path = event
+        actions = []
+        if step == 5:
+            actions.append(Destroy(ALL_MINIONS))
+        for id in heroic if target.id.endswith("h") else normal:
+            actions.append(Summon(CONTROLLER, id))
+        if step == 3:
+            actions.append(Summon(OPPONENT, "LOE_024t"))
+        target.escape_path = path
+        if actions:
+            return source.game.queue_actions(source, actions)
+
+
+class TempleEscapePath(TargetedAction):
+    """At the start of the player's turn, the path the last obstacle opened."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        path = getattr(target, "escape_path", None)
+        target.escape_path = None
+        if path is not None:
+            return source.game.queue_actions(
+                source, [ChooseYourPath(target.controller.opponent, path)]
+            )
+
+
+class LOEA04_02:
+    """Escape!"""
+
+    tags = {
+        enums.PASSIVE_HERO_POWER: True,
+        GameTag.TAG_SCRIPT_DATA_NUM_1: TURNS_TO_ESCAPE,
+    }
+    update = Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    events = (
+        OWN_TURN_BEGIN.on(TempleEscapeTurn(SELF)),
+        BeginTurn(OPPONENT).on(TempleEscapePath(SELF)),
+        OWN_TURN_END.on(EscapeCountdown(SELF, 1)),
+    )
+
+
+class LOEA04_02h:
+    """Escape! (Heroic)"""
+
+    tags = {
+        enums.PASSIVE_HERO_POWER: True,
+        GameTag.TAG_SCRIPT_DATA_NUM_1: TURNS_TO_ESCAPE,
+    }
+    update = Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    events = (
+        OWN_TURN_BEGIN.on(TempleEscapeTurn(SELF)),
+        BeginTurn(OPPONENT).on(TempleEscapePath(SELF)),
+        OWN_TURN_END.on(EscapeCountdown(SELF, 1)),
+    )
 
 
 class LOEA04_06:
@@ -147,7 +303,11 @@ class LOEA04_29:
 class LOEA04_29a:
     """Touch It"""
 
-    play = Heal(FRIENDLY_HERO, 10)
+    # The ruby of the statue: "Restore 10 Health to your hero." and the
+    # Animated Statue awakens on the boss's side ("You've disturbed the
+    # ancient statue...", the wiki's Temple Escape: "Animated Statue appears
+    # [...] I think he wants his gem back!").
+    play = Heal(FRIENDLY_HERO, 10), Summon(OPPONENT, "LOEA04_27")
 
 
 class LOEA04_29b:
@@ -165,7 +325,8 @@ class LOEA04_30:
 class LOEA04_30a:
     """Take the Shortcut"""
 
-    play = Summon(OPPONENT, "CS2_186")
+    # "Get 1 turn closer to the Exit! Encounter a 7/7 War Golem."
+    play = Summon(OPPONENT, "CS2_186"), EscapeCountdown(ENEMY_HERO_POWER, 1)
 
 
 class LOEA04_31b:
@@ -234,6 +395,85 @@ class LOEA05_03h:
 
 ##
 # Mine Cart Rush
+#
+# The wiki (Mine Cart Rush): "The boss has a deck, but does not play cards or
+# draw cards at the start of the turn. The boss uses its Hero Power Flee the
+# Mine! at the start of every turn to summon minions." It "summons 2 of the
+# below minions onto the boss' side of the board (3 minions the first time it
+# is used). The selection is random, although the chances are uneven, with
+# the more powerful options more common in Heroic mode. Debris is rarely
+# seen, and excluded from Heroic mode." The player "is the Mine Cart, their
+# Hero Power is Throw Rocks, they are locked at two Mana Crystals".
+# The wiki gives no odds: Debris is 1 in 10 in normal, the others even.
+
+MINE_CART_NORMAL = RandomID(
+    *(["LOEA07_09"] * 3 + ["LOEA07_12"] * 3 + ["LOEA07_14"] * 3 + ["LOEA07_11"])
+)
+MINE_CART_HEROIC = RandomID("LOEA07_09", "LOEA07_12", "LOEA07_14")
+
+
+class MineCartTurn(TargetedAction):
+    """The boss's turn of Mine Cart Rush: the troggs catch up."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        first = not getattr(target, "mine_cart_started", False)
+        target.mine_cart_started = True
+        pool = MINE_CART_HEROIC if target.id.endswith("h") else MINE_CART_NORMAL
+        return source.game.queue_actions(
+            source, [Summon(CONTROLLER, pool) * (3 if first else 2)]
+        )
+
+
+class LockedMineCart(TargetedAction):
+    """The Mine Cart is locked at two Mana Crystals, from its first turn."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        target.max_mana = 2
+
+
+class LOEA07_03:
+    """Flee the Mine!"""
+
+    tags = {
+        enums.PASSIVE_HERO_POWER: True,
+        GameTag.TAG_SCRIPT_DATA_NUM_1: TURNS_TO_ESCAPE,
+    }
+    update = (
+        Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True}),
+    )
+    events = (
+        OWN_TURN_BEGIN.on(MineCartTurn(SELF)),
+        BeginTurn(OPPONENT).on(LockedMineCart(OPPONENT)),
+        OWN_TURN_END.on(EscapeCountdown(SELF, 1)),
+    )
+
+
+class LOEA07_03h:
+    """Flee the Mine! (Heroic)"""
+
+    tags = {
+        enums.PASSIVE_HERO_POWER: True,
+        GameTag.TAG_SCRIPT_DATA_NUM_1: TURNS_TO_ESCAPE,
+    }
+    update = (
+        Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True}),
+    )
+    events = (
+        OWN_TURN_BEGIN.on(MineCartTurn(SELF)),
+        BeginTurn(OPPONENT).on(LockedMineCart(OPPONENT)),
+        OWN_TURN_END.on(EscapeCountdown(SELF, 1)),
+    )
+
+
+class LOEA07_21:
+    """Barrel Forward"""
+
+    # "Get 1 turn closer to the Exit!"
+    play = EscapeCountdown(ENEMY_HERO_POWER, 1)
 
 
 class LOEA07_29:
