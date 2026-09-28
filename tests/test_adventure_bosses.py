@@ -103,7 +103,9 @@ def test_passive_hero_powers_cannot_be_used():
     for power in ("NAX4_04", "NAX4_04H", "BRMA08_2", "BRMA08_2H", "BRMA15_2",
                   "BRMA15_2H", "LOEA01_02", "LOEA14_2", "LOEA16_2", "KARA_07_02"):
         assert fireplace.cards.db[power].tags.get(enums.PASSIVE_HERO_POWER), power
-    for power in ("HERO_08bp", "NAX10_03H", "NAX15_02", "BRMA13_2"):  # active ones
+    # True Form (BRMA13_2) acts by itself at the start of the first turn
+    # (WP-121): The Majordomo (BRMA06_2) is an active one.
+    for power in ("HERO_08bp", "NAX10_03H", "NAX15_02", "BRMA06_2"):  # active ones
         assert not fireplace.cards.db[power].tags.get(enums.PASSIVE_HERO_POWER), power
     game, noth, other = _boss_game("NAX4_01")
     squire = noth.summon("AT_082")  # Lowly Squire: Inspire: Gain +1 Attack
