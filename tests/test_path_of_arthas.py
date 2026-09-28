@@ -496,3 +496,15 @@ def test_darkfallen_neophyte_with_brann_spends_twice():
     assert wisp.atk == 7 and game.player1.corpses == 1
 
 
+# --- RLK_062
+def test_nerubian_swarmguard():
+    game = dk_game()
+    swarmguard = game.player1.give("RLK_062")
+    game.player1.give("RLK_712").play()  # Blood Tap: +1/+1 in hand
+    swarmguard.play()
+    assert len(game.player1.field) == 3
+    for minion in game.player1.field:
+        assert minion.id == "RLK_062"
+        assert (minion.atk, minion.health) == (2, 4) and minion.taunt
+
+

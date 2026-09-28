@@ -214,3 +214,11 @@ class RLK_731:
 RLK_731e = buff(atk=2)
 
 
+# --- RLK_062
+class RLK_062:
+    """Nerubian Swarmguard"""
+
+    # <b>Taunt</b> <b>Battlecry:</b> Summon two copies of this minion.
+    play = Summon(CONTROLLER, ExactCopy(SELF)) * 2
+
+
