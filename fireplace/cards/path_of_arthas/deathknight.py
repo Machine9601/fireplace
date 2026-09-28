@@ -372,3 +372,10 @@ class RLK_063:
     play = Hit(TARGET, 5), Freeze(ENEMY_MINIONS), Summon(CONTROLLER, "RLK_063t")
 
 
+# --- RLK_122
+class RLK_122:
+    """The Scourge"""
+
+    # Fill your board with random Undead.
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.UNDEAD)) * 7

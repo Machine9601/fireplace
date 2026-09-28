@@ -675,3 +675,13 @@ def test_frostwyrms_fury():
     assert wyrm.id == "RLK_063t" and (wyrm.atk, wyrm.health) == (5, 5)
 
 
+# --- RLK_122
+def test_the_scourge():
+    game = dk_game()
+    game.player1.summon(WISP)
+    game.player1.give("RLK_122").play()
+    assert len(game.player1.field) == 7
+    for minion in game.player1.field[1:]:
+        assert Race.UNDEAD in minion.races
+        assert minion.data.collectible
+    assert not game.player1.give("RLK_122").is_playable()
