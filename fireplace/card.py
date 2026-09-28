@@ -1378,8 +1378,9 @@ class Minion(Character):
         # Played again, it is a new minion: summoning sickness (unless Charge
         # or Rush), no attack made this turn, not killed, nothing copied.
         self.turns_in_play = 0
+        # (attack_target stays: a minion returned during its attack, by
+        # Freezing Trap, must still leave the combat, Character.should_exit_combat.)
         self.num_attacks = 0
-        self.attack_target = None
         self.turn_killed = -1
         self.damaged_this_turn = 0
         self.damaged_on_opponent_turn = 0
