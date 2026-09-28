@@ -15,10 +15,14 @@ PATH_OF_ARTHAS = [
 
 
 def dk_game(deck1=None, deck2=None, class2=CardClass.DEATHKNIGHT):
-    """An empty-deck game: player1 is a death knight, player2 of `class2`."""
-    player1 = Player("Player1", deck1 or [], CardClass.DEATHKNIGHT.default_hero)
+    """An empty-deck game: player1 is a death knight, player2 of `class2`.
+    Not a Standard game: Path of Arthas is not in the fork's Standard sets
+    (a Standard game draws nothing of it at random)."""
+    player1 = Player(
+        "Player1", deck1 or [], CardClass.DEATHKNIGHT.default_hero, is_standard=False
+    )
     player1.cant_fatigue = True
-    player2 = Player("Player2", deck2 or [], class2.default_hero)
+    player2 = Player("Player2", deck2 or [], class2.default_hero, is_standard=False)
     player2.cant_fatigue = True
     game = BaseTestGame(players=(player1, player2))
     game.start()
@@ -225,3 +229,23 @@ def test_ghoul_frenzy_by_justicar_trueheart():
     assert ghoul.atk == 2 and ghoul.health == 1 and ghoul.charge
     game.end_turn()
     assert ghoul.zone == Zone.GRAVEYARD
+
+
+# --- the cards --------------------------------------------------------------
+
+CROCOLISK = "CS2_120"  # 2/3
+WAR_GOLEM = "CS2_186"  # 7/7
+
+
+# --- RLK_042
+def test_horn_of_winter():
+    game = dk_game()
+    game.player1.used_mana = 5
+    game.player1.give("RLK_042").play()
+    assert game.player1.used_mana == 3
+    assert game.player1.mana == 7
+    game.player1.give("RLK_042").play()
+    game.player1.give("RLK_042").play()
+    assert game.player1.used_mana == 0
+
+
