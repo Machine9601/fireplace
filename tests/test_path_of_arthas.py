@@ -671,7 +671,19 @@ def test_frostmourne():
     assert game.player1.weapon.durability == 1
     game.player1.hero.attack(game.player2.hero)
     assert not game.player1.weapon
-    assert sorted(m.id for m in game.player1.field) == sorted([WISP, CROCOLISK])
+    assert [m.id for m in game.player1.field] == [WISP, CROCOLISK]
+    assert all(m.damage == 0 for m in game.player1.field)
+
+
+def test_frostmourne_killed_nothing():
+    game = dk_game()
+    game.player1.give("RLK_086").play()
+    game.player1.weapon.destroy()
+    assert not game.player1.field
+
+
+def test_frostmourne_has_its_own_deathrattle():
+    assert cards_db.db["RLK_086"].scripts.deathrattle
 
 
 # --- RLK_505

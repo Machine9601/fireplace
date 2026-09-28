@@ -342,14 +342,36 @@ class RLK_730e:
 
 
 # --- RLK_086
+class RememberKill(TargetedAction):
+    """TARGET (a weapon) remembers CARD, a minion it killed."""
+
+    TARGET = ActionArg()
+    CARD = CardArg()
+
+    def do(self, source, target, card):
+        target.killed_minions = list(getattr(target, "killed_minions", ())) + [card.id]
+
+
+class KilledByThisWeapon(LazyValue):
+    """A new copy of every minion the weapon killed, in the order they died."""
+
+    def evaluate(self, source):
+        return [
+            source.controller.card(id, source)
+            for id in getattr(source, "killed_minions", ())
+        ]
+
+
 class RLK_086:
     """Frostmourne"""
 
     # <b>Deathrattle:</b> Summon every minion killed by this weapon.
-    # The same effect as the Lich King's Frostmourne (ICC_314t1, the wiki).
+    # The same effect as the Lich King's Frostmourne (ICC_314t1, the wiki),
+    # held by the weapon itself: its Deathrattle is its own.
     events = Attack(FRIENDLY_HERO, ALL_MINIONS).after(
-        Dead(Attack.DEFENDER) & StoringBuff(SELF, "ICC_314t1e", Attack.DEFENDER)
+        Dead(Attack.DEFENDER) & RememberKill(SELF, Attack.DEFENDER)
     )
+    deathrattle = Summon(CONTROLLER, KilledByThisWeapon())
 
 
 # --- RLK_505
