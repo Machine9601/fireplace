@@ -388,3 +388,22 @@ def test_deathchiller():
     assert all(m.damage == 0 for m in game.player1.field)
 
 
+# --- RLK_711
+def test_vicious_bloodworm():
+    game = dk_game()
+    board = game.player1.summon(WISP)
+    wisp = game.player1.give(WISP)
+    fireball = game.player1.give(FIREBALL)
+    bloodworm = game.player1.give("RLK_711")
+    assert bloodworm.targets == [wisp]
+    assert bloodworm.requires_target()
+    bloodworm.play(target=wisp)
+    assert wisp.atk == 4 and wisp.health == 1
+    assert board.atk == 1 and fireball.zone == Zone.HAND
+    # Without a minion in hand, it is played without a target
+    game.player1.hand.filter(type=CardType.MINION)[0].discard()
+    lone = game.player1.give("RLK_711")
+    assert lone.targets == [] and not lone.requires_target()
+    lone.play()
+
+

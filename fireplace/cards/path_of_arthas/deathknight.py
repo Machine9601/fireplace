@@ -140,3 +140,17 @@ class RLK_083:
     events = OWN_SPELL_PLAY.after(Hit(RANDOM(ENEMY_CHARACTERS - DEAD) * 2, 1))
 
 
+# --- RLK_711
+class RLK_711:
+    """Vicious Bloodworm"""
+
+    # <b>Battlecry:</b> Give a minion in your hand Attack equal to this
+    # minion's Attack. (A target of the hand, CAN_TARGET_CARDS_IN_HAND.)
+    requirements = {
+        PlayReq.REQ_FRIENDLY_TARGET: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
+    }
+    play = Buff(TARGET, "RLK_711e", atk=ATK(SELF))
+
+
