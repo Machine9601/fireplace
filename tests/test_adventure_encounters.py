@@ -120,6 +120,50 @@ def test_majordomo_then_ragnaros():
         assert other.playstate == PlayState.WON
 
 
+def test_nefarian_onyxia_nefarian():
+    # Nefarian (Hidden Laboratory): his Armor gone, Onyxia comes (15 Health,
+    # Onyxiclaw, Nefarian Strikes! 1, 2, 1, 3, 1, 4, 0 then 20 fireballs);
+    # she falls, Nefarian returns with the Health he had and clears the board.
+    game, boss, other = _boss_game("BRMA17_2")
+    boss.hero.armor = 10
+    game.end_turn()
+    wisp = other.summon(WISP)
+    other.give("CS2_029").play(target=boss.hero)  # 6 into the Armor
+    assert boss.hero.id == "BRMA17_2" and boss.hero.armor == 4
+    other.give("CS2_029").play(target=boss.hero)  # 4 Armor, then 2 damage
+    assert boss.hero.id == "BRMA17_3"
+    assert boss.hero.health == 15
+    assert boss.hero.power.id == "BRMA17_8" and db_passive("BRMA17_8")
+    assert boss.weapon.id == "BRMA17_9"
+    health = other.hero.health
+    game.end_turn()
+    assert other.hero.health == health - 1
+    game.end_turn()
+    boss.hero.set_current_health(1)
+    other.give("CS2_029").play(target=boss.hero)
+    assert boss.playstate == PlayState.PLAYING
+    assert boss.hero.id == "BRMA17_2"
+    assert boss.hero.health == 28
+    assert boss.hero.power.id == "BRMA17_5"
+    assert wisp.dead and len(other.field) == 0
+    game.end_turn()
+    # No more Onyxia strikes.
+    health = other.hero.health
+    game.end_turn()
+    assert other.hero.health == health
+
+
+def test_nefarian_killed_at_once_skips_the_stages():
+    game, boss, other = _boss_game("BRMA17_2H")
+    boss.hero.armor = 30
+    boss.hero.set_current_health(1)
+    game.end_turn()
+    with pytest.raises(GameOver):
+        game.cheat_action(other.hero, [Hit(boss.hero, 31)])
+    assert other.playstate == PlayState.WON
+    assert boss.hero.id == "BRMA17_2H"
+
+
 def _choose(player, id):
     choice = player.choice
     assert choice is not None

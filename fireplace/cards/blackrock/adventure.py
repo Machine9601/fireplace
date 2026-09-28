@@ -430,11 +430,78 @@ class BRMA16_2H:
     activate = Summon(CONTROLLER, "BRMA16_5")
 
 
+# Nefarian (Hidden Laboratory), "a three-stage fight, with the first and third
+# stages fought against Nefarian, and the second against Nefarian's sister
+# Onyxia" (the wiki). The guides: Nefarian starts with 10 Armor (30 in
+# heroic); once it is gone, Onyxia (15 Health, 30 in heroic) takes his place
+# and wields Onyxiclaw; "When she dies, Nefarian returns with the same health
+# he had before Onyxia came into play. When Nefarian comes back in play, he
+# clears the board." The wiki: "If the player deals enough damage to break
+# Nefarian's armor and kill all 30 of his hitpoints in a single hit in Stage
+# 1, the game skips both Stage 2 and 3".
+
+
+class OnyxiaRises(TargetedAction):
+    """Stage 2: Onyxia replaces Nefarian (target, the boss player)."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        if getattr(target, "nefarian_stage", 1) != 1:
+            return
+        target.nefarian_stage = 2
+        target.nefarian_damage = target.hero.damage
+        heroic = source.id.endswith("H")
+        source.game.queue_actions(
+            source,
+            [
+                Summon(target, "BRMA17_3H" if heroic else "BRMA17_3"),
+                Summon(target, "BRMA17_9"),
+            ],
+        )
+
+
+class NefarianReturns(TargetedAction):
+    """Stage 3: Onyxia has fallen, Nefarian returns and clears the board."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        if getattr(target, "nefarian_stage", 1) != 2:
+            return
+        target.nefarian_stage = 3
+        heroic = source.id.endswith("H")
+        source.game.queue_actions(
+            source,
+            [Destroy(ALL_MINIONS), Summon(target, "BRMA17_2H" if heroic else "BRMA17_2")],
+        )
+        target.hero.damage = getattr(target, "nefarian_damage", 0)
+
+
+class NefarianStrikes(TargetedAction):
+    """
+    Onyxia's Hero Power, auto-cast: "Nefarian rains fire from above!" The
+    wiki's table: 1, 2, 1, 3, 1, 4 and 0 fireballs on the first seven turns,
+    then 20 every turn.
+    """
+
+    TARGET = ActionArg()
+    FIREBALLS = (1, 2, 1, 3, 1, 4, 0)
+
+    def do(self, source, target):
+        turn = getattr(target, "strikes", 0)
+        target.strikes = turn + 1
+        count = self.FIREBALLS[turn] if turn < len(self.FIREBALLS) else 20
+        if count:
+            source.game.queue_actions(source, [Hit(ENEMY_HERO, 1) * count])
+
+
 class BRMA17_5:
     """Bone Minions"""
 
     requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
     activate = Summon(CONTROLLER, "BRMA17_6") * 2
+    update = ArmorBroken() & OnyxiaRises(CONTROLLER)
 
 
 class BRMA17_5H:
@@ -442,18 +509,23 @@ class BRMA17_5H:
 
     requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
     activate = Summon(CONTROLLER, "BRMA17_6H") * 2
+    update = ArmorBroken() & OnyxiaRises(CONTROLLER)
 
 
 class BRMA17_8:
     """Nefarian Strikes!"""
 
-    activate = Hit(ENEMY_HERO, 1) * RandomNumber(0, 1, 2, 3, 4, 20)
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_BEGIN.on(NefarianStrikes(SELF))
+    update = HeroFallen() & NefarianReturns(CONTROLLER)
 
 
 class BRMA17_8H:
     """Nefarian Strikes! (Heroic)"""
 
-    activate = Hit(ENEMY_HERO, 1) * RandomNumber(0, 1, 2, 3, 4, 20)
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_BEGIN.on(NefarianStrikes(SELF))
+    update = HeroFallen() & NefarianReturns(CONTROLLER)
 
 
 ##
