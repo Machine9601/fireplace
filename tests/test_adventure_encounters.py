@@ -360,6 +360,17 @@ def test_eye_of_orsis():
     assert len(game.player1.hand.filter(id=picked.id)) == 3
 
 
+def test_heigan_eruption_hits_the_left_most_enemy_minion():
+    # "Deal 2 damage to the left-most enemy minion." (heroic: 3)
+    for hero, damage in (("NAX5_01", 2), ("NAX5_01H", 3)):
+        game, boss, other = _boss_game(hero)
+        yeti = other.summon("CS2_182")
+        golem = other.summon("CS2_186")
+        boss.hero.power.use()
+        assert yeti.damage == damage
+        assert golem.damage == 0
+
+
 def test_gluth_decimate():
     # Normal: "Change the Health of all minions to 1."; heroic: "Change the
     # Health of enemy minions to 1."
