@@ -341,3 +341,14 @@ class RLK_730e:
     events = OWN_TURN_END.on(Hit(OWNER, 2))
 
 
+# --- RLK_086
+class RLK_086:
+    """Frostmourne"""
+
+    # <b>Deathrattle:</b> Summon every minion killed by this weapon.
+    # The same effect as the Lich King's Frostmourne (ICC_314t1, the wiki).
+    events = Attack(FRIENDLY_HERO, ALL_MINIONS).after(
+        Dead(Attack.DEFENDER) & StoringBuff(SELF, "ICC_314t1e", Attack.DEFENDER)
+    )
+
+

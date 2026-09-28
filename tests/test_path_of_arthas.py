@@ -631,3 +631,21 @@ def test_blood_boil():
     assert game.player2.hero.health == 20
 
 
+# --- RLK_086
+def test_frostmourne():
+    game = dk_game()
+    wisp = game.player2.summon(WISP)
+    crocolisk = game.player2.summon(CROCOLISK)
+    game.player1.give("RLK_086").play()
+    game.player1.hero.attack(wisp)
+    game.end_turn()
+    game.end_turn()
+    game.player1.hero.attack(crocolisk)
+    game.end_turn()
+    game.end_turn()
+    assert game.player1.weapon.durability == 1
+    game.player1.hero.attack(game.player2.hero)
+    assert not game.player1.weapon
+    assert sorted(m.id for m in game.player1.field) == sorted([WISP, CROCOLISK])
+
+
