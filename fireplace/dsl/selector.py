@@ -65,7 +65,9 @@ class Selector:
 
     def __getitem__(self, val: Union[int, slice]) -> "Selector":
         if isinstance(val, int):
-            val = slice(val)
+            # SELECTOR[n] is the n-th entity (ENEMY_MINIONS[0], the left-most),
+            # not the first n (slice(0) selected nothing).
+            val = slice(val, val + 1) if val != -1 else slice(-1, None)
         return SliceSelector(self, val)
 
 

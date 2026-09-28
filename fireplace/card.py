@@ -1002,6 +1002,10 @@ class Character(LiveEntity):
         if not self.ignore_taunt:
             taunts = targets.filter(taunt=True).filter(attackable=True)
 
+        if not taunts and getattr(self.data.scripts, "attacks_minions_only_with_taunt", False):
+            # "Never attacks minions unless they have Taunt." (Moira Bronzebeard)
+            targets = targets.filter(type=CardType.HERO)
+
         return (taunts or targets).filter(attackable=True)
 
     @property
@@ -1896,5 +1900,11 @@ class HeroPower(PlayableCard):
         if self.exhausted:
             return False
         if self.passive_hero_power:
+            return False
+        if self.cant_play or any(
+            getattr(slot, "cant_play", False) for slot in self.slots
+        ):
+            # "Can't be used", from an aura (Moira Bronzebeard: "Thaurissan's
+            # Hero Power can't be used.")
             return False
         return super().is_playable()

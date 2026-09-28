@@ -1,4 +1,57 @@
+from hearthstone.enums import Zone
+
+from ...dsl.evaluator import Evaluator
+from ...logging import log
 from ..utils import *
+
+
+##
+# The bosses in several phases (Majordomo then Ragnaros, Nefarian and
+# Onyxia, Kel'Thuzad): the next phase comes while the auras refresh, before
+# the deaths are processed, so a boss whose hero falls is replaced, not
+# defeated.
+
+
+class HeroFallen(Evaluator):
+    """The hero of the source's controller has fallen (no Health left, or
+    destroyed) and is still in play: its deaths are not processed yet."""
+
+    def check(self, source):
+        hero = source.controller.hero
+        return hero.zone == Zone.PLAY and (hero.health <= 0 or hero.to_be_destroyed)
+
+
+class ArmorBroken(Evaluator):
+    """The hero of the source's controller had Armor, has none left, and is
+    still standing. The source (a Hero Power) remembers the Armor it saw."""
+
+    def check(self, source):
+        hero = source.controller.hero
+        if hero.armor > 0:
+            source.armor_seen = True
+            return False
+        if not getattr(source, "armor_seen", False):
+            return False
+        return hero.health > 0 and not hero.to_be_destroyed
+
+
+class NextPhase(TargetedAction):
+    """
+    The boss (target, a player) goes into its next phase: `hero` replaces its
+    hero, with its own Health and its own Hero Power (the wiki: "Defeating the
+    flamewaker causes him to summon forth Ragnaros the Firelord").
+    """
+
+    TARGET = ActionArg()
+    HERO = ActionArg()
+
+    def get_target_args(self, source, target):
+        return [self._args[1]]
+
+    def do(self, source, target, hero):
+        log.info("%r goes into its next phase: %s", target, hero)
+        source.game.queue_actions(source, [Summon(target, hero)])
+
 
 ##
 # Hero Powers
@@ -49,8 +102,10 @@ class BRMA02_2H:
 class BRMA03_2:
     """Power of the Firelord"""
 
+    # "Hero Power: Deal 30 damage." (Moira Bronzebeard keeps it from being
+    # used while she lives).
     requirements = {PlayReq.REQ_TARGET_TO_PLAY: 0}
-    activate = Hit(TARGET, 2)
+    activate = Hit(TARGET, 30)
 
 
 class BRMA04_2:
@@ -62,13 +117,14 @@ class BRMA04_2:
 class BRMA05_2:
     """Ignite Mana"""
 
-    activate = (MANA(OPPONENT) <= USED_MANA(OPPONENT)) & Hit(ENEMY_HERO, 5)
+    # "Deal 5 damage to the enemy hero if they have any unspent Mana."
+    activate = (CURRENT_MANA(OPPONENT) > 0) & Hit(ENEMY_HERO, 5)
 
 
 class BRMA05_2H:
     """Ignite Mana (Heroic)"""
 
-    activate = (MANA(OPPONENT) <= USED_MANA(OPPONENT)) & Hit(ENEMY_HERO, 10)
+    activate = (CURRENT_MANA(OPPONENT) > 0) & Hit(ENEMY_HERO, 10)
 
 
 class BRMA06_2:
@@ -76,6 +132,11 @@ class BRMA06_2:
 
     requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
     activate = Summon(CONTROLLER, "BRMA06_4")
+    # The wiki (Ragnaros the Firelord (boss)): "The encounter begins with the
+    # player facing Majordomo Executus. Defeating the flamewaker causes him to
+    # summon forth Ragnaros the Firelord, and the second stage of the battle
+    # begins." Ragnaros (BRMA06_3) has his own 8 Health and DIE, INSECT!.
+    update = HeroFallen() & NextPhase(CONTROLLER, "BRMA06_3")
 
 
 class BRMA06_2H:
@@ -83,6 +144,8 @@ class BRMA06_2H:
 
     requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
     activate = Summon(CONTROLLER, "BRMA06_4H")
+    # Heroic: Ragnaros (BRMA06_3H) has 30 Health and DIE, INSECTS!.
+    update = HeroFallen() & NextPhase(CONTROLLER, "BRMA06_3H")
 
 
 class BRMA07_2:
@@ -219,15 +282,19 @@ class BRMA11_2H:
 class BRMA12_2:
     """Brood Affliction"""
 
+    # "At the end of your turn, add a Brood Affliction card to your
+    # opponent's hand.": it acts by itself, it is not used.
+    tags = {enums.PASSIVE_HERO_POWER: True}
     entourage = ["BRMA12_6", "BRMA12_5", "BRMA12_7", "BRMA12_4", "BRMA12_3"]
-    activate = Give(OPPONENT, RandomEntourage())
+    events = OWN_TURN_END.on(Give(OPPONENT, RandomEntourage()))
 
 
 class BRMA12_2H:
     """Brood Affliction (Heroic)"""
 
+    tags = {enums.PASSIVE_HERO_POWER: True}
     entourage = ["BRMA12_3H", "BRMA12_4H", "BRMA12_5H", "BRMA12_6H", "BRMA12_7H"]
-    activate = Give(OPPONENT, RandomEntourage())
+    events = OWN_TURN_END.on(Give(OPPONENT, RandomEntourage()))
 
 
 class BRMA12_10:
@@ -236,23 +303,53 @@ class BRMA12_10:
     activate = Discard(RANDOM(FRIENDLY_HAND))
 
 
+# Lord Victor Nefarius (the wiki): "At the start of his first turn Lord Victor
+# Nefarius will use True Form, changing into his dragon form and thus
+# replacing himself with the Nefarian hero. This will also cause the boss to
+# gain a significant amount of Armor, immediately set his mana to 10, and draw
+# 2 additional cards for free." and "Starting with turn 3, at the start of
+# each turn Ragnaros will grant the player one of the following cards at
+# random. In Heroic mode this happens only once, at the start of turn 3".
+
+RAGNAROS_HELPS = RandomID("BRMA13_5", "BRMA13_6", "BRMA13_7", "BRMA13_8")
+
+
+class RagnarosHelps(TargetedAction):
+    """At the start of the player's turn, from turn 3, a card from Ragnaros
+    (once only in heroic)."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        if source.game.turn < 3:
+            return
+        if source.id.endswith("H") and getattr(target, "ragnaros_helped", False):
+            return
+        target.ragnaros_helped = True
+        return source.game.queue_actions(source, [Give(target, RAGNAROS_HELPS)])
+
+
 class BRMA13_2:
     """True Form"""
 
-    activate = (
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_BEGIN.on(
         Summon(CONTROLLER, "BRMA13_3"),
         Draw(CONTROLLER) * 2,
         GainArmor(FRIENDLY_HERO, 30),
+        GainMana(CONTROLLER, 10),
     )
 
 
 class BRMA13_2H:
     """True Form (Heroic)"""
 
-    activate = (
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_BEGIN.on(
         Summon(CONTROLLER, "BRMA13_3H"),
         Draw(CONTROLLER) * 2,
         GainArmor(FRIENDLY_HERO, 30),
+        GainMana(CONTROLLER, 10),
     )
 
 
@@ -260,12 +357,14 @@ class BRMA13_4:
     """Wild Magic"""
 
     activate = Give(CONTROLLER, RandomSpell(card_class=ENEMY_CLASS))
+    events = BeginTurn(OPPONENT).on(RagnarosHelps(OPPONENT))
 
 
 class BRMA13_4H:
     """Wild Magic (Heroic)"""
 
     activate = Give(CONTROLLER, RandomSpell(card_class=ENEMY_CLASS))
+    events = BeginTurn(OPPONENT).on(RagnarosHelps(OPPONENT))
 
 
 class BRMA14_2:
@@ -370,11 +469,78 @@ class BRMA16_2H:
     activate = Summon(CONTROLLER, "BRMA16_5")
 
 
+# Nefarian (Hidden Laboratory), "a three-stage fight, with the first and third
+# stages fought against Nefarian, and the second against Nefarian's sister
+# Onyxia" (the wiki). The guides: Nefarian starts with 10 Armor (30 in
+# heroic); once it is gone, Onyxia (15 Health, 30 in heroic) takes his place
+# and wields Onyxiclaw; "When she dies, Nefarian returns with the same health
+# he had before Onyxia came into play. When Nefarian comes back in play, he
+# clears the board." The wiki: "If the player deals enough damage to break
+# Nefarian's armor and kill all 30 of his hitpoints in a single hit in Stage
+# 1, the game skips both Stage 2 and 3".
+
+
+class OnyxiaRises(TargetedAction):
+    """Stage 2: Onyxia replaces Nefarian (target, the boss player)."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        if getattr(target, "nefarian_stage", 1) != 1:
+            return
+        target.nefarian_stage = 2
+        target.nefarian_damage = target.hero.damage
+        heroic = source.id.endswith("H")
+        source.game.queue_actions(
+            source,
+            [
+                Summon(target, "BRMA17_3H" if heroic else "BRMA17_3"),
+                Summon(target, "BRMA17_9"),
+            ],
+        )
+
+
+class NefarianReturns(TargetedAction):
+    """Stage 3: Onyxia has fallen, Nefarian returns and clears the board."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        if getattr(target, "nefarian_stage", 1) != 2:
+            return
+        target.nefarian_stage = 3
+        heroic = source.id.endswith("H")
+        source.game.queue_actions(
+            source,
+            [Destroy(ALL_MINIONS), Summon(target, "BRMA17_2H" if heroic else "BRMA17_2")],
+        )
+        target.hero.damage = getattr(target, "nefarian_damage", 0)
+
+
+class NefarianStrikes(TargetedAction):
+    """
+    Onyxia's Hero Power, auto-cast: "Nefarian rains fire from above!" The
+    wiki's table: 1, 2, 1, 3, 1, 4 and 0 fireballs on the first seven turns,
+    then 20 every turn.
+    """
+
+    TARGET = ActionArg()
+    FIREBALLS = (1, 2, 1, 3, 1, 4, 0)
+
+    def do(self, source, target):
+        turn = getattr(target, "strikes", 0)
+        target.strikes = turn + 1
+        count = self.FIREBALLS[turn] if turn < len(self.FIREBALLS) else 20
+        if count:
+            source.game.queue_actions(source, [Hit(ENEMY_HERO, 1) * count])
+
+
 class BRMA17_5:
     """Bone Minions"""
 
     requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
     activate = Summon(CONTROLLER, "BRMA17_6") * 2
+    update = ArmorBroken() & OnyxiaRises(CONTROLLER)
 
 
 class BRMA17_5H:
@@ -382,18 +548,23 @@ class BRMA17_5H:
 
     requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
     activate = Summon(CONTROLLER, "BRMA17_6H") * 2
+    update = ArmorBroken() & OnyxiaRises(CONTROLLER)
 
 
 class BRMA17_8:
     """Nefarian Strikes!"""
 
-    activate = Hit(ENEMY_HERO, 1) * RandomNumber(0, 1, 2, 3, 4, 20)
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_BEGIN.on(NefarianStrikes(SELF))
+    update = HeroFallen() & NefarianReturns(CONTROLLER)
 
 
 class BRMA17_8H:
     """Nefarian Strikes! (Heroic)"""
 
-    activate = Hit(ENEMY_HERO, 1) * RandomNumber(0, 1, 2, 3, 4, 20)
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_BEGIN.on(NefarianStrikes(SELF))
+    update = HeroFallen() & NefarianReturns(CONTROLLER)
 
 
 ##
@@ -403,13 +574,17 @@ class BRMA17_8H:
 class BRMA03_3:
     """Moira Bronzebeard"""
 
+    # "Thaurissan's Hero Power can't be used. Never attacks minions unless
+    # they have Taunt."
     update = Refresh(ALL_HERO_POWERS + ID("BRMA03_2"), {GameTag.CANT_PLAY: True})
+    attacks_minions_only_with_taunt = True
 
 
 class BRMA03_3H:
     """Moira Bronzebeard (Heroic)"""
 
     update = Refresh(ALL_HERO_POWERS + ID("BRMA03_2"), {GameTag.CANT_PLAY: True})
+    attacks_minions_only_with_taunt = True
 
 
 class BRMA10_4:

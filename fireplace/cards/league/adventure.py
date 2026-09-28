@@ -1,3 +1,7 @@
+from hearthstone.enums import PlayState, Zone
+
+from ...dsl.evaluator import Evaluator
+from ...logging import log
 from ..utils import *
 
 ##
@@ -99,7 +103,160 @@ class LOEA01_12h:
 
 
 ##
-# Temple Escape
+# The escapes: Temple Escape and Mine Cart Rush
+#
+# The wiki (Temple Escape, Mine Cart Rush): "the hero is Immune and does not
+# have a Health count. Rather than defeating the hero, the player has to
+# survive until the "turns to escape" count reaches 0. The "turns to escape"
+# count goes down at the end of the boss' turn." Both last 10 turns. The
+# count lives on the boss's Hero Power (TAG_SCRIPT_DATA_NUM_1, `data_num_1`),
+# which acts by itself ("Auto-cast"): it is never used.
+
+TURNS_TO_ESCAPE = 10
+
+
+class EscapeCountdown(TargetedAction):
+    """
+    Get the player `amount` turns closer to the Exit: the count of the escape
+    Hero Power `target` goes down; at 0, the player has escaped and the boss
+    (its controller) loses.
+    """
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+
+    def do(self, source, target, amount):
+        if target.data_num_1 <= 0:
+            return
+        target.data_num_1 = max(0, target.data_num_1 - amount)
+        log.info("%r: %i turns to escape", target, target.data_num_1)
+        if target.data_num_1 == 0:
+            target.controller.playstate = PlayState.LOSING
+            source.game.check_for_end_game()
+
+
+class PathChoice(Choice):
+    """
+    A path of Temple Escape: the player chooses one of two spells, which is
+    cast for him at once (no Mana, never through his hand); the other one is
+    gone.
+    """
+
+    def choose(self, card):
+        super().choose(card)
+        for other in self.cards:
+            if other is not card:
+                other.zone = Zone.REMOVEDFROMGAME
+        self.game.cheat_action(self.player, [CastSpell(card)])
+        if card.zone in (Zone.PLAY, Zone.SETASIDE, Zone.GRAVEYARD):
+            card.zone = Zone.REMOVEDFROMGAME
+
+
+class ChooseYourPath(TargetedAction):
+    """The player `target` chooses between the two paths of `card`."""
+
+    TARGET = ActionArg()
+    CARD = ActionArg()
+
+    PATHS = {
+        "LOEA04_28": ("LOEA04_28a", "LOEA04_28b"),
+        "LOEA04_06": ("LOEA04_06a", "LOEA04_06b"),
+        "LOEA04_29": ("LOEA04_29a", "LOEA04_29b"),
+        "LOEA04_30": ("LOEA04_30a", "LOEA04_31b"),
+    }
+
+    def get_target_args(self, source, target):
+        return [self._args[1]]
+
+    def do(self, source, target, card):
+        options = [target.card(id, source=target) for id in self.PATHS[card]]
+        return source.game.queue_actions(source, [PathChoice(target, options)])
+
+
+# Temple Escape, "Event order" (the wiki): what the boss's turn N brings, in
+# normal and heroic, and the path the player then chooses at the start of
+# his turn. Turn 3 also puts a Rolling Boulder on the right of the player's
+# side; turn 5 destroys every minion. "Take the Shortcut" gets the player 1
+# turn closer to the Exit, so the next turn (the Seething Statue) is skipped.
+TEMPLE_ESCAPE_EVENTS = {
+    1: (["FP1_001"], ["CS2_200"], "LOEA04_28"),
+    2: (["CS2_119"], ["LOE_009"], "LOEA04_06"),
+    3: (["LOEA04_13bt"], ["LOEA04_13bth", "LOEA04_13bth"], None),
+    4: ([], [], "LOEA04_29"),
+    5: ([], [], None),
+    6: (["LOEA04_24"], ["LOEA04_24h", "LOEA04_24h"], None),
+    7: (["LOE_009"], ["LOE_009"], "LOEA04_30"),
+    8: (["LOEA04_25"], ["LOEA04_25h"], None),
+    9: (["LOEA04_23"] * 2, ["LOEA04_23h"] * 3, None),
+}
+
+
+class TempleEscapeTurn(TargetedAction):
+    """The boss's turn of Temple Escape: its obstacles, then the path to come."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        step = TURNS_TO_ESCAPE + 1 - target.data_num_1
+        event = TEMPLE_ESCAPE_EVENTS.get(step)
+        target.escape_path = None
+        if event is None:
+            return
+        normal, heroic, path = event
+        actions = []
+        if step == 5:
+            actions.append(Destroy(ALL_MINIONS))
+        for id in heroic if target.id.endswith("h") else normal:
+            actions.append(Summon(CONTROLLER, id))
+        if step == 3:
+            actions.append(Summon(OPPONENT, "LOE_024t"))
+        target.escape_path = path
+        if actions:
+            return source.game.queue_actions(source, actions)
+
+
+class TempleEscapePath(TargetedAction):
+    """At the start of the player's turn, the path the last obstacle opened."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        path = getattr(target, "escape_path", None)
+        target.escape_path = None
+        if path is not None:
+            return source.game.queue_actions(
+                source, [ChooseYourPath(target.controller.opponent, path)]
+            )
+
+
+class LOEA04_02:
+    """Escape!"""
+
+    tags = {
+        enums.PASSIVE_HERO_POWER: True,
+        GameTag.TAG_SCRIPT_DATA_NUM_1: TURNS_TO_ESCAPE,
+    }
+    update = Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    events = (
+        OWN_TURN_BEGIN.on(TempleEscapeTurn(SELF)),
+        BeginTurn(OPPONENT).on(TempleEscapePath(SELF)),
+        OWN_TURN_END.on(EscapeCountdown(SELF, 1)),
+    )
+
+
+class LOEA04_02h:
+    """Escape! (Heroic)"""
+
+    tags = {
+        enums.PASSIVE_HERO_POWER: True,
+        GameTag.TAG_SCRIPT_DATA_NUM_1: TURNS_TO_ESCAPE,
+    }
+    update = Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    events = (
+        OWN_TURN_BEGIN.on(TempleEscapeTurn(SELF)),
+        BeginTurn(OPPONENT).on(TempleEscapePath(SELF)),
+        OWN_TURN_END.on(EscapeCountdown(SELF, 1)),
+    )
 
 
 class LOEA04_06:
@@ -147,7 +304,11 @@ class LOEA04_29:
 class LOEA04_29a:
     """Touch It"""
 
-    play = Heal(FRIENDLY_HERO, 10)
+    # The ruby of the statue: "Restore 10 Health to your hero." and the
+    # Animated Statue awakens on the boss's side ("You've disturbed the
+    # ancient statue...", the wiki's Temple Escape: "Animated Statue appears
+    # [...] I think he wants his gem back!").
+    play = Heal(FRIENDLY_HERO, 10), Summon(OPPONENT, "LOEA04_27")
 
 
 class LOEA04_29b:
@@ -165,7 +326,8 @@ class LOEA04_30:
 class LOEA04_30a:
     """Take the Shortcut"""
 
-    play = Summon(OPPONENT, "CS2_186")
+    # "Get 1 turn closer to the Exit! Encounter a 7/7 War Golem."
+    play = Summon(OPPONENT, "CS2_186"), EscapeCountdown(ENEMY_HERO_POWER, 1)
 
 
 class LOEA04_31b:
@@ -197,36 +359,122 @@ class LOE_024t:
 class LOEA05_02:
     """Trogg Hate Minions!"""
 
-    # Hearthstone implements Scarvash's Hero Power with LOEA05_02(h) which
-    # switches every turn between LOEA05_02a and LOEA05_03. We don't need
-    # to do that, we implement it as a Summon every turn instead.
-    pass
+    # "Passive Hero Power: Enemy minions cost (2) more. Swap at the start of
+    # your turn." Scarvash starts with it; at the start of each of his turns
+    # it becomes Trogg Hate Spells! (LOEA05_03), which becomes Trogg Hate
+    # Minions! again (LOEA05_02a, the same power after a swap), and so on.
+    update = Refresh(ENEMY_HAND + MINION, {GameTag.COST: +2})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_03"))
 
 
 class LOEA05_02a:
     update = Refresh(ENEMY_HAND + MINION, {GameTag.COST: +2})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_03"))
 
 
 class LOEA05_02h:
-    pass
+    update = Refresh(ENEMY_HAND + MINION, {GameTag.COST: SET(11)})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_03h"))
 
 
 class LOEA05_02ha:
     update = Refresh(ENEMY_HAND + MINION, {GameTag.COST: SET(11)})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_03h"))
 
 
 class LOEA05_03:
     """Trogg Hate Spells!"""
 
     update = Refresh(ENEMY_HAND + SPELL, {GameTag.COST: +2})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_02a"))
 
 
 class LOEA05_03h:
     update = Refresh(ENEMY_HAND + SPELL, {GameTag.COST: SET(11)})
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, "LOEA05_02ha"))
 
 
 ##
 # Mine Cart Rush
+#
+# The wiki (Mine Cart Rush): "The boss has a deck, but does not play cards or
+# draw cards at the start of the turn. The boss uses its Hero Power Flee the
+# Mine! at the start of every turn to summon minions." It "summons 2 of the
+# below minions onto the boss' side of the board (3 minions the first time it
+# is used). The selection is random, although the chances are uneven, with
+# the more powerful options more common in Heroic mode. Debris is rarely
+# seen, and excluded from Heroic mode." The player "is the Mine Cart, their
+# Hero Power is Throw Rocks, they are locked at two Mana Crystals".
+# The wiki gives no odds: Debris is 1 in 10 in normal, the others even.
+
+MINE_CART_NORMAL = RandomID(
+    *(["LOEA07_09"] * 3 + ["LOEA07_12"] * 3 + ["LOEA07_14"] * 3 + ["LOEA07_11"])
+)
+MINE_CART_HEROIC = RandomID("LOEA07_09", "LOEA07_12", "LOEA07_14")
+
+
+class MineCartTurn(TargetedAction):
+    """The boss's turn of Mine Cart Rush: the troggs catch up."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        first = not getattr(target, "mine_cart_started", False)
+        target.mine_cart_started = True
+        pool = MINE_CART_HEROIC if target.id.endswith("h") else MINE_CART_NORMAL
+        return source.game.queue_actions(
+            source, [Summon(CONTROLLER, pool) * (3 if first else 2)]
+        )
+
+
+class LockedMineCart(TargetedAction):
+    """The Mine Cart is locked at two Mana Crystals, from its first turn."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        target.max_mana = 2
+
+
+class LOEA07_03:
+    """Flee the Mine!"""
+
+    tags = {
+        enums.PASSIVE_HERO_POWER: True,
+        GameTag.TAG_SCRIPT_DATA_NUM_1: TURNS_TO_ESCAPE,
+    }
+    update = (
+        Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True}),
+    )
+    events = (
+        OWN_TURN_BEGIN.on(MineCartTurn(SELF)),
+        BeginTurn(OPPONENT).on(LockedMineCart(OPPONENT)),
+        OWN_TURN_END.on(EscapeCountdown(SELF, 1)),
+    )
+
+
+class LOEA07_03h:
+    """Flee the Mine! (Heroic)"""
+
+    tags = {
+        enums.PASSIVE_HERO_POWER: True,
+        GameTag.TAG_SCRIPT_DATA_NUM_1: TURNS_TO_ESCAPE,
+    }
+    update = (
+        Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True}),
+    )
+    events = (
+        OWN_TURN_BEGIN.on(MineCartTurn(SELF)),
+        BeginTurn(OPPONENT).on(LockedMineCart(OPPONENT)),
+        OWN_TURN_END.on(EscapeCountdown(SELF, 1)),
+    )
+
+
+class LOEA07_21:
+    """Barrel Forward"""
+
+    # "Get 1 turn closer to the Exit!"
+    play = EscapeCountdown(ENEMY_HERO_POWER, 1)
 
 
 class LOEA07_29:
@@ -435,13 +683,36 @@ class LOEA10_2H:
 class LOEA10_5:
     """Mrgl Mrgl Nyah Nyah"""
 
-    play = Summon(CONTROLLER, Copy(RANDOM(KILLED + MURLOC) * 5))
+    # "Summon 3 Murlocs that died this game." (heroic: 5)
+    play = Summon(CONTROLLER, Copy(RANDOM(KILLED + MURLOC) * 3))
 
 
 class LOEA10_5H:
     """Mrgl Mrgl Nyah Nyah (Heroic)"""
 
     play = Summon(CONTROLLER, Copy(RANDOM(KILLED + MURLOC) * 5))
+
+
+##
+# Lady Naz'jar
+
+
+class LOEA12_2:
+    """Pearl of the Tides"""
+
+    # "At the end of your turn, replace all minions with new ones that cost
+    # (1) more." It acts by itself, at the end of her turn: it is not used.
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_END.on(Evolve(ALL_MINIONS, 1))
+
+
+class LOEA12_2H:
+    """Pearl of the Tides (Heroic)"""
+
+    # "At the end of your turn, replace all minions with new ones. Yours cost
+    # (1) more."
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = OWN_TURN_END.on(Evolve(FRIENDLY_MINIONS, 1), Evolve(ENEMY_MINIONS, 0))
 
 
 ##
@@ -519,52 +790,113 @@ class LOEA09_4H:
 # Rafaam Unleashed
 
 
+# The wiki (Rafaam Unleashed): "Staff of Origination takes 3 turns to charge.
+# Once fully charged, at the start of the turn it will summon one of the
+# random boss minions listed below, but lose its normal Immune effect. The
+# next turn the Staff will return to normal and begin the cycle afresh."
+# Rafaam is Immune while the staff charges: he can only be hurt from the turn
+# the staff fires until the start of his next turn.
+
+RAFAAM_BOSSES = (
+    "LOEA16_18", "LOEA16_19", "LOEA16_21", "LOEA16_22", "LOEA16_23",
+    "LOEA16_24", "LOEA16_25", "LOEA16_26", "LOEA16_27",
+)
+
+
+class StaffOfOrigination(TargetedAction):
+    """The staff (target) charges at the start of Rafaam's turn; the fourth
+    turn, it summons a boss and Rafaam loses his Immune."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        charge = getattr(target, "staff_charge", 0) + 1
+        if charge <= 3:
+            target.staff_charge = charge
+            target.staff_fired = False
+            return
+        target.staff_charge = 0
+        target.staff_fired = True
+        heroic = target.id.endswith("H")
+        bosses = RandomID(*(id + ("H" if heroic else "") for id in RAFAAM_BOSSES))
+        return source.game.queue_actions(source, [Summon(CONTROLLER, bosses)])
+
+
+class StaffCharging(Evaluator):
+    def check(self, source):
+        return not getattr(source, "staff_fired", False)
+
+
 class LOEA16_2:
     """Staff of Origination"""
 
-    update = Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    update = StaffCharging() & Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    events = OWN_TURN_BEGIN.on(StaffOfOrigination(SELF))
 
 
 class LOEA16_2H:
     """Staff of Origination (Heroic)"""
 
-    update = Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    update = StaffCharging() & Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+    events = OWN_TURN_BEGIN.on(StaffOfOrigination(SELF))
+
+
+class Rummage(TargetedAction):
+    """
+    Rummage (the wiki): "Once the player has used Rummage to receive each of
+    the special cards listed below, using the Hero Power will instead
+    generate a Boom Bot each time." Each artifact is found once.
+    """
+
+    TARGET = ActionArg()
+    ARTIFACTS = (
+        "LOEA16_6", "LOEA16_7", "LOEA16_8", "LOEA16_9", "LOEA16_10",
+        "LOEA16_11", "LOEA16_12", "LOEA16_13", "LOEA16_14", "LOEA16_15",
+    )
+
+    def do(self, source, target):
+        found = getattr(target, "artifacts_found", ())
+        left = [id for id in self.ARTIFACTS if id not in found]
+        if not left:
+            return source.game.queue_actions(source, [Give(target, "GVG_110t")])
+        artifact = source.game.random.choice(left)
+        target.artifacts_found = tuple(found) + (artifact,)
+        return source.game.queue_actions(source, [Give(target, artifact)])
 
 
 class LOEA16_16:
     """Rummage"""
 
-    entourage = [
-        "LOEA16_10",
-        "LOEA16_11",
-        "LOEA16_14",
-        "LOEA16_15",
-        "LOEA16_6",
-        "LOEA16_7",
-        "LOEA16_9",
-        "LOEA16_12",
-        "LOEA16_13",
-        "LOEA16_8",
-    ]
-    activate = Give(CONTROLLER, RandomEntourage())
+    activate = Rummage(CONTROLLER)
 
 
 class LOEA16_16H:
     """Rummage (Heroic)"""
 
-    entourage = [
-        "LOEA16_10",
-        "LOEA16_11",
-        "LOEA16_14",
-        "LOEA16_15",
-        "LOEA16_6",
-        "LOEA16_7",
-        "LOEA16_9",
-        "LOEA16_12",
-        "LOEA16_13",
-        "LOEA16_8",
-    ]
-    activate = Give(CONTROLLER, RandomEntourage())
+    activate = Rummage(CONTROLLER)
+
+
+class LOEA16_13:
+    """Eye of Orsis"""
+
+    # "Discover a minion and gain 3 copies of it."
+    play = Discover(CONTROLLER, RandomMinion()).then(
+        Give(CONTROLLER, Discover.CARD), Give(CONTROLLER, Copy(Discover.CARD)) * 2
+    )
+
+
+class LOEA16_25:
+    """Lady Naz'jar"""
+
+    # "At the end of your turn, replace all other minions with new ones of
+    # the same Cost."
+    events = OWN_TURN_END.on(Evolve(ALL_MINIONS - SELF, 0))
+
+
+class LOEA16_25H:
+    """Lady Naz'jar (Heroic)"""
+
+    events = OWN_TURN_END.on(Evolve(ALL_MINIONS - SELF, 0))
 
 
 class LOEA16_6:

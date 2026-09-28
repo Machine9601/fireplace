@@ -199,8 +199,23 @@ class Player(Entity, TargetableByAuras):
         return mana
 
     @property
+    def max_resources(self):
+        # A cap set by an aura counts (Intense Gaze, Drakkisath: "Players are
+        # capped at 1 Mana Crystal", a Refresh of MAXRESOURCES).
+        ret = self._max_resources
+        for buff in self.buffs:
+            ret = buff._getattr("max_resources", ret)
+        for slot in self.slots:
+            ret = slot._getattr("max_resources", ret)
+        return ret
+
+    @max_resources.setter
+    def max_resources(self, value):
+        self._max_resources = value
+
+    @property
     def max_mana(self):
-        return self._max_mana
+        return min(self._max_mana, self.max_resources)
 
     @max_mana.setter
     def max_mana(self, amount):
