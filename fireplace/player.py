@@ -428,11 +428,18 @@ class Player(Entity, TargetableByAuras):
         for _ in range(hand_size):
             self.deck[-1].zone = Zone.HAND
 
-    def get_spell_damage(self, spell: "Spell", amount: int) -> int:
+    def get_spell_damage(
+        self, spell: "Spell", amount: int, number_bonus: bool = True
+    ) -> int:
         """
         Returns the amount of damage \a amount will do, taking
         SPELLPOWER and SPELLPOWER_DOUBLE into account.
+        The spell's own number bonus (`Spell.number_bonus`) comes first,
+        before any spell damage; `number_bonus=False` leaves it out (a
+        second pass of spell damage, as Arcane Blast gets).
         """
+        if number_bonus:
+            amount += getattr(spell, "number_bonus", 0)
         spell_school_power_map = {
             SpellSchool.ARCANE: self.spellpower_arcane,
             SpellSchool.FIRE: self.spellpower_fire,
@@ -448,11 +455,17 @@ class Player(Entity, TargetableByAuras):
         amount <<= self.controller.spellpower_double
         return amount
 
-    def get_spell_heal(self, spell: "Spell", amount: int) -> int:
+    def get_spell_heal(
+        self, spell: "Spell", amount: int, number_bonus: bool = True
+    ) -> int:
         """
         Returns the amount of heal \a amount will do, taking
         SPELLPOWER and SPELLPOWER_DOUBLE into account.
+        The spell's own number bonus (`Spell.number_bonus`) comes first;
+        `number_bonus=False` leaves it out (Lifesteal).
         """
+        if number_bonus:
+            amount += getattr(spell, "number_bonus", 0)
         amount <<= self.controller.healing_double
         return amount
 

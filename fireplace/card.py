@@ -1504,6 +1504,9 @@ class Spell(PlayableCard):
         self.spell_school = SpellSchool.NONE
         self.immune_to_spellpower = False
         self.receives_double_spelldamage_bonus = False
+        # Added to every $n and #n of the text, before spell damage: an upgrade
+        # the card carries (Hearthstone's "+1"), never copied.
+        self.number_bonus = 0
         super().__init__(data)
 
     @property
@@ -1522,16 +1525,23 @@ class Spell(PlayableCard):
         return data
 
     def get_damage(self, amount, target):
-        amount = super().get_damage(amount, target)
+        base = super().get_damage(amount, target)
+        if amount and not base:
+            # Immune or dormant target: neither spell damage nor the number
+            # bonus makes it take anything
+            return base
+        amount = base
         if not self.immune_to_spellpower:
             amount = self.controller.get_spell_damage(self, amount)
         if self.receives_double_spelldamage_bonus:
-            amount = self.controller.get_spell_damage(self, amount)
+            amount = self.controller.get_spell_damage(
+                self, amount, number_bonus=False
+            )
         return amount
 
-    def get_heal(self, amount, target):
+    def get_heal(self, amount, target, number_bonus=True):
         if not self.immune_to_spellpower:
-            amount = self.controller.get_spell_heal(self, amount)
+            amount = self.controller.get_spell_heal(self, amount, number_bonus)
         return amount
 
     def _set_zone(self, value):
