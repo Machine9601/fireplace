@@ -677,3 +677,149 @@ class KARA_08_08:
 
 
 KARA_08_08e2 = buff(windfury=True)
+
+
+##
+# The Spire: Free Medivh! (Nazra Wildaxe, then Prince Malchezaar)
+#
+# The wiki (Free Medivh!, Overview): "Destroying Nazra Wildaxe removes her
+# weapon and all minions from her side of the board, but does not activate
+# any of their Deathrattles. As soon as the player deals lethal damage to
+# Nazra Wildaxe, the player's turn ends and Prince Malchezaar appears, with
+# full Health (and Armor in Heroic mode), 8 mana (10 mana in Heroic mode),
+# and a fresh deck and hand of cards; notably, he always draws Twisting
+# Nether at the start of his turn. [...] When Prince Malchezaar appears,
+# Medivh equips the player with Atiesh."
+#
+# What the page does not give, and what is done here: the fresh deck is the
+# boss player's `next_phase_deck` (a list of card ids the host sets: the
+# wiki's deck of Prince Malchezaar), shuffled; if there is none, the boss keeps
+# his deck. The fresh hand is three cards, as a first player's; the Twisting
+# Nether of the deck is put on top of it afterwards, so it is the card he draws
+# at the start of his first turn. The Armor of the heroic Prince is not given
+# (the page says none). The player's turn is not ended at once (as for
+# Kel'Thuzad): the player ends it.
+
+TWISTING_NETHER = "EX1_312"
+
+
+class HeroFallen(Evaluator):
+    """The hero of the source's controller has fallen (no Health left, or
+    destroyed) and is still in play: its deaths are not processed yet."""
+
+    def check(self, source):
+        hero = source.controller.hero
+        return hero.zone == Zone.PLAY and (hero.health <= 0 or hero.to_be_destroyed)
+
+
+class MalchezaarAppears(TargetedAction):
+    """Nazra Wildaxe has fallen: Prince Malchezaar (`hero`) replaces her."""
+
+    TARGET = ActionArg()
+    HERO = ActionArg()
+
+    def get_target_args(self, source, target):
+        return [self._args[1]]
+
+    def do(self, source, target, hero):
+        if getattr(target, "malchezaar_appeared", False):
+            return
+        target.malchezaar_appeared = True
+        log.info("%r: Prince Malchezaar appears (%s)", target, hero)
+        game = source.game
+        # Her minions and her weapon go, without their Deathrattles.
+        gone = list(target.field)
+        if target.weapon is not None:
+            gone.append(target.weapon)
+        # A fresh hand and a fresh deck.
+        gone += list(target.hand)
+        deck = getattr(target, "next_phase_deck", None)
+        if deck is not None:
+            gone += list(target.deck)
+        for entity in gone:
+            game.queue_actions(source, [Remove(entity)])
+        if deck is not None:
+            for id in deck:
+                target.card(id, zone=Zone.DECK)
+            target.shuffle_deck()
+        nether = next((c for c in target.deck if c.id == TWISTING_NETHER), None)
+        if nether is not None:
+            target.deck.remove(nether)
+        game.queue_actions(source, [Summon(target, hero), Draw(target) * 3])
+        if nether is not None:
+            target.deck.append(nether)
+        game.queue_actions(source, [Summon(target.opponent, "KARA_13_26")])
+
+
+class MalchezaarsMana(TargetedAction):
+    """The start of Prince Malchezaar's first turn: his mana is 8 (10)."""
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+
+    def do(self, source, target, amount):
+        if getattr(target, "malchezaar_mana", False):
+            return
+        target.malchezaar_mana = True
+        source.game.queue_actions(source, [SetMana(target, amount)])
+
+
+class KARA_13_02:
+    """The Horde"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    activate = Summon(CONTROLLER, "KARA_13_03")
+    update = HeroFallen() & MalchezaarAppears(CONTROLLER, "KARA_13_06")
+
+
+class KARA_13_02H:
+    """The Horde (Heroic)"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    activate = Summon(CONTROLLER, "KARA_13_03H")
+    update = HeroFallen() & MalchezaarAppears(CONTROLLER, "KARA_13_06H")
+
+
+class KARA_13_13:
+    """Legion"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    activate = Summon(CONTROLLER, "KARA_00_02a")
+    events = OWN_TURN_BEGIN.on(MalchezaarsMana(CONTROLLER, 8))
+
+
+class KARA_13_13H:
+    """Legion (Heroic)"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    activate = Summon(CONTROLLER, "KARA_00_02a") * 2
+    events = OWN_TURN_BEGIN.on(MalchezaarsMana(CONTROLLER, 10))
+
+
+class KARA_13_11:
+    """Shadow Bolt Volley"""
+
+    play = Hit(RANDOM_ENEMY_CHARACTER * 3, 4)
+
+
+class KARA_13_12:
+    """Demonic Presence"""
+
+    play = Draw(CONTROLLER) * 2, GainArmor(FRIENDLY_HERO, 10)
+
+
+class KARA_13_12H:
+    """Demonic Presence (Heroic)"""
+
+    play = Draw(CONTROLLER) * 3, GainArmor(FRIENDLY_HERO, 10)
+
+
+class KARA_13_26:
+    """Atiesh"""
+
+    # "After you cast a spell, summon a random minion of that Cost. Lose 1
+    # Durability." (as Medivh, the Guardian's Atiesh)
+    events = OWN_SPELL_PLAY.on(
+        Summon(CONTROLLER, RandomMinion(cost=Attr(Play.CARD, GameTag.COST))),
+        Hit(SELF, 1),
+    )

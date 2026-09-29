@@ -222,9 +222,10 @@ def test_set_the_table_pour_a_round_tossing_plates():
     game.end_turn()
     boss.give("KAR_A02_09H").play()
     assert all(p.atk == 4 and p.health == 4 for p in _plates(boss))
-    hand = len(boss.hand)
+    for card in list(boss.hand):
+        card.discard()
     boss.give("KAR_A02_10").play()
-    assert len(boss.hand) == hand + 5
+    assert len(boss.hand) == 5
 
 
 def test_reflections_normal_copies_for_whoever_plays():
@@ -543,3 +544,99 @@ def test_netherspites_portals():
     game.end_turn()
     boss.give("EX1_312").play()  # Twisting Nether
     assert other.field == [blue, red]
+
+
+##
+# The Spire: Free Medivh! (Nazra Wildaxe, then Prince Malchezaar)
+
+TWISTING_NETHER = "EX1_312"
+PHASE_DECK = [TWISTING_NETHER] + ["CS2_182"] * 29
+
+
+def test_the_horde():
+    # "Hero Power Summon a 3/2 Orc." (heroic: "a 3/3 Orc with Charge")
+    for hero, orc in (("KARA_13_01", "KARA_13_03"), ("KARA_13_01H", "KARA_13_03H")):
+        game, boss, other = _boss_game(hero)
+        boss.hero.power.use()
+        assert [m.id for m in boss.field] == [orc]
+    assert not fireplace.cards.db["KARA_13_03"].tags.get(GameTag.CHARGE)
+    assert fireplace.cards.db["KARA_13_03H"].tags.get(GameTag.CHARGE)
+
+
+def test_malchezaars_cards():
+    # Legion: "Summon a 6/6 Abyssal." (heroic: "two 6/6 Abyssals") ; Shadow
+    # Bolt Volley: "Deal $4 damage to three random enemies." ; Demonic
+    # Presence: "Draw 2 cards. Gain 10 Armor." (heroic: "Draw 3 cards.")
+    for hero, count in (("KARA_13_06", 1), ("KARA_13_06H", 2)):
+        game, boss, other = _boss_game(hero)
+        # (The test game gives 10 crystals after his first turn has begun.)
+        boss.used_mana = 0
+        boss.hero.power.use()
+        assert [m.id for m in boss.field] == ["KARA_00_02a"] * count
+    game, boss, other = _boss_game("KARA_13_06")
+    minions = [other.summon("EX1_620") for _ in range(3)]
+    boss.give("KARA_13_11").play()
+    hit = [m for m in minions if m.damage == 4] + ([other.hero] if other.hero.damage == 4 else [])
+    assert len(hit) == 3
+    for card, draws in (("KARA_13_12", 2), ("KARA_13_12H", 3)):
+        game, boss, other = _boss_game("KARA_13_06")
+        hand = len(boss.hand)
+        boss.give(card).play()
+        assert len(boss.hand) == hand + draws
+        assert boss.hero.armor == 10
+
+
+def test_nazra_falls_malchezaar_appears():
+    # The wiki (Free Medivh!, Overview): "Destroying Nazra Wildaxe removes her
+    # weapon and all minions from her side of the board, but does not
+    # activate any of their Deathrattles." Prince Malchezaar appears "with
+    # full Health [...], 8 mana (10 mana in Heroic mode), and a fresh deck and
+    # hand of cards; notably, he always draws Twisting Nether at the start of
+    # his turn." "When Prince Malchezaar appears, Medivh equips the player
+    # with Atiesh."
+    for nazra, prince, mana in (("KARA_13_01", "KARA_13_06", 8), ("KARA_13_01H", "KARA_13_06H", 10)):
+        game, boss, other = _boss_game(nazra)
+        boss.next_phase_deck = list(PHASE_DECK)
+        boss.summon("FP1_001")  # Zombie Chow: Deathrattle, restore 5 Health to the enemy hero
+        boss.summon("CS2_106")  # Fiery War Axe
+        old_hand = list(boss.hand)
+        game.end_turn()
+        other.hero.set_current_health(20)
+        boss.hero.set_current_health(3)
+        other.give(FIREBALL).play(target=boss.hero)
+        assert game.state != State.COMPLETE and boss.playstate == PlayState.PLAYING
+        assert boss.hero.id == prince
+        assert boss.hero.health == 30 and boss.hero.damage == 0
+        assert boss.hero.power.id in ("KARA_13_13", "KARA_13_13H")
+        assert not boss.field and boss.weapon is None
+        assert other.hero.health == 20  # no Deathrattle
+        assert not any(c in boss.hand for c in old_hand)
+        assert len(boss.hand) == 3
+        assert TWISTING_NETHER not in [c.id for c in boss.hand]
+        assert all(c.id in PHASE_DECK for c in boss.hand)
+        assert len(boss.deck) == len(PHASE_DECK) - 3
+        assert other.weapon is not None and other.weapon.id == "KARA_13_26"
+        # His turn: 8 mana (10 in heroic), and Twisting Nether drawn.
+        game.end_turn()
+        assert game.current_player is boss
+        assert boss.mana == mana
+        assert boss.hand[-1].id == TWISTING_NETHER
+        # He falls: the boss is defeated.
+        game.end_turn()
+        boss.hero.set_current_health(2)
+        with pytest.raises(GameOver):
+            other.give(MOONFIRE).play(target=boss.hero)
+            other.give(MOONFIRE).play(target=boss.hero)
+        assert other.playstate == PlayState.WON
+
+
+def test_atiesh():
+    # "After you cast a spell, summon a random minion of that Cost. Lose 1
+    # Durability."
+    game, boss, other = _boss_game("KARA_13_06")
+    game.end_turn()
+    other.summon("KARA_13_26")
+    assert other.weapon.durability == 3
+    other.give(FIREBALL).play(target=boss.hero)
+    assert len(other.field) == 1 and other.field[0].cost == 4
+    assert other.weapon.durability == 2
