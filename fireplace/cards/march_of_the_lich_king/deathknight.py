@@ -346,5 +346,12 @@ class LEG_RLK_071:
     """Patchwerk"""
 
     # <b>Battlecry:</b> Destroy a random minion in your opponent's hand, deck,
-    # and battlefield.
+    # and battlefield. (One minion of each of the three zones: the hand, the
+    # deck and the battlefield; the Tavern Brawl tags "Remove from hand" and
+    # "Remove from deck" of the wiki.)
     tags = RESERVED
+    play = (
+        Destroy(RANDOM(ENEMY_HAND + MINION)),
+        Destroy(RANDOM(ENEMY_DECK + MINION)),
+        Destroy(RANDOM(ENEMY_MINIONS)),
+    )

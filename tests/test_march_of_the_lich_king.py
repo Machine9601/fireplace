@@ -872,3 +872,37 @@ def test_a_risen_ghoul_leaves_no_corpse():
     game.player1.give(FIREBALL).play(target=ghoul)
     assert ghoul.zone == Zone.GRAVEYARD
     assert game.player1.corpses == 0
+
+
+# --- LEG_RLK_071
+def test_patchwerk():
+    game = dk_game(class2=CardClass.MAGE)
+    hand = [game.player2.give(WISP), game.player2.give(CROCOLISK), game.player2.give(FIREBALL)]
+    deck = [game.player2.card(WISP, zone=Zone.DECK), game.player2.card(WAR_GOLEM, zone=Zone.DECK),
+            game.player2.card(FIREBALL, zone=Zone.DECK)]
+    board = [game.player2.summon(WISP), game.player2.summon(WAR_GOLEM)]
+    mine = game.player1.summon(WISP)
+    patchwerk = game.player1.give("LEG_RLK_071").play()
+    assert (patchwerk.atk, patchwerk.health) == (4, 6)
+    # One minion of each zone is destroyed; never a spell, never a friend
+    assert sum(c.zone == Zone.GRAVEYARD for c in hand if c.type == CardType.MINION) == 1
+    assert hand[2].zone == Zone.HAND
+    assert sum(c.zone == Zone.GRAVEYARD for c in deck if c.type == CardType.MINION) == 1
+    assert deck[2].zone == Zone.DECK
+    assert sum(m.zone == Zone.GRAVEYARD for m in board) == 1
+    assert mine.zone == Zone.PLAY and patchwerk.zone == Zone.PLAY
+    assert game.player2.hero.health == 30
+
+
+def test_patchwerk_with_only_one_zone():
+    game = dk_game(class2=CardClass.MAGE)
+    board = game.player2.summon(WAR_GOLEM)
+    game.player1.give("LEG_RLK_071").play()
+    assert board.zone == Zone.GRAVEYARD
+
+
+def test_patchwerk_with_no_enemy_minion():
+    game = dk_game()
+    game.player2.give(FIREBALL)
+    patchwerk = game.player1.give("LEG_RLK_071").play()
+    assert patchwerk.zone == Zone.PLAY
