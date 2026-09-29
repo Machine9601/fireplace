@@ -232,12 +232,31 @@ class LEG_RLK_705:
 
 
 # --- RLK_707
+class GiveAttackOrSpend(TargetedAction):
+    """Give the player's minions +1 Attack (Grave Mark); if the player has 5
+    Corpses, spend them to give +3 instead (Grave Force): "instead", so not
+    +4."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        game = source.game
+        spent = game.queue_actions(source, [SpendCorpses(target, 5)])[0]
+        enchantment = "RLK_707e2" if spent and spent[0] else "RLK_707e"
+        game.queue_actions(source, [Buff(FRIENDLY_MINIONS, enchantment)])
+
+
 class RLK_707:
     """Grave Strength"""
 
     # Give your minions +1 Attack. Spend 5 <b>Corpses</b> to give them +3
     # instead.
     tags = RESERVED
+    play = GiveAttackOrSpend(CONTROLLER)
+
+
+RLK_707e = buff(atk=1)
+RLK_707e2 = buff(atk=3)
 
 
 # --- LEG_RLK_085

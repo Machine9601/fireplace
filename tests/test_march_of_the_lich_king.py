@@ -632,3 +632,35 @@ def test_graveyard_shift_with_one_place_left():
         game.player1.summon(WISP)
     game.player1.give("LEG_RLK_705").play()
     assert len(game.player1.field) == 7
+
+
+# --- RLK_707
+def test_grave_strength():
+    game = dk_game()
+    mine = [game.player1.summon(CROCOLISK), game.player1.summon(WISP)]
+    enemy = game.player2.summon(CROCOLISK)
+    game.player1.corpses = 4
+    game.player1.give("RLK_707").play()
+    # Not enough Corpses: +1 Attack, and nothing is spent
+    assert [m.atk for m in mine] == [3, 2] and enemy.atk == 2
+    assert game.player1.corpses == 4
+    assert game.player1.corpses_spent_this_game == 0
+
+
+def test_grave_strength_spending_five_corpses_gives_three_instead():
+    game = dk_game()
+    mine = [game.player1.summon(CROCOLISK), game.player1.summon(WISP)]
+    enemy = game.player2.summon(CROCOLISK)
+    game.player1.corpses = 7
+    game.player1.give("RLK_707").play()
+    # +3 instead of +1, not +4
+    assert [m.atk for m in mine] == [5, 4] and enemy.atk == 2
+    assert game.player1.corpses == 2
+    assert game.player1.corpses_spent_this_game == 5
+
+
+def test_grave_strength_with_no_minion_still_spends_the_corpses():
+    game = dk_game()
+    game.player1.corpses = 5
+    game.player1.give("RLK_707").play()
+    assert game.player1.corpses == 0
