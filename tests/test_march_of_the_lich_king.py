@@ -416,3 +416,28 @@ def test_rimefang_sword_only_after_your_hero_attacks():
     game.end_turn()
     wisp.attack(game.player2.hero)
     assert fireball.cost == 4
+
+
+# --- RLK_709
+def test_remorseless_winter():
+    game = dk_game()
+    for _ in range(2):
+        game.player1.card(WISP, zone=Zone.DECK)
+    mine = game.player1.summon(CROCOLISK)
+    enemy1 = game.player2.summon(CROCOLISK)
+    enemy2 = game.player2.summon(WISP)
+    hand = len(game.player1.hand)
+    game.player1.give("RLK_709").play()
+    assert game.player2.hero.health == 28
+    assert enemy1.damage == 2 and enemy2.zone == Zone.GRAVEYARD
+    assert mine.damage == 0 and game.player1.hero.health == 30
+    assert len(game.player1.hand) == hand + 1
+
+
+def test_remorseless_winter_with_spell_power():
+    game = dk_game()
+    game.player1.summon(KOBOLD_GEOMANCER)
+    enemy = game.player2.summon(CROCOLISK)
+    game.player1.give("RLK_709").play()
+    assert game.player2.hero.health == 27
+    assert enemy.zone == Zone.GRAVEYARD

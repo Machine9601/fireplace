@@ -143,6 +143,7 @@ class RLK_709:
 
     # Deal $2 damage to all enemies. Draw a card.
     tags = RESERVED
+    play = Hit(ENEMY_CHARACTERS, 2), Draw(CONTROLLER)
 
 
 # --- RLK_223
