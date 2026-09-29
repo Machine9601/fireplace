@@ -20,6 +20,8 @@ STARFALL = "NEW1_007"
 PROPHET_VELEN = "EX1_350"
 AUCHENAI_SOULPRIEST = "EX1_591"
 BOULDERFIST_OGRE = "CS2_200"
+SOUL_CLEAVE = "BT_740"
+EXPLOSIVE_TRAP = "EX1_610"
 
 
 def _avec_bonus(player, card_id, bonus=1):
@@ -152,6 +154,36 @@ def test_numbers_without_dollar_are_unchanged():
     intellect.play()
     assert len(game.player1.hand) == before - 1 + 2
     assert len(game.player1.deck) == 5 - 2
+
+
+def test_lifesteal_heals_the_damage_dealt_not_one_more():
+    game = prepare_empty_game()
+    game.player1.hero.set_current_health(20)
+    ogres = [game.player2.summon(BOULDERFIST_OGRE) for _ in range(2)]
+    _avec_bonus(game.player1, SOUL_CLEAVE).play()
+    assert [o.health for o in ogres] == [7 - 3, 7 - 3]
+    assert game.player1.hero.health == 20 + 3 + 3
+
+
+def test_a_secret_keeps_its_bonus_until_it_triggers():
+    game = prepare_empty_game()
+    _avec_bonus(game.player1, EXPLOSIVE_TRAP).play()
+    game.end_turn()
+    wisp = game.player2.give(WISP)
+    wisp.play()
+    game.end_turn()
+    game.end_turn()
+    wisp.attack(game.player1.hero)
+    assert game.player2.hero.health == 30 - 3
+
+
+def test_an_immune_target_takes_nothing():
+    game = prepare_empty_game()
+    game.player2.hero.set_current_health(20)
+    game.player2.hero.buff(game.player2.hero, "EX1_295o")
+    assert game.player2.hero.immune
+    _avec_bonus(game.player1, FIREBALL).play(target=game.player2.hero)
+    assert game.player2.hero.health == 20
 
 
 def test_a_copy_has_no_bonus():

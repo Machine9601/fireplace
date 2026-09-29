@@ -1093,7 +1093,9 @@ class Damage(TargetedAction):
                         [Hit(source.controller.opponent.hero, amount)],
                     )
                 else:
-                    source.heal(source.controller.hero, amount)
+                    source.game.cheat_action(
+                        source, [LifestealHeal(source.controller.hero, amount)]
+                    )
             self.broadcast(source, EventListener.ON, target, amount, source)
             # poisonous can not destroy hero
             if (
@@ -1642,12 +1644,25 @@ class Heal(TargetedAction):
 
     TARGET = ActionArg()
     AMOUNT = IntArg()
+    # The amount is a number of the source's text, which a spell's number
+    # bonus raises (`Spell.number_bonus`); not so for Lifesteal
+    text_number = True
+
+    def _number_bonus(self, source):
+        if not self.text_number or getattr(source, "immune_to_spellpower", False):
+            return 0
+        return getattr(source, "number_bonus", 0)
 
     def do(self, source, target, amount):
         if source.controller.healing_as_damage:
+            # A spell's own number bonus is part of the number it restores
+            amount += self._number_bonus(source)
             return source.game.queue_actions(source.controller, [Hit(target, amount)])
 
-        amount = source.get_heal(amount, target)
+        if not self.text_number and getattr(source, "number_bonus", 0):
+            amount = source.get_heal(amount, target, number_bonus=False)
+        else:
+            amount = source.get_heal(amount, target)
         amount = min(amount, target.damage)
         if amount:
             # Undamaged targets do not receive heals
@@ -1659,6 +1674,17 @@ class Heal(TargetedAction):
             source.controller.healed_this_game += amount
             if target.type == CardType.HERO:
                 source.controller.hero_health_changed_this_turn += 1
+
+
+class LifestealHeal(Heal):
+    """
+    Heal the hero of a Lifesteal source by the damage it dealt: that amount
+    is not a number of the text, so a spell's number bonus is not added.
+    """
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+    text_number = False
 
 
 class ManaThisTurn(TargetedAction):
