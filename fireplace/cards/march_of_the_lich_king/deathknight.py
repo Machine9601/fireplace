@@ -227,6 +227,8 @@ class LEG_RLK_705:
 
     # Summon two 1/1 Zombies with <b>Reborn</b>.
     tags = RESERVED
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, "RLK_705t") * 2
 
 
 # --- RLK_707

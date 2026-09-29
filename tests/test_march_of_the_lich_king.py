@@ -603,3 +603,32 @@ def test_a_risen_footman_leaves_no_corpse():
     game.player1.give(FIREBALL).play(target=footman)
     assert footman.zone == Zone.GRAVEYARD
     assert game.player1.corpses == 0
+
+
+# --- LEG_RLK_705
+def test_graveyard_shift():
+    game = dk_game()
+    game.player1.give("LEG_RLK_705").play()
+    zombies = list(game.player1.field)
+    assert [z.id for z in zombies] == ["RLK_705t", "RLK_705t"]
+    assert all((z.atk, z.health) == (1, 1) and z.reborn for z in zombies)
+    game.player1.give(MOONFIRE).play(target=zombies[0])
+    assert zombies[0].zone == Zone.GRAVEYARD
+    # Reborn: it comes back with 1 Health and no Reborn
+    assert len(game.player1.field) == 2
+    assert not game.player1.field[0].reborn
+
+
+def test_graveyard_shift_needs_room():
+    game = dk_game()
+    for _ in range(7):
+        game.player1.summon(WISP)
+    assert not game.player1.give("LEG_RLK_705").is_playable()
+
+
+def test_graveyard_shift_with_one_place_left():
+    game = dk_game()
+    for _ in range(6):
+        game.player1.summon(WISP)
+    game.player1.give("LEG_RLK_705").play()
+    assert len(game.player1.field) == 7
