@@ -514,16 +514,24 @@ def test_chess_a_side_without_pieces_loses():
         assert white.playstate == PlayState.WON
 
 
-def test_chess_both_sides_without_pieces_tie():
-    # The last White Knight and the last Black Pawn fall together.
-    game, white, black = _chess(deck=[], deck2=[])
-    (knight,) = _board(white, WHITE_KNIGHT)
-    (pawn,) = _board(black, BLACK_PAWN)
-    knight.damage, pawn.damage = 2, 2
-    with pytest.raises(GameOver):
-        knight.attack(pawn)
-    assert white.playstate == PlayState.TIED
-    assert black.playstate == PlayState.TIED
+def test_chess_both_sides_without_pieces_no_draw():
+    # The last White Knight and the last Black Pawn fall together: the deaths
+    # are processed one by one, in the order they entered play, as fireplace
+    # does for two heroes; the side of the first one loses.
+    for first in ("white", "black"):
+        game, white, black = _chess(deck=[], deck2=[])
+        if first == "white":
+            (knight,) = _board(white, WHITE_KNIGHT)
+            (pawn,) = _board(black, BLACK_PAWN)
+        else:
+            (pawn,) = _board(black, BLACK_PAWN)
+            (knight,) = _board(white, WHITE_KNIGHT)
+        knight.damage, pawn.damage = 2, 2
+        with pytest.raises(GameOver):
+            knight.attack(pawn)
+        loser, winner = (white, black) if first == "white" else (black, white)
+        assert loser.playstate == PlayState.LOST
+        assert winner.playstate == PlayState.WON
 
 
 HEROIC_WHITE_DECK = (

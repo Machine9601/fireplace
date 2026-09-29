@@ -449,11 +449,13 @@ class KAR_A10_22H:
     activate = MoveLeft(TARGET)
 
 
-# The Kings. Moroes (Chess): "You don't have many pieces. If you run out, you
-# will lose." ; "You have run out of pieces. The game is forfeit." A piece is a
-# minion on the board (not dying), in the hand or in the deck. Both sides are
-# looked at each time a minion dies: when both run out together, the game is a
-# draw.
+# The Kings (`chess_king`). Moroes (Chess): "You don't have many pieces. If
+# you run out, you will lose." ; "You have run out of pieces. The game is
+# forfeit." A piece is a minion on the board (not dying), in the hand or in
+# the deck. A King looks at his own side each time one of his minions dies;
+# when the last pieces of both sides die together, the deaths are processed
+# one by one, as fireplace does for two heroes: the side of the first one to
+# die (the first to have entered play) loses, and the game is over.
 
 
 def chess_pieces(player):
@@ -464,28 +466,20 @@ def chess_pieces(player):
     )
 
 
-class ChessOutOfPieces(GameAction):
-    """A King without any piece left loses."""
+class ChessOutOfPieces(TargetedAction):
+    """The King of the player `target` has no piece left: he loses."""
 
-    def do(self, source):
-        game = source.game
-        losing = [
-            player
-            for player in game.players
-            if player.hero is not None
-            and getattr(player.hero.data.scripts, "chess_king", False)
-            and player.playstate == PlayState.PLAYING
-            and not chess_pieces(player)
-        ]
-        if not losing:
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        if target.playstate != PlayState.PLAYING or chess_pieces(target):
             return
-        for player in losing:
-            log.info("%r has run out of pieces: the game is forfeit", player)
-            player.playstate = PlayState.LOSING
-        game.check_for_end_game()
+        log.info("%r has run out of pieces: the game is forfeit", target)
+        target.playstate = PlayState.LOSING
+        source.game.check_for_end_game()
 
 
-CHESS_KING_EVENTS = Death(MINION).on(ChessOutOfPieces())
+CHESS_KING_EVENTS = Death(FRIENDLY + MINION).on(ChessOutOfPieces(CONTROLLER))
 
 
 class KAR_a10_Boss1:
