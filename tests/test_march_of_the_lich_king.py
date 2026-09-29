@@ -371,3 +371,48 @@ def test_harbinger_of_winter_without_a_frost_spell():
     game.player1.give(MOONFIRE).play(target=harbinger)
     assert harbinger.zone == Zone.GRAVEYARD
     assert fireball.zone == Zone.DECK
+
+
+# --- LEG_RLK_710
+def test_rimefang_sword():
+    game = dk_game()
+    game.player1.give("LEG_RLK_710").play()
+    assert game.player1.weapon.atk == 2 and game.player1.weapon.durability == 3
+    fireball = game.player1.give(FIREBALL)
+    wisp = game.player1.give(WISP)
+    game.player1.hero.attack(game.player2.hero)
+    # The one spell of the hand costs (1) less; the minion does not
+    assert fireball.cost == 3
+    assert wisp.cost == 0
+    game.end_turn()
+    game.end_turn()
+    game.player1.hero.attack(game.player2.hero)
+    assert fireball.cost == 2
+
+
+def test_rimefang_sword_reduces_one_of_two_spells():
+    game = dk_game()
+    game.player1.give("LEG_RLK_710").play()
+    fireball = game.player1.give(FIREBALL)  # 4
+    frostbolt = game.player1.give("CS2_024")  # 2
+    game.player1.hero.attack(game.player2.summon(WAR_GOLEM))
+    assert (fireball.cost, frostbolt.cost) in [(3, 2), (4, 1)]
+
+
+def test_rimefang_sword_without_a_spell():
+    game = dk_game()
+    game.player1.give("LEG_RLK_710").play()
+    wisp = game.player1.give(WISP)
+    game.player1.hero.attack(game.player2.hero)
+    assert wisp.cost == 0
+
+
+def test_rimefang_sword_only_after_your_hero_attacks():
+    game = dk_game()
+    game.player1.give("LEG_RLK_710").play()
+    fireball = game.player1.give(FIREBALL)
+    wisp = game.player1.summon(WISP)
+    game.end_turn()
+    game.end_turn()
+    wisp.attack(game.player2.hero)
+    assert fireball.cost == 4

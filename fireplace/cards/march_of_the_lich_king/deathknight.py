@@ -127,7 +127,14 @@ class LEG_RLK_710:
     """Rimefang Sword"""
 
     # After your hero attacks, reduce the Cost of a spell in your hand by (1).
+    # (A random spell of the hand, the wiki "Random".)
     tags = RESERVED
+    events = Attack(FRIENDLY_HERO).after(
+        Buff(RANDOM(FRIENDLY_HAND + SPELL), "RLK_710e")
+    )
+
+
+RLK_710e = buff(cost=-1)
 
 
 # --- RLK_709
