@@ -107,7 +107,7 @@ class KARA_00_10:
 
 
 class KARA_00_11:
-    """Guardian's Evocation"""
+    """Guardian’s Evocation"""
 
     play = ManaThisTurn(CONTROLLER, 5)
 
