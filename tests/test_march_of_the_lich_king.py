@@ -825,3 +825,50 @@ def test_anti_magic_shell_protects_from_hero_powers():
     power = game.player2.hero.power
     assert power.targets and wisp not in power.targets
     assert game.player1.hero in power.targets
+
+
+# --- RLK_060
+def test_army_of_the_dead():
+    game = dk_game()
+    game.player1.corpses = 3
+    game.player1.give("RLK_060").play()
+    ghouls = game.player1.field
+    assert [g.id for g in ghouls] == ["RLK_008t"] * 3
+    assert all((g.atk, g.health) == (2, 2) and g.rush for g in ghouls)
+    assert game.player1.corpses == 0
+    assert game.player1.corpses_spent_this_game == 3
+
+
+def test_army_of_the_dead_up_to_five():
+    game = dk_game()
+    game.player1.corpses = 8
+    game.player1.give("RLK_060").play()
+    assert len(game.player1.field) == 5
+    assert game.player1.corpses == 3
+
+
+def test_army_of_the_dead_only_raises_what_fits():
+    game = dk_game()
+    for _ in range(5):
+        game.player1.summon(WISP)
+    game.player1.corpses = 8
+    game.player1.give("RLK_060").play()
+    assert len(game.player1.field) == 7
+    assert game.player1.corpses == 6
+
+
+def test_army_of_the_dead_without_a_corpse():
+    game = dk_game()
+    game.player1.give("RLK_060").play()
+    assert not game.player1.field
+
+
+def test_a_risen_ghoul_leaves_no_corpse():
+    game = dk_game()
+    game.player1.corpses = 1
+    game.player1.give("RLK_060").play()
+    ghoul = game.player1.field[0]
+    game.player1.used_mana = 0
+    game.player1.give(FIREBALL).play(target=ghoul)
+    assert ghoul.zone == Zone.GRAVEYARD
+    assert game.player1.corpses == 0

@@ -331,6 +331,14 @@ class RLK_060:
 
     # Raise up to 5 <b>Corpses</b> as 2/2 Risen Ghouls with <b>Rush</b>.
     tags = RESERVED
+    play = RaiseCorpses(CONTROLLER, 5, "RLK_008t")
+
+
+class RLK_008t:
+    """Risen Ghoul"""
+
+    # <b>Rush</b> <i>Doesn't leave a <b>Corpse</b>.</i>
+    tags = {enums.LEAVES_NO_CORPSE: True}
 
 
 # --- LEG_RLK_071
