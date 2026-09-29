@@ -770,6 +770,38 @@ def test_barnes_keeps_the_enchantments_of_the_deck_card():
     assert summoned.health == 1
 
 
+def test_moat_lurker_resummons_at_the_far_right():
+    # hearthstone.wiki.gg: "summons the minion to the far right of the
+    # controlling player's board", not where Moat Lurker stood.
+    game = prepare_game()
+    game.end_turn()
+    wisp = game.player2.give(WISP).play()
+    game.player2.give("CS2_182").play()
+    game.player2.give(CHICKEN).play()
+    game.end_turn()
+    lurker = game.player1.give("KAR_041")
+    lurker.play(target=wisp)
+    game.player1.give(FIREBALL).play(target=lurker)
+    assert [m.id for m in game.player2.field] == ["CS2_182", CHICKEN, WISP]
+
+
+def test_moat_lurker_own_minion_far_right():
+    game = prepare_game()
+    wisp = game.player1.give(WISP).play()
+    game.player1.give("CS2_182").play()
+    lurker = game.player1.give("KAR_041")
+    lurker.play(target=wisp, index=0)
+    game.end_turn()
+    game.end_turn()
+    game.player1.give(KOBOLD_GEOMANCER).play()
+    game.player1.give(FIREBALL).play(target=lurker)
+    assert [m.id for m in game.player1.field] == [
+        "CS2_182",
+        KOBOLD_GEOMANCER,
+        WISP,
+    ]
+
+
 def test_ivory_knight_heals_the_base_cost():
     # Under the enemy's Loatheb, the discovered spell costs 5 more: the heal is its base Cost.
     game = prepare_empty_game(CardClass.PALADIN, CardClass.PALADIN)
