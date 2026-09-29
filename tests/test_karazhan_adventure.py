@@ -155,3 +155,106 @@ def test_guardians_evocation():
     game.end_turn()
     game.end_turn()
     assert player.mana == 2
+
+
+##
+# The Parlor: Silverware Golem, Magic Mirror
+
+PLATE = "KAR_A02_01"
+
+
+def _plates(player):
+    return player.field.filter(id=PLATE)
+
+
+def test_be_our_guest():
+    # "Hero Power Summon a 1/1 Plate." (heroic: "two 1/1 Plates")
+    for hero, count in (("KAR_A02_12", 1), ("KAR_A02_12H", 2)):
+        game, boss, other = _boss_game(hero)
+        assert not db_passive(boss.hero.power.id)
+        boss.hero.power.use()
+        assert len(_plates(boss)) == count
+        assert _plates(boss)[0].atk == 1 and _plates(boss)[0].health == 1
+
+
+def test_silverware_auras():
+    # Cup: "Plates have +1 Attack." (heroic +3) ; Fork: "Plates have
+    # Charge." ; Knife: "Plates have Taunt."
+    for cup, more in (("KAR_A02_05", 1), ("KAR_A02_05H", 3)):
+        game, boss, other = _boss_game("KAR_A02_12")
+        plate = boss.summon(PLATE)
+        wisp = boss.summon(WISP)
+        boss.summon(cup)
+        assert plate.atk == 1 + more and wisp.atk == 1
+        enemy_plate = other.summon(PLATE)
+        assert enemy_plate.atk == 1
+    for fork in ("KAR_A02_03", "KAR_A02_03H"):
+        game, boss, other = _boss_game("KAR_A02_12")
+        boss.summon(fork)
+        plate = boss.summon(PLATE)
+        assert plate.charge and plate.can_attack()
+        assert not boss.field[0].charge
+    for knife in ("KAR_A02_04", "KAR_A02_04H"):
+        game, boss, other = _boss_game("KAR_A02_12")
+        boss.summon(knife)
+        plate = boss.summon(PLATE)
+        assert plate.taunt and not boss.field[0].taunt
+
+
+def test_pitcher():
+    # Pitcher (heroic): "Battlecry: Give a minion +3/+3."
+    game, boss, other = _boss_game("KAR_A02_12H")
+    wisp = boss.summon(WISP)
+    boss.give("KAR_A02_06H").play(target=wisp)
+    assert wisp.atk == 4 and wisp.health == 4
+
+
+def test_set_the_table_pour_a_round_tossing_plates():
+    # Tossing Plates: "Summon five 1/1 Plates." ; Set the Table: "Give your
+    # Plates +1/+1." (heroic +2/+2) ; Pour a Round: "Draw a card for each of
+    # your Plates."
+    game, boss, other = _boss_game("KAR_A02_12")
+    boss.give("KAR_A02_11").play()
+    assert len(_plates(boss)) == 5
+    boss.give("KAR_A02_09").play()
+    assert all(p.atk == 2 and p.health == 2 for p in _plates(boss))
+    game.end_turn()
+    game.end_turn()
+    boss.give("KAR_A02_09H").play()
+    assert all(p.atk == 4 and p.health == 4 for p in _plates(boss))
+    hand = len(boss.hand)
+    boss.give("KAR_A02_10").play()
+    assert len(boss.hand) == hand + 5
+
+
+def test_reflections_normal_copies_for_whoever_plays():
+    # Magic Mirror: "Passive Hero Power Whenever a minion is played, summon a
+    # 1/1 copy of it." In normal, each player gets the copy of the minion he
+    # plays; in heroic, "Magic Mirror summons a 1/1 copy of it".
+    game, boss, other = _boss_game("KAR_A01_01")
+    assert db_passive("KAR_A01_02")
+    with pytest.raises(InvalidAction):
+        boss.hero.power.use()
+    boss.give("CS2_182").play()
+    assert len(boss.field) == 2
+    copy = boss.field[1]
+    assert copy.id == "CS2_182" and copy.atk == 1 and copy.health == 1
+    game.end_turn()
+    other.give("CS2_182").play()
+    assert len(other.field) == 2 and len(boss.field) == 2
+    assert other.field[1].atk == 1 and other.field[1].health == 1
+    # A summoned minion is not played.
+    other.summon(WISP)
+    assert len(other.field) == 3 and len(boss.field) == 2
+
+
+def test_reflections_heroic_copies_for_the_mirror():
+    game, boss, other = _boss_game("KAR_A01_01H")
+    assert db_passive("KAR_A01_02H")
+    game.end_turn()
+    other.give("CS2_182").play()
+    assert len(other.field) == 1 and len(boss.field) == 1
+    assert boss.field[0].id == "CS2_182" and boss.field[0].atk == 1
+    game.end_turn()
+    boss.give(WISP).play()
+    assert len(boss.field) == 3
