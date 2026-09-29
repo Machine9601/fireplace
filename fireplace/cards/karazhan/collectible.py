@@ -31,25 +31,6 @@ SPELLS_CAST_THIS_GAME = FuncSelector(
 )
 
 
-class SummonAtTheFarRight(Summon):
-    """
-    Moat Lurker: "summons the minion to the far right of the controlling
-    player's board" (hearthstone.wiki.gg). A dead minion's Summon would place
-    it where the dead minion stood (`_dead_position`), on either board.
-    """
-
-    TARGET = ActionArg()
-    CARD = ActionArg()
-
-    def do(self, source, target, cards):
-        dead_position = getattr(source, "_dead_position", None)
-        source._dead_position = None
-        try:
-            return super().do(source, target, cards)
-        finally:
-            source._dead_position = dead_position
-
-
 class BaseCost(LazyNum):
     """The base Cost of the cards in a selector, before any Cost modifier."""
 
