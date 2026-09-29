@@ -157,12 +157,34 @@ class RLK_223:
 
 
 # --- LEG_RLK_224
+class DrawTwoSpells(TargetedAction):
+    """Draw 2 spells (random ones of the deck, one after the other). If they
+    are both Frost spells, deal 2 damage to all enemies; a single spell in the
+    deck is not "both"."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        game = source.game
+        drawn = []
+        for _ in range(2):
+            spells = [c for c in target.deck if c.type == CardType.SPELL]
+            if not spells:
+                break
+            card = game.random.choice(spells)
+            game.queue_actions(source, [ForceDraw(card)])
+            drawn.append(card)
+        if len(drawn) == 2 and all(c.spell_school == SpellSchool.FROST for c in drawn):
+            game.queue_actions(source, [Hit(ENEMY_CHARACTERS, 2)])
+
+
 class LEG_RLK_224:
     """Overseer Frigidara"""
 
     # <b>Battlecry:</b> Draw 2 spells. If they're both Frost spells, deal 2
     # damage to all enemies.
     tags = RESERVED
+    play = DrawTwoSpells(CONTROLLER)
 
 
 # --- LEG_RLK_039

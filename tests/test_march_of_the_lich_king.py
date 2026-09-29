@@ -476,3 +476,37 @@ def test_thassarian_never_hits_a_friend():
     mine = game.player1.summon(WAR_GOLEM)
     game.player1.give("RLK_223").play()
     assert mine.damage == 0
+
+
+# --- LEG_RLK_224
+def test_overseer_frigidara_two_frost_spells():
+    game = dk_game()
+    frost = [game.player1.card("RLK_038", zone=Zone.DECK), game.player1.card("RLK_015", zone=Zone.DECK)]
+    wisp = game.player1.card(WISP, zone=Zone.DECK)
+    enemy = game.player2.summon(CROCOLISK)
+    mine = game.player1.summon(CROCOLISK)
+    overseer = game.player1.give("LEG_RLK_224").play()
+    assert (overseer.atk, overseer.health) == (3, 6)
+    assert all(c.zone == Zone.HAND for c in frost)
+    assert wisp.zone == Zone.DECK
+    assert enemy.damage == 2 and game.player2.hero.health == 28
+    assert mine.damage == 0 and game.player1.hero.health == 30
+
+
+def test_overseer_frigidara_not_both_frost():
+    game = dk_game()
+    frost = game.player1.card("RLK_038", zone=Zone.DECK)
+    fire = game.player1.card(FIREBALL, zone=Zone.DECK)
+    wisp = game.player1.card(WISP, zone=Zone.DECK)
+    game.player1.give("LEG_RLK_224").play()
+    assert frost.zone == Zone.HAND and fire.zone == Zone.HAND
+    assert wisp.zone == Zone.DECK
+    assert game.player2.hero.health == 30
+
+
+def test_overseer_frigidara_with_a_single_spell():
+    game = dk_game()
+    frost = game.player1.card("RLK_038", zone=Zone.DECK)
+    game.player1.give("LEG_RLK_224").play()
+    assert frost.zone == Zone.HAND
+    assert game.player2.hero.health == 30  # they are not both Frost spells
