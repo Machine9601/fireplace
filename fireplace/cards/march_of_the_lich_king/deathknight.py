@@ -117,8 +117,9 @@ class RLK_025:
 class RLK_511:
     """Harbinger of Winter"""
 
-    # <b>Deathrattle:</b> Draw a Frost spell.
+    # <b>Deathrattle:</b> Draw a Frost spell. (A random one of the deck.)
     tags = RESERVED
+    deathrattle = ForceDraw(RANDOM(FRIENDLY_DECK + FROST + SPELL))
 
 
 # --- LEG_RLK_710

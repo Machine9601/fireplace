@@ -338,3 +338,36 @@ def test_frost_strike_on_a_friendly_minion():
     game.player1.give("RLK_025").play(target=wisp)
     assert wisp.zone == Zone.GRAVEYARD
     assert game.player1.choice
+
+
+# --- RLK_511
+def test_harbinger_of_winter():
+    game = dk_game()
+    icy_touch = game.player1.card("RLK_038", zone=Zone.DECK)  # a Frost spell
+    fireball = game.player1.card(FIREBALL, zone=Zone.DECK)  # a Fire spell
+    wisp = game.player1.card(WISP, zone=Zone.DECK)
+    harbinger = game.player1.give("RLK_511").play()
+    assert (harbinger.atk, harbinger.health) == (3, 2)
+    assert not game.player1.hand
+    game.player1.give(FIREBALL).play(target=harbinger)
+    assert harbinger.zone == Zone.GRAVEYARD
+    assert icy_touch.zone == Zone.HAND
+    assert fireball.zone == Zone.DECK and wisp.zone == Zone.DECK
+
+
+def test_harbinger_of_winter_draws_one_of_the_frost_spells():
+    game = dk_game()
+    spells = [game.player1.card("RLK_038", zone=Zone.DECK), game.player1.card("RLK_015", zone=Zone.DECK)]
+    harbinger = game.player1.summon("RLK_511")
+    game.player1.give(FIREBALL).play(target=harbinger)
+    assert sorted(s.zone for s in spells) == [Zone.DECK, Zone.HAND]
+
+
+def test_harbinger_of_winter_without_a_frost_spell():
+    game = dk_game()
+    fireball = game.player1.card(FIREBALL, zone=Zone.DECK)
+    harbinger = game.player1.summon("RLK_511")
+    game.player1.give(MOONFIRE).play(target=harbinger)
+    game.player1.give(MOONFIRE).play(target=harbinger)
+    assert harbinger.zone == Zone.GRAVEYARD
+    assert fireball.zone == Zone.DECK
