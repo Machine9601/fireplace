@@ -1296,21 +1296,60 @@ class Minion(Character):
         return self.silenced or self.dormant
 
     @property
+    def has_board_place(self):
+        """
+        True if this minion has a place on the board to look at neighbours from:
+        it is in play, or it has just died in play and Death noted where it stood.
+        """
+        if self.zone == Zone.PLAY:
+            return True
+        return (
+            self.zone == Zone.GRAVEYARD
+            and getattr(self, "_dead_position", None) is not None
+        )
+
+    def _neighbours(self):
+        """
+        The non-dormant minions (left, right) around this minion's place.
+
+        A dead minion is out of the field; its neighbours are the ones that
+        stood around the place Death noted (`_dead_position`), so that a
+        Deathrattle can still name them (Necroknight). Neighbours that are
+        themselves already dead are left out: Death will process them.
+        """
+        if self.zone == Zone.PLAY:
+            index = self.zone_position - 1
+            left = self.controller.field[:index]
+            right = self.controller.field[index + 1 :]
+            dead = False
+        else:
+            assert self.has_board_place, self.zone
+            index = self._dead_position
+            left = self.controller.field[:index]
+            right = self.controller.field[index:]
+            dead = True
+        left = left.filter(dormant=False)
+        right = right.filter(dormant=False)
+        if dead:
+            # The nearest one on each side stays the neighbour, dead or not.
+            left = left[-1:] if left and not left[-1].dead else []
+            right = right[:1] if right and not right[0].dead else []
+        return left, right
+
+    @property
     def left_minion(self):
-        assert self.zone is Zone.PLAY, self.zone
+        assert self.has_board_place, self.zone
         ret = CardList()
-        index = self.zone_position - 1
-        left = self.controller.field[:index].filter(dormant=False)
+        left, _ = self._neighbours()
         if left:
             ret.append(left[-1])
         return ret
 
     @property
     def right_minion(self):
-        assert self.zone is Zone.PLAY, self.zone
+        assert self.has_board_place, self.zone
         ret = CardList()
-        index = self.zone_position - 1
-        right = self.controller.field[index + 1 :].filter(dormant=False)
+        _, right = self._neighbours()
         if right:
             ret.append(right[0])
         return ret
