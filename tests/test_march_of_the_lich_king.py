@@ -733,3 +733,47 @@ def test_a_risen_golem_leaves_no_corpse():
     game.player1.give(FIREBALL).play(target=golem)
     assert golem.zone == Zone.GRAVEYARD
     assert game.player1.corpses == 0
+
+
+# --- LEG_RLK_744
+def test_stitched_giant():
+    game = dk_game()
+    giant = game.player1.give("LEG_RLK_744")
+    assert (giant.atk, giant.health) == (8, 8) and Race.UNDEAD in giant.races
+    assert giant.cost == 9
+    # Gaining Corpses is not spending them
+    game.player1.give("RLK_503").play()
+    assert giant.cost == 9
+    game.player1.corpses = 8
+    game.player1.used_mana = 0
+    game.player1.give("RLK_707").play()  # Grave Strength spends 5
+    assert game.player1.corpses_spent_this_game == 5
+    assert giant.cost == 4
+    game.player1.corpses = 20
+    game.player1.used_mana = 0
+    game.player1.give("RLK_504").play()  # Corpse Bride spends up to 10
+    assert game.player1.corpses_spent_this_game == 15
+    # Never below 0
+    assert giant.cost == 0
+    game.player1.used_mana = 10
+    giant.play()
+    assert giant.zone == Zone.PLAY
+
+
+def test_stitched_giant_counts_only_your_own_corpses():
+    game = dk_game()
+    giant = game.player1.give("LEG_RLK_744")
+    game.player2.corpses = 5
+    game.queue_actions(game.player2.hero, [SpendCorpses(game.player2, 5)])
+    assert game.player2.corpses_spent_this_game == 5
+    assert giant.cost == 9
+
+
+def test_stitched_giant_after_the_corpses_of_a_raise():
+    game = dk_game()
+    giant = game.player1.give("LEG_RLK_744")
+    game.player1.corpses = 3
+    hero = game.player1.hero
+    game.queue_actions(hero, [RaiseCorpses(CONTROLLER, 3, "RLK_008t")])  # raised: spent
+    assert game.player1.corpses_spent_this_game == 3
+    assert giant.cost == 6

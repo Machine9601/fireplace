@@ -300,8 +300,10 @@ class RLK_085t:
 class LEG_RLK_744:
     """Stitched Giant"""
 
-    # Costs (1) less for each <b>Corpse</b> you've spent this game.
+    # Costs (1) less for each <b>Corpse</b> you've spent this game. (Corpses
+    # raised are spent too.)
     tags = RESERVED
+    cost_mod = -Attr(CONTROLLER, "corpses_spent_this_game")
 
 
 # --- RLK_048
