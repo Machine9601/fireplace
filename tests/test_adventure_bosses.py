@@ -19,6 +19,19 @@ def _boss_game(hero1, hero2="HERO_01", deck=None):
     return game, player1, player2
 
 
+def test_faerlina_rain_of_fire_hits_enemy_characters():
+    # Rain of Fire: "Fire a missile for each card in your opponent's hand." Like
+    # Arcane Missiles, each missile picks a random enemy, the hero included: with
+    # no enemy minion, every missile hits the enemy hero.
+    for power in ("NAX2_03", "NAX2_03H"):
+        game = prepare_empty_game()
+        game.player1.summon(power)
+        for _ in range(3):
+            game.player2.give(WISP)
+        game.player1.hero.power.use()
+        assert game.player2.hero.damage == 3
+
+
 def test_magmatron():
     # Magmatron (Omnotron Defense System): "Whenever a player plays a card,
     # Magmatron deals 2 damage to them."
