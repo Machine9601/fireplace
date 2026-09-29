@@ -680,9 +680,10 @@ def test_babbling_book_mage_spell():
 def test_swashburglar_another_class():
     for _ in range(20):
         game = prepare_empty_game(CardClass.ROGUE, CardClass.MAGE)
+        # player1 is whoever goes first, Rogue or Mage.
         game.player1.give("KAR_069").play()
         card = game.player1.hand[0]
-        assert CardClass.ROGUE not in card.classes
+        assert game.player1.hero.card_class not in card.classes
         assert CardClass.NEUTRAL not in card.classes
 
 
