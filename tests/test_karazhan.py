@@ -733,6 +733,43 @@ def test_atiesh_full_board():
     assert game.player1.weapon.durability == 3
 
 
+def test_prince_malchezaar_five_different_legendaries_of_his_class():
+    starting = ["KAR_096", "EX1_016", "EX1_562"] + [WISP] * 27
+    for _ in range(10):
+        player1 = Player("Player1", list(starting), CardClass.MAGE.default_hero)
+        player2 = Player("Player2", [WISP] * 30, CardClass.WARRIOR.default_hero)
+        game = BaseTestGame(players=(player1, player2))
+        game.start()
+        for player in game.players:
+            if player.choice:
+                player.choice.choose()
+        mage = player1
+        added = [
+            c for c in list(mage.deck) + list(mage.hand) if c.id not in starting
+        ]
+        added = [c for c in added if c.id != THE_COIN]
+        assert len(added) == 5
+        assert len({c.id for c in added}) == 5
+        for card in added:
+            assert card.type == CardType.MINION
+            assert card.rarity == Rarity.LEGENDARY
+            assert CardClass.MAGE in card.classes or CardClass.NEUTRAL in card.classes
+
+
+def test_barnes_keeps_the_enchantments_of_the_deck_card():
+    game = prepare_empty_game()
+    wisp = game.player1.give(WISP)
+    wisp.shuffle_into_deck()
+    game.queue_actions(game.player1, [Buff(wisp, "CS2_009e")])
+    assert wisp.taunt
+    game.player1.give("KAR_114").play()
+    summoned = game.player1.field[-1]
+    assert summoned.id == WISP
+    assert summoned.taunt
+    assert summoned.atk == 1
+    assert summoned.health == 1
+
+
 def test_spirit_claws_enemy_jungle_moonkin():
     # "While you have Spell Damage": the enemy's Jungle Moonkin gives it to both players.
     game = prepare_game()

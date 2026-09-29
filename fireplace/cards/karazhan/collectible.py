@@ -19,6 +19,22 @@ class AnotherHeroClass(LazyValue):
 
         return from_another_class
 
+class HeroClassOrNeutral(LazyValue):
+    """The card classes "suitable for the player's class": neutral and the hero's."""
+
+    def evaluate(self, source):
+        return [CardClass.NEUTRAL, CardClass(source.controller.hero.card_class)]
+
+
+# Prince Malchezaar: five different Legendary minions of his player's class or
+# neutral, none already in the starting deck (hearthstone.wiki.gg).
+MALCHEZAAR_LEGENDARIES = (
+    RandomLegendaryMinion(
+        card_class=HeroClassOrNeutral(), exclude=DeDuplicate(STARTING_DECK)
+    )
+    * 5
+)
+
 # "While you have Spell Damage": any Spell Damage, the enemy's Jungle Moonkin included.
 HAVE_SPELL_DAMAGE = Find(CONTROLLER + (AttrValue("spellpower") > 0))
 
@@ -227,20 +243,10 @@ class KAR_096:
     """Prince Malchezaar"""
 
     class Deck:
-        events = GameStart().on(
-            Shuffle(
-                CONTROLLER, RandomLegendaryMinion(exclude=DeDuplicate(STARTING_DECK))
-            )
-            * 5
-        )
+        events = GameStart().on(Shuffle(CONTROLLER, MALCHEZAAR_LEGENDARIES))
 
     class Hand:
-        events = GameStart().on(
-            Shuffle(
-                CONTROLLER, RandomLegendaryMinion(exclude=DeDuplicate(STARTING_DECK))
-            )
-            * 5
-        )
+        events = GameStart().on(Shuffle(CONTROLLER, MALCHEZAAR_LEGENDARIES))
 
 
 class KAR_097:
@@ -278,7 +284,8 @@ class KAR_097t:
 class KAR_114:
     """Barnes"""
 
-    play = Summon(CONTROLLER, Copy(RANDOM(FRIENDLY_DECK + MINION))).then(
+    # The copy keeps the enchantments of the card in the deck (patch 12.0).
+    play = Summon(CONTROLLER, ExactCopy(RANDOM(FRIENDLY_DECK + MINION))).then(
         Buff(Summon.CARD, "KAR_114e")
     )
 
