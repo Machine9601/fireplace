@@ -4071,3 +4071,15 @@ def test_gruul_ragnaros():
     assert len(game.player1.field) == 1
     assert gruul.atk == 9
     assert (gruul.damage == 8) ^ (game.player1.hero.damage == 8)
+
+
+def test_pilfer_another_class():
+    # "Add a random card from another class": never a Neutral card, never the
+    # hero's own class (it was Neutral one time in three).
+    for _ in range(40):
+        game = prepare_empty_game(CardClass.ROGUE, CardClass.MAGE)
+        # player1 is whoever goes first, Rogue or Mage.
+        game.player1.give("EX1_182").play()
+        card = game.player1.hand[0]
+        assert game.player1.hero.card_class not in card.classes
+        assert CardClass.NEUTRAL not in card.classes
