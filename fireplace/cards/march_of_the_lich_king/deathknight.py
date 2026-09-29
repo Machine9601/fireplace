@@ -81,12 +81,36 @@ class RLK_720:
 
 
 # --- RLK_025
+def _rune_card(rune):
+    """A card of the Rune `rune` that may be Discovered: at least one such
+    rune, and not a triple-rune card (they cannot be generated nor Discovered
+    since patch 26.0.4, the wiki Â« Rune Â»)."""
+
+    def custom_filter(card):
+        runes = (
+            card.tags.get(GameTag.COST_BLOOD, 0)
+            + card.tags.get(GameTag.COST_FROST, 0)
+            + card.tags.get(GameTag.COST_UNHOLY, 0)
+        )
+        return card.tags.get(rune, 0) > 0 and runes < 3
+
+    return custom_filter
+
+
 class RLK_025:
     """Frost Strike"""
 
     # Deal $3 damage to a minion. If it dies, <b>Discover</b> a Frost Rune
-    # card.
+    # card. (The pool is the collectible death knight cards of the game: the
+    # cards of this module are reserved and never in it.)
     tags = RESERVED
+    requirements = {PlayReq.REQ_MINION_TARGET: 0, PlayReq.REQ_TARGET_TO_PLAY: 0}
+    play = Hit(TARGET, 3), Dead(TARGET) & DISCOVER(
+        RandomCollectible(
+            card_class=CardClass.DEATHKNIGHT,
+            custom_filter=_rune_card(GameTag.COST_FROST),
+        )
+    )
 
 
 # --- RLK_511

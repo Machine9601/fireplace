@@ -303,3 +303,38 @@ def test_gnome_muncher_ignores_taunt():
     game.end_turn()
     assert wisp.zone == Zone.GRAVEYARD
     assert footman.damage == 0
+
+
+# --- RLK_025
+def test_frost_strike():
+    game = dk_game()
+    enemy = game.player2.summon(CROCOLISK)
+    frost_strike = game.player1.give("RLK_025")
+    assert game.player2.hero not in frost_strike.targets
+    frost_strike.play(target=enemy)
+    assert enemy.zone == Zone.GRAVEYARD
+    choice = game.player1.choice
+    assert choice and len(choice.cards) == 3
+    for card in choice.cards:
+        assert card.card_class == CardClass.DEATHKNIGHT, card
+        assert card.cost_frost > 0, card
+        assert sum(card.runes) < 3, card
+    picked = choice.cards[1]
+    choice.choose(picked)
+    assert game.player1.hand[-1].id == picked.id
+
+
+def test_frost_strike_that_does_not_kill_discovers_nothing():
+    game = dk_game()
+    golem = game.player2.summon(WAR_GOLEM)
+    game.player1.give("RLK_025").play(target=golem)
+    assert golem.damage == 3
+    assert not game.player1.choice
+
+
+def test_frost_strike_on_a_friendly_minion():
+    game = dk_game()
+    wisp = game.player1.summon(WISP)
+    game.player1.give("RLK_025").play(target=wisp)
+    assert wisp.zone == Zone.GRAVEYARD
+    assert game.player1.choice
