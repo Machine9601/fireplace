@@ -140,3 +140,31 @@ def test_gain_corpses_is_not_spending():
     game = dk_game()
     game.player1.give("RLK_503").play()
     assert game.player1.corpses_spent_this_game == 0
+
+
+# --- RLK_958
+def test_skeletal_sidekick():
+    game = dk_game()
+    undead = game.player1.summon("RLK_503")  # Body Bagger, an Undead
+    wisp = game.player1.summon(WISP)
+    enemy_undead = game.player2.summon("RLK_503")
+    sidekick = game.player1.give("RLK_958")
+    assert (sidekick.atk, sidekick.health) == (1, 2)
+    assert Race.UNDEAD in sidekick.races
+    assert sidekick.requires_target()
+    # Friendly Undead only: not the Wisp, not the enemy's, not a hero
+    assert sidekick.targets == [undead]
+    sidekick.play(target=undead)
+    assert undead.atk == 3 and undead.health == 3
+    assert wisp.atk == 1
+    assert enemy_undead.atk == 1
+
+
+def test_skeletal_sidekick_without_a_target():
+    game = dk_game()
+    game.player1.summon(WISP)
+    sidekick = game.player1.give("RLK_958")
+    assert not sidekick.requires_target()
+    sidekick.play()
+    assert game.player1.field[-1] is sidekick
+    assert sidekick.atk == 1

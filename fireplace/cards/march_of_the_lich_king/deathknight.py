@@ -32,6 +32,16 @@ class RLK_958:
 
     # <b>Battlecry:</b> Give a friendly Undead +2 Attack.
     tags = RESERVED
+    requirements = {
+        PlayReq.REQ_FRIENDLY_TARGET: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_WITH_RACE: Race.UNDEAD,
+        PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
+    }
+    play = Buff(TARGET, "RLK_958e")
+
+
+RLK_958e = buff(atk=2)
 
 
 # --- RLK_708
