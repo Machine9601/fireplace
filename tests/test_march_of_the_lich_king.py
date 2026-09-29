@@ -777,3 +777,51 @@ def test_stitched_giant_after_the_corpses_of_a_raise():
     game.queue_actions(hero, [RaiseCorpses(CONTROLLER, 3, "RLK_008t")])  # raised: spent
     assert game.player1.corpses_spent_this_game == 3
     assert giant.cost == 6
+
+
+# --- RLK_048
+def test_anti_magic_shell():
+    game = dk_game()
+    mine = [game.player1.summon(CROCOLISK), game.player1.summon(WISP)]
+    enemy = game.player2.summon(CROCOLISK)
+    game.player1.give("RLK_048").play()
+    assert [(m.atk, m.health) for m in mine] == [(3, 4), (2, 2)]
+    assert (enemy.atk, enemy.health) == (2, 3)
+    game.end_turn()
+    # Elusive: no spell of the other player targets them
+    fireball = game.player2.give(FIREBALL)
+    assert fireball.targets
+    assert mine[0] not in fireball.targets and mine[1] not in fireball.targets
+    assert enemy in fireball.targets
+
+
+def test_anti_magic_shell_minions_can_still_be_attacked():
+    game = dk_game()
+    mine = game.player1.summon(CROCOLISK)
+    enemy = game.player2.summon(CROCOLISK)
+    game.player1.give("RLK_048").play()
+    game.end_turn()
+    enemy.attack(mine)
+    assert mine.damage == 2 and enemy.zone == Zone.GRAVEYARD
+
+
+def test_anti_magic_shell_protects_from_your_own_spells_too():
+    game = dk_game()
+    wisp = game.player1.summon(WISP)
+    game.player1.give("RLK_048").play()
+    fireball = game.player1.give(FIREBALL)
+    assert wisp not in fireball.targets
+    newcomer = game.player1.summon(WISP)
+    assert (newcomer.atk, newcomer.health) == (1, 1)
+    assert newcomer in fireball.targets
+
+
+def test_anti_magic_shell_protects_from_hero_powers():
+    # Two mages (who plays first is drawn): Fireblast targets
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    wisp = game.player1.summon(WISP)
+    game.player1.give("RLK_048").play()
+    game.end_turn()
+    power = game.player2.hero.power
+    assert power.targets and wisp not in power.targets
+    assert game.player1.hero in power.targets

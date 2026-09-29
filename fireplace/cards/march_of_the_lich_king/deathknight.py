@@ -310,8 +310,19 @@ class LEG_RLK_744:
 class RLK_048:
     """Anti-Magic Shell"""
 
-    # Give your minions +1/+1 and <b>Elusive</b>.
+    # Give your minions +1/+1 and <b>Elusive</b>. (Elusive: no spell and no
+    # Hero Power, of either player, targets the minion.)
     tags = RESERVED
+    play = Buff(FRIENDLY_MINIONS, "RLK_048e")
+
+
+class RLK_048e:
+    tags = {
+        GameTag.ATK: 1,
+        GameTag.HEALTH: 1,
+        GameTag.CANT_BE_TARGETED_BY_ABILITIES: True,
+        GameTag.CANT_BE_TARGETED_BY_HERO_POWERS: True,
+    }
 
 
 # --- RLK_060
