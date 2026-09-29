@@ -59,7 +59,11 @@ class LEG_RLK_082:
 
     # <b>Taunt</b> <b>Deathrattle:</b> Return this to your hand. It costs
     # Health instead of Mana.
+    # (The build has no enchantment of its own for it: "Blood of Gods", the one
+    # of G'huun the Blood God, says the same, "Costs Health instead of Mana",
+    # and goes when the card leaves the hand.)
     tags = RESERVED
+    deathrattle = Bounce(SELF).then(Buff(Bounce.TARGET, "DMF_056e"))
 
 
 # --- RLK_720

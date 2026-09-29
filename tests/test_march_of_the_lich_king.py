@@ -189,3 +189,51 @@ def test_chillfallen_baron():
     assert baron.zone == Zone.GRAVEYARD
     assert len(game.player1.hand) == hand + 1
     assert len(game.player1.deck) == 2
+
+
+# --- LEG_RLK_082
+def test_deathbringer_saurfang():
+    game = dk_game()
+    saurfang = game.player1.give("LEG_RLK_082").play()
+    assert saurfang.taunt and (saurfang.atk, saurfang.health) == (4, 6)
+    assert Race.UNDEAD in saurfang.races
+    game.player1.give(FIREBALL).play(target=saurfang)
+    # Returned to the hand, costing Health instead of Mana
+    assert saurfang.zone == Zone.HAND
+    back = game.player1.hand[-1]
+    assert back is saurfang
+    assert back.card_costs_health
+    assert back.cost == 5
+    game.player1.used_mana = 10
+    health = game.player1.hero.health
+    back.play()
+    assert game.player1.hero.health == health - 5
+    assert game.player1.used_mana == 10
+    assert back.zone == Zone.PLAY
+
+
+def test_deathbringer_saurfang_needs_the_health():
+    game = dk_game()
+    saurfang = game.player1.give("LEG_RLK_082").play()
+    game.player1.give(FIREBALL).play(target=saurfang)
+    back = game.player1.hand[-1]
+    game.player1.used_mana = 0
+    game.player1.hero.set_current_health(5)
+    # 5 Health for a 5 cost: the hero would die
+    assert not back.is_playable()
+    game.player1.hero.set_current_health(6)
+    assert back.is_playable()
+
+
+def test_deathbringer_saurfang_comes_back_again():
+    game = dk_game()
+    saurfang = game.player1.give("LEG_RLK_082").play()
+    game.player1.give(FIREBALL).play(target=saurfang)
+    back = game.player1.hand[-1]
+    back.play()
+    assert back.zone == Zone.PLAY
+    game.player1.used_mana = 0
+    game.player1.give(FIREBALL).play(target=back)
+    # Every death brings it back, costing Health again
+    assert back.zone == Zone.HAND and back.card_costs_health
+    assert game.player1.hand[-1] is back
