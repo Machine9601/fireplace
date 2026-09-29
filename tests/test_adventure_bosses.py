@@ -28,8 +28,10 @@ def test_faerlina_rain_of_fire_hits_enemy_characters():
         game.player1.summon(power)
         for _ in range(3):
             game.player2.give(WISP)
+        missiles = len(game.player2.hand)
+        assert missiles >= 3
         game.player1.hero.power.use()
-        assert game.player2.hero.damage == 3
+        assert game.player2.hero.damage == missiles
 
 
 def test_magmatron():
