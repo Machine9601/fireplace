@@ -1760,6 +1760,24 @@ class SpendCorpses(TargetedAction):
         return ret
 
 
+class GainCorpses(TargetedAction):
+    """
+    Make player targets gain \a amount Corpses (the death knight): "Gain a
+    Corpse". Nothing to do with a minion that dies: the counter is only raised.
+    """
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+
+    def do(self, source, target, amount):
+        if not amount or amount <= 0:
+            return 0
+        log.info("%r gains %i Corpses", target, amount)
+        target.corpses += amount
+        source.game.manager.targeted_action(self, source, target, amount)
+        return amount
+
+
 class Retarget(TargetedAction):
     TARGET = ActionArg()
     NEW_TARGET = CardArg()

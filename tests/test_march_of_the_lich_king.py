@@ -108,3 +108,35 @@ def test_the_twenty_cards_are_reserved_for_visions_of_sayge():
     # A deck that names them plays them
     game.player1.give("RLK_503").play()
     assert game.player1.field[0].id == "RLK_503"
+
+
+# --- the cards ----------------------------------------------------------------
+
+CROCOLISK = "CS2_120"  # 2/3
+WAR_GOLEM = "CS2_186"  # 7/7
+BRANN = "LOE_077"  # Brann Bronzebeard
+
+
+# --- RLK_503
+def test_body_bagger():
+    game = dk_game()
+    bagger = game.player1.give("RLK_503").play()
+    assert (bagger.atk, bagger.health) == (1, 3)
+    assert Race.UNDEAD in bagger.races
+    assert game.player1.corpses == 1
+    assert game.player2.corpses == 0
+    game.player1.give("RLK_503").play()
+    assert game.player1.corpses == 2
+
+
+def test_body_bagger_with_brann():
+    game = dk_game()
+    game.player1.give(BRANN).play()
+    game.player1.give("RLK_503").play()
+    assert game.player1.corpses == 2
+
+
+def test_gain_corpses_is_not_spending():
+    game = dk_game()
+    game.player1.give("RLK_503").play()
+    assert game.player1.corpses_spent_this_game == 0

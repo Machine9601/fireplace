@@ -23,6 +23,7 @@ class RLK_503:
 
     # <b>Battlecry:</b> Gain a <b>Corpse</b>.
     tags = RESERVED
+    play = GainCorpses(CONTROLLER, 1)
 
 
 # --- RLK_958
