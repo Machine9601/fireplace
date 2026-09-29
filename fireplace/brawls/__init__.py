@@ -1,4 +1,4 @@
-from hearthstone.enums import CardClass, CardType, GameTag
+from hearthstone.enums import CardClass, CardType, GameTag, Zone
 from ..cards.brawl.banana_brawl import RandomBanana
 from ..cards.utils import *
 from ..game import Game
@@ -353,3 +353,58 @@ class DoubleDeathrattlerBattler(Game):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data = self.Data()
+
+
+class DecksAssembleBrawl(Game):
+    """
+    Decks Assemble!
+
+    Start with a few cards, discover a new one each turn and build the deck
+    as you play: the official rules (the wiki) are
+
+    - each player starts with 4 cards in hand (plus The Coin for the second
+      player) and 3, 4 or 5 in the deck, from a few basic cards; the starting
+      deck (7 to 9 cards) is the caller's, this class gives the hand;
+    - at the start of each turn, instead of drawing, the player Discovers a
+      random card (TB_010);
+    - each card played (The Coin excepted) shuffles a copy into the deck, once
+      its Battlecry has resolved (TB_010);
+    - at the end of each turn, the hand is shuffled back into the deck and four
+      cards are drawn, before the "end of turn" effects. Not a draw: no on-draw
+      effect triggers.
+    """
+
+    HAND_SIZE = 4
+
+    def setup(self):
+        super().setup()
+        # The first player starts with 3 cards, the second with 4 (and the Coin):
+        # both start with 4.
+        first = self.player1
+        while len(first.hand) < self.HAND_SIZE and first.deck:
+            first.deck[-1].zone = Zone.HAND
+
+    def _begin_turn(self, player):
+        # The draw of the turn is the discovery of TB_010: a card an effect makes
+        # the player draw is still drawn.
+        cant_draw = player.cant_draw
+        player.cant_draw = True
+        try:
+            super()._begin_turn(player)
+        finally:
+            player.cant_draw = cant_draw
+
+    def end_turn(self):
+        player = self.current_player
+        if not player.choice:
+            self.reassemble_hand(player)
+        return super().end_turn()
+
+    def reassemble_hand(self, player):
+        """The hand goes back into the deck, four cards come out of it: zone
+        changes, not draws."""
+        for card in list(player.hand):
+            card.zone = Zone.DECK
+        player.shuffle_deck()
+        for _ in range(min(self.HAND_SIZE, len(player.deck))):
+            player.deck[-1].zone = Zone.HAND
