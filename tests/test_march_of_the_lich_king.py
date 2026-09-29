@@ -510,3 +510,35 @@ def test_overseer_frigidara_with_a_single_spell():
     game.player1.give("LEG_RLK_224").play()
     assert frost.zone == Zone.HAND
     assert game.player2.hero.health == 30  # they are not both Frost spells
+
+
+# --- LEG_RLK_039 and its Crates
+def test_plagued_grain():
+    game = dk_game()
+    game.player1.give("LEG_RLK_039").play()
+    assert game.player1.corpses == 4
+    crates = [c for c in game.player1.deck if c.id == "RLK_039t"]
+    assert len(crates) == 4 and len(game.player1.deck) == 4
+    assert game.player1.give("LEG_RLK_039").cost == 1
+
+
+def test_plagued_grain_crates_summon_an_undead_peasant_when_drawn():
+    game = dk_game()
+    game.player1.card(WISP, zone=Zone.DECK)
+    game.player1.card("RLK_039t", zone=Zone.DECK)
+    hand = len(game.player1.hand)
+    game.player1.draw()
+    # Cast when drawn: a 2/2, no card in the hand (the next draw replaces it)
+    peasant = game.player1.field[0]
+    assert peasant.id == "RLK_070t" and (peasant.atk, peasant.health) == (2, 2)
+    assert game.player1.hand[-1].id == WISP and len(game.player1.hand) == hand + 1
+    assert game.player1.used_mana == 0
+
+
+def test_plagued_grain_four_crates_in_a_row():
+    game = dk_game()
+    game.player1.give("LEG_RLK_039").play()
+    game.player1.draw()
+    # Each crate casts itself and draws the next one
+    assert [m.id for m in game.player1.field] == ["RLK_070t"] * 4
+    assert not game.player1.deck

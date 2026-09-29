@@ -194,6 +194,14 @@ class LEG_RLK_039:
     # Gain 4 <b>Corpses</b>. Shuffle four Crates into your deck that summon a
     # 2/2 Undead when drawn.
     tags = RESERVED
+    play = GainCorpses(CONTROLLER, 4), Shuffle(CONTROLLER, "RLK_039t") * 4
+
+
+class RLK_039t:
+    """Grain Crate"""
+
+    # <b>Casts When Drawn</b> Summon a 2/2 Undead Peasant.
+    play = Summon(CONTROLLER, "RLK_070t")
 
 
 # --- RLK_061
