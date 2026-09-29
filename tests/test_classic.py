@@ -1993,6 +1993,20 @@ def test_leeroy():
     assert game.player2.field[0].id == game.player2.field[1].id == "EX1_116t"
 
 
+def test_leeroy_whelps_stop_at_the_opponents_full_board():
+    # The whelps are summoned for the opponent: their board is the one that counts,
+    # not Leeroy's owner's (a board of 8 turned up in Tavern Brawls, WP-129).
+    game = prepare_empty_game()
+    for _ in range(6):
+        game.player2.summon(WISP)
+    game.player1.give("EX1_116").play()
+    assert len(game.player2.field) == 7
+    assert [m.id for m in game.player2.field].count("EX1_116t") == 1
+    game.player1.give("EX1_116").play()
+    assert len(game.player2.field) == 7
+    assert len(game.player1.field) == 2
+
+
 def test_lightning_storm():
     # Patch 21.8: "Deal $3 damage to all enemy minions. Overload: (2)"
     game = prepare_empty_game()
