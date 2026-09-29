@@ -770,6 +770,21 @@ def test_barnes_keeps_the_enchantments_of_the_deck_card():
     assert summoned.health == 1
 
 
+def test_ivory_knight_heals_the_base_cost():
+    # Under the enemy's Loatheb, the discovered spell costs 5 more: the heal is its base Cost.
+    game = prepare_empty_game(CardClass.PALADIN, CardClass.PALADIN)
+    game.end_turn()
+    game.player2.give("FP1_030").play()  # Loatheb
+    game.end_turn()
+    game.player1.hero.set_current_health(1)
+    game.player1.give("KAR_057").play()
+    choice = game.player1.choice.cards[0]
+    base = fireplace.cards.db[choice.id].cost
+    game.player1.choice.choose(choice)
+    assert choice.cost == base + 5
+    assert game.player1.hero.health == 1 + base
+
+
 def test_arcane_giant_countered_spell_does_not_count():
     game = prepare_game()
     giant = game.player1.give("KAR_711")

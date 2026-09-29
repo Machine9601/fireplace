@@ -48,6 +48,21 @@ SPELLS_CAST_THIS_GAME = FuncSelector(
     ]
 )
 
+
+class BaseCost(LazyNum):
+    """The base Cost of the cards in a selector, before any Cost modifier."""
+
+    def __init__(self, selector):
+        super().__init__()
+        self.selector = selector
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.selector)
+
+    def evaluate(self, source):
+        return self.num(sum(e.data.cost for e in self.get_entities(source) if e))
+
+
 ##
 # Minions
 
@@ -155,7 +170,9 @@ class KAR_057:
     """Ivory Knight"""
 
     play = Discover(CONTROLLER, RandomSpell()).then(
-        Give(CONTROLLER, Discover.CARD), Heal(FRIENDLY_HERO, COST(Discover.CARD))
+        # The base Cost of the discovered card (hearthstone.wiki.gg).
+        Give(CONTROLLER, Discover.CARD),
+        Heal(FRIENDLY_HERO, BaseCost(Discover.CARD)),
     )
 
 
