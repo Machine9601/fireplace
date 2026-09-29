@@ -357,3 +357,184 @@ class KARA_04_02hp:
     # wiki (The Crone, Notes): "Twister always targets the player's hero, even
     # if they have Elusive." (Auto-cast: A54.)
     activate = Hit(ENEMY_HERO, 100)
+
+
+##
+# The Menagerie: Curator
+
+
+class KARA_07_02:
+    """Gallery Protection"""
+
+    # "Passive Hero Power Your hero has Taunt."
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    update = Refresh(FRIENDLY_HERO, buff="KARA_07_02e")
+
+
+KARA_07_02e = buff(taunt=True)
+
+
+class KARA_07_03:
+    """Murloc Escaping!"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.MURLOC))
+
+
+class KARA_07_03heroic:
+    """Murlocs Escaping!"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.MURLOC)) * 2
+
+
+class KARA_07_05:
+    """Stampeding Beast!"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.BEAST))
+
+
+class KARA_07_05heroic:
+    """Stampeding Beast! (Heroic)"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.BEAST))
+
+
+class KARA_07_06:
+    """Demons Loose!"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.DEMON))
+
+
+class KARA_07_06heroic:
+    """Demons Loose! (Heroic)"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.DEMON))
+
+
+class KARA_07_07:
+    """Haywire Mech!"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.MECHANICAL))
+
+
+class KARA_07_07heroic:
+    """Haywire Mech! (Heroic)"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.MECHANICAL))
+
+
+class KARA_07_08:
+    """Dragons Free!"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.DRAGON))
+
+
+class KARA_07_08heroic:
+    """Dragons Free! (Heroic)"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, RandomMinion(race=Race.DRAGON))
+
+
+##
+# The Menagerie: Nightbane
+
+
+class KARA_11_02:
+    """Manastorm"""
+
+    # "Passive Hero Power Players start with 10 Mana Crystals."
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    events = GameStart().on(GainMana(ALL_PLAYERS, 10))
+
+
+##
+# The Menagerie: Terestian Illhoof
+
+ILLHOOF = ALL_HEROES + IDS(["KARA_09_01", "KARA_09_01heroic"])
+
+
+class KARA_09_04:
+    """Dark Pact"""
+
+    # "Passive Hero Power Only Icky Imps can damage Illhoof!": Illhoof cannot
+    # be damaged; an Icky Imp's Deathrattle takes his Health all the same.
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    update = Refresh(FRIENDLY_HERO, {GameTag.CANT_BE_DAMAGED: True})
+
+
+class KARA_09_03a:
+    """Icky Imp"""
+
+    # "Deathrattle: Resummon this minion and Illhoof loses 2 Health." The
+    # Health is lost past Dark Pact: it is not dealt as damage by a card
+    # that could be stopped (Predamage, not Hit).
+    deathrattle = Summon(CONTROLLER, "KARA_09_03a"), Predamage(ILLHOOF, 2)
+
+
+class KARA_09_03a_heroic:
+    """Icky Imp (Heroic)"""
+
+    deathrattle = Summon(CONTROLLER, "KARA_09_03a_heroic"), Predamage(ILLHOOF, 2)
+
+
+class KARA_09_03:
+    """Many Imps!"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, "KARA_09_03a") * 2
+
+
+class KARA_09_03heroic:
+    """Many Imps! (Heroic)"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, "KARA_09_03a_heroic") * 2
+
+
+class KARA_09_05:
+    """Summon Kil'rek"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, "KARA_09_08")
+
+
+class KARA_09_05heroic:
+    """Summon Kil'rek (Heroic)"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    play = Summon(CONTROLLER, "KARA_09_08_heroic")
+
+
+class KARA_09_06:
+    """Shadow Volley"""
+
+    play = Hit(ALL_MINIONS - DEMON, 3)
+
+
+class KARA_09_06heroic:
+    """Shadow Volley (Heroic)"""
+
+    play = Hit(ALL_MINIONS - DEMON, 3)
+
+
+class KARA_09_07:
+    """Steal Life"""
+
+    requirements = {PlayReq.REQ_TARGET_TO_PLAY: 0}
+    play = Hit(TARGET, 5), Heal(FRIENDLY_HERO, 5)
+
+
+class KARA_09_07heroic:
+    """Steal Life (Heroic)"""
+
+    requirements = {PlayReq.REQ_TARGET_TO_PLAY: 0}
+    play = Hit(TARGET, 5), Heal(FRIENDLY_HERO, 5)

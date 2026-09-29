@@ -341,3 +341,102 @@ def test_twister_and_dorothee():
         with pytest.raises(GameOver):
             boss.hero.power.use()
         assert other.playstate == PlayState.LOST
+
+
+##
+# The Menagerie: Curator, Nightbane, Terestian Illhoof
+
+
+def test_gallery_protection():
+    # Curator: "Passive Hero Power Your hero has Taunt."
+    for hero in ("KARA_07_01", "KARA_07_01heroic"):
+        game, boss, other = _boss_game(hero)
+        assert db_passive("KARA_07_02")
+        assert boss.hero.taunt
+        wisp = boss.summon(WISP)
+        game.end_turn()
+        yeti = other.summon("CS2_182")
+        yeti.turns_in_play = 1
+        assert boss.hero in yeti.attack_targets
+        assert wisp not in yeti.attack_targets
+
+
+def test_curator_escapes():
+    # "Summon a random Murloc." (heroic: "two random Murlocs") ; Beast,
+    # Demon, Mech, Dragon.
+    for card, race, count in (
+        ("KARA_07_03", Race.MURLOC, 1),
+        ("KARA_07_03heroic", Race.MURLOC, 2),
+        ("KARA_07_05", Race.BEAST, 1),
+        ("KARA_07_05heroic", Race.BEAST, 1),
+        ("KARA_07_06", Race.DEMON, 1),
+        ("KARA_07_06heroic", Race.DEMON, 1),
+        ("KARA_07_07", Race.MECHANICAL, 1),
+        ("KARA_07_07heroic", Race.MECHANICAL, 1),
+        ("KARA_07_08", Race.DRAGON, 1),
+        ("KARA_07_08heroic", Race.DRAGON, 1),
+    ):
+        game, boss, other = _boss_game("KARA_07_01")
+        boss.give(card).play()
+        assert len(boss.field) == count, card
+        for minion in boss.field:
+            assert minion.race == race or race in getattr(minion, "races", ()), card
+
+
+def test_manastorm():
+    # Nightbane: "Passive Hero Power Players start with 10 Mana Crystals."
+    for hero in ("KARA_11_01", "KARA_11_01heroic"):
+        player1 = Player("Player1", [WISP] * 20, hero)
+        player2 = Player("Player2", [WISP] * 20, "HERO_08")
+        game = RealManaGame(players=(player1, player2))
+        game.start()
+        _empty_mulligan(game)
+        assert db_passive("KARA_11_02")
+        first = game.current_player
+        assert first.max_mana == 10 and first.mana == 10
+        game.end_turn()
+        assert first.opponent.max_mana == 10 and first.opponent.mana == 10
+
+
+def test_dark_pact_and_icky_imps():
+    # Terestian Illhoof: "Passive Hero Power Only Icky Imps can damage
+    # Illhoof!" ; Icky Imp: "Deathrattle: Resummon this minion and Illhoof
+    # loses 2 Health." ; Many Imps!: "Summon 2 Icky Imps."
+    for hero, many, imp in (
+        ("KARA_09_01", "KARA_09_03", "KARA_09_03a"),
+        ("KARA_09_01heroic", "KARA_09_03heroic", "KARA_09_03a_heroic"),
+    ):
+        game, boss, other = _boss_game(hero)
+        assert db_passive("KARA_09_04")
+        health = boss.hero.health
+        boss.give(many).play()
+        assert [m.id for m in boss.field] == [imp, imp]
+        game.end_turn()
+        other.give(FIREBALL).play(target=boss.hero)
+        assert boss.hero.health == health
+        other.give(FIREBALL).play(target=boss.field[0])
+        assert boss.hero.health == health - 2
+        assert [m.id for m in boss.field] == [imp, imp]
+        assert other.hero.health == 30
+
+
+def test_illhoofs_spells():
+    # Summon Kil'rek ; Shadow Volley: "Deal $3 damage to all non-Demon
+    # minions." ; Steal Life: "Deal $5 damage. Restore #5 Health to your
+    # hero."
+    for suffix, kilrek in (("", "KARA_09_08"), ("heroic", "KARA_09_08_heroic")):
+        game, boss, other = _boss_game("KARA_09_01")
+        boss.give("KARA_09_05" + suffix).play()
+        assert boss.field[-1].id == kilrek
+        yeti = other.summon("CS2_182")
+        imp = other.summon(IMP)
+        game.end_turn()
+        game.end_turn()
+        boss.give("KARA_09_06" + suffix).play()
+        assert yeti.damage == 3 and imp.damage == 0 and boss.field[0].damage == 0
+        game.end_turn()
+        game.end_turn()
+        boss.hero.set_current_health(20)
+        boss.give("KARA_09_07" + suffix).play(target=other.hero)
+        assert other.hero.health == 25
+        assert boss.hero.health == 25
