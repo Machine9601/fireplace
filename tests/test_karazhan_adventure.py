@@ -595,12 +595,13 @@ def test_nazra_falls_malchezaar_appears():
     # his turn." "When Prince Malchezaar appears, Medivh equips the player
     # with Atiesh."
     for nazra, prince, mana in (("KARA_13_01", "KARA_13_06", 8), ("KARA_13_01H", "KARA_13_06H", 10)):
-        game, boss, other = _boss_game(nazra)
+        game, boss, other = _boss_game(nazra, game_class=RealManaGame)
         boss.next_phase_deck = list(PHASE_DECK)
         boss.summon("FP1_001")  # Zombie Chow: Deathrattle, restore 5 Health to the enemy hero
         boss.summon("CS2_106")  # Fiery War Axe
         old_hand = list(boss.hand)
         game.end_turn()
+        other.max_mana, other.used_mana = 10, 0
         other.hero.set_current_health(20)
         boss.hero.set_current_health(3)
         other.give(FIREBALL).play(target=boss.hero)
@@ -623,6 +624,7 @@ def test_nazra_falls_malchezaar_appears():
         assert boss.hand[-1].id == TWISTING_NETHER
         # He falls: the boss is defeated.
         game.end_turn()
+        other.max_mana, other.used_mana = 10, 0
         boss.hero.set_current_health(2)
         with pytest.raises(GameOver):
             other.give(MOONFIRE).play(target=boss.hero)

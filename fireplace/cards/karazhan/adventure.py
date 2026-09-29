@@ -761,7 +761,11 @@ class MalchezaarsMana(TargetedAction):
         if getattr(target, "malchezaar_mana", False):
             return
         target.malchezaar_mana = True
-        source.game.queue_actions(source, [SetMana(target, amount)])
+        # Full crystals: SetMana would keep the mana he had (one crystal, on
+        # his first turn), not give him eight.
+        target.max_mana = amount
+        target.used_mana = 0
+        source.game.manager.targeted_action(self, source, target, amount)
 
 
 class KARA_13_02:
