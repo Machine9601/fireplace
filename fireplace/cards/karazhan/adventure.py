@@ -246,3 +246,114 @@ class KAR_A01_02H:
 class KAR_A01_02e:
     atk = SET(1)
     max_health = SET(1)
+
+
+##
+# The Opera: Romulo and Julianne
+
+ROMULO = FRIENDLY_MINIONS + IDS(["KARA_06_01", "KARA_06_01heroic"])
+JULIANNE = ALL_HEROES + IDS(["KARA_06_02", "KARA_06_02heroic"])
+
+
+class KARA_06_03hp:
+    """True Love"""
+
+    # "Hero Power If you don't have Romulo, summon him.": with Romulo there,
+    # it has nothing to do and cannot be used.
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    activate = Summon(CONTROLLER, "KARA_06_01")
+    update = Find(ROMULO) & Refresh(SELF, {GameTag.CANT_PLAY: True})
+
+
+class KARA_06_03hpheroic:
+    """True Love (Heroic)"""
+
+    requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
+    activate = Summon(CONTROLLER, "KARA_06_01heroic")
+    update = Find(ROMULO) & Refresh(SELF, {GameTag.CANT_PLAY: True})
+
+
+class KARA_06_01:
+    """Romulo"""
+
+    update = Refresh(JULIANNE, buff="KARA_06_01e")
+
+
+class KARA_06_01heroic:
+    """Romulo (Heroic)"""
+
+    update = Refresh(JULIANNE, buff="KARA_06_01e")
+
+
+KARA_06_01e = buff(immune=True)
+
+
+##
+# The Opera: Big Bad Wolf
+
+
+class KARA_05_01hp:
+    """Trembling"""
+
+    # "Passive Hero Power Enemy minions are 1/1 and cost (1)."
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    update = (
+        Refresh(ENEMY_MINIONS, buff="KARA_05_01e"),
+        Refresh(ENEMY_HAND + MINION, {GameTag.COST: SET(1)}),
+    )
+
+
+class KARA_05_01hpheroic:
+    """Trembling (Heroic)"""
+
+    # "Passive Hero Power Minions cost (1). Enemy minions are 1/1."
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    update = (
+        Refresh(ENEMY_MINIONS, buff="KARA_05_01e"),
+        Refresh(IN_HAND + MINION, {GameTag.COST: SET(1)}),
+    )
+
+
+class KARA_05_01e:
+    atk = SET(1)
+    max_health = SET(1)
+
+
+##
+# The Opera: The Crone
+
+
+def _side_of_self(left):
+    """The minions to the left (or right) of the source in its controller's
+    field, dormant ones excepted (as Yellow-Brick Brawl's Dorothee)."""
+
+    def select(entities, source):
+        field = source.controller.field
+        if source not in field:
+            return []
+        i = field.index(source)
+        side = field[:i] if left else field[i + 1 :]
+        return [m for m in side if not m.dormant]
+
+    return FuncSelector(select)
+
+
+class KARA_04_01:
+    """Dorothee"""
+
+    # "Minions to the left have Charge. Minions to the right have Taunt." And
+    # while she lives, The Crone's Twister "can't be used".
+    update = (
+        Refresh(_side_of_self(True), {GameTag.CHARGE: True}),
+        Refresh(_side_of_self(False), {GameTag.TAUNT: True}),
+        Refresh(ALL_HERO_POWERS + ID("KARA_04_02hp"), {GameTag.CANT_PLAY: True}),
+    )
+
+
+class KARA_04_02hp:
+    """Twister"""
+
+    # "Hero Power Deal 100 damage. Can't be used if Dorothee is alive." The
+    # wiki (The Crone, Notes): "Twister always targets the player's hero, even
+    # if they have Elusive." (Auto-cast: A54.)
+    activate = Hit(ENEMY_HERO, 100)

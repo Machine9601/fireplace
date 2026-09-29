@@ -258,3 +258,86 @@ def test_reflections_heroic_copies_for_the_mirror():
     game.end_turn()
     boss.give(WISP).play()
     assert len(boss.field) == 3
+
+
+##
+# The Opera: Romulo and Julianne, Big Bad Wolf, The Crone
+
+
+def test_true_love_and_romulo():
+    # True Love: "Hero Power If you don't have Romulo, summon him." ;
+    # Romulo: "Julianne is Immune."
+    for hero, romulo in (("KARA_06_02", "KARA_06_01"), ("KARA_06_02heroic", "KARA_06_01heroic")):
+        game, boss, other = _boss_game(hero)
+        assert boss.hero.power.is_usable()
+        boss.hero.power.use()
+        assert len(boss.field) == 1 and boss.field[0].id == romulo
+        assert boss.hero.immune
+        game.end_turn()
+        game.end_turn()
+        # He is there: the Hero Power has nothing to do.
+        assert not boss.hero.power.is_usable()
+        game.end_turn()
+        other.give(FIREBALL).play(target=boss.field[0])
+        assert not boss.field
+        assert not boss.hero.immune
+        other.give(MOONFIRE).play(target=boss.hero)
+        assert boss.hero.health == 14
+        game.end_turn()
+        assert boss.hero.power.is_usable()
+
+
+def test_trembling():
+    # Big Bad Wolf: "Passive Hero Power Enemy minions are 1/1 and cost (1)."
+    # Heroic: "Minions cost (1). Enemy minions are 1/1."
+    game, boss, other = _boss_game("KARA_05_01h")
+    assert db_passive("KARA_05_01hp")
+    with pytest.raises(InvalidAction):
+        boss.hero.power.use()
+    yeti = other.give("CS2_182")
+    mine = boss.give("CS2_182")
+    assert yeti.cost == 1 and mine.cost == 4
+    game.end_turn()
+    yeti.play()
+    assert yeti.atk == 1 and yeti.health == 1
+    assert other.give(FIREBALL).cost == 4
+    game.end_turn()
+    mine.play()
+    assert mine.atk == 4 and mine.health == 5
+
+    game, boss, other = _boss_game("KARA_05_01hheroic")
+    assert db_passive("KARA_05_01hpheroic")
+    mine = boss.give("CS2_182")
+    yeti = other.give("CS2_182")
+    assert mine.cost == 1 and yeti.cost == 1
+    mine.play()
+    assert mine.atk == 4 and mine.health == 5
+
+
+def test_twister_and_dorothee():
+    # Twister: "Hero Power Deal 100 damage. Can't be used if Dorothee is
+    # alive." The wiki: "Twister always targets the player's hero, even if
+    # they have Elusive." Dorothee: "Minions to the left have Charge. Minions
+    # to the right have Taunt."
+    for hero in ("KARA_04_01h", "KARA_04_01heroic"):
+        game, boss, other = _boss_game(hero)
+        dorothee = other.summon("KARA_04_01")
+        assert not boss.hero.power.requires_target()
+        assert not boss.hero.power.is_usable()
+        game.end_turn()
+        left = other.give("CS2_182")
+        left.play(index=0)
+        right = other.give("CS2_182")
+        right.play(index=2)
+        assert other.field == [left, dorothee, right]
+        assert left.charge and not left.taunt
+        assert right.taunt and not right.charge
+        assert not dorothee.charge and not dorothee.taunt
+        game.end_turn()
+        boss.give(FIREBALL).play(target=dorothee)
+        boss.give(FIREBALL).play(target=dorothee)
+        assert dorothee.dead
+        assert boss.hero.power.is_usable()
+        with pytest.raises(GameOver):
+            boss.hero.power.use()
+        assert other.playstate == PlayState.LOST
