@@ -262,6 +262,168 @@ def test_reflections_heroic_copies_for_the_mirror():
 
 
 ##
+# The Parlor: Chess (the White King, the player, against the Black King)
+
+WHITE_PAWN, WHITE_BISHOP, WHITE_ROOK, WHITE_KNIGHT, WHITE_QUEEN = (
+    "KAR_A10_02",
+    "KAR_A10_05",
+    "KAR_A10_04",
+    "KAR_A10_08",
+    "KAR_A10_09",
+)
+BLACK_PAWN, BLACK_BISHOP, BLACK_ROOK, BLACK_KNIGHT, BLACK_QUEEN = (
+    "KAR_A10_01",
+    "KAR_A10_06",
+    "KAR_A10_03",
+    "KAR_A10_07",
+    "KAR_A10_10",
+)
+WHITE_PIECES = (WHITE_PAWN, WHITE_BISHOP, WHITE_ROOK, WHITE_KNIGHT, WHITE_QUEEN)
+
+
+def _chess(white="KAR_a10_Boss1", black="KAR_a10_Boss2", deck=None, deck2=None, game_class=BaseTestGame):
+    """A chess game where the White King (`white`) plays first; the pieces
+    stay in the decks (a side without any piece loses)."""
+    deck = deck if deck is not None else [WHITE_PAWN] * 20
+    deck2 = deck2 if deck2 is not None else [BLACK_PAWN] * 20
+    return _boss_game(white, black, deck, deck2, game_class)
+
+
+def _board(player, *ids):
+    return [player.summon(id) for id in ids]
+
+
+def test_chess_pieces_auto_attack_the_minion_opposite():
+    # Pawn, Rook, Queen: "Auto-Attack: Deal 1 (2, 4) damage to the enemies
+    # opposite this minion." The wiki (Auto-Attack, Notes): "Chess minions with
+    # Auto-Attack cannot be commanded to attack. Instead, they deal damage
+    # automatically at the end of the owner's turn to those of the opponent's
+    # minions across from them" ; "Chess-related Auto-Attack is a positional
+    # effect, and does not cause the minions to take retaliatory damage".
+    for piece, amount in ((WHITE_PAWN, 1), (WHITE_ROOK, 2), (WHITE_QUEEN, 4)):
+        game, white, black = _chess()
+        (mine,) = _board(white, piece)
+        (theirs,) = _board(black, BLACK_QUEEN)
+        assert mine.cant_attack and not mine.can_attack()
+        game.end_turn()
+        assert theirs.damage == amount
+        assert mine.damage == 0
+        assert black.hero.damage == 0
+        # The Black Queen, at the end of the Black King's turn.
+        game.end_turn()
+        assert mine.damage == 4
+        assert white.hero.damage == 0
+
+
+def test_chess_pieces_strike_both_enemies_across():
+    # The wiki (Auto-Attack, Notes): "If one player has an odd number of
+    # minions and the other player has an even number, chess Auto-Attack
+    # minions will deal damage to both minions "diagonally" across from them. A
+    # minion on the edge of the line may only have one minion diagonally across
+    # from it." Moroes: "If a piece is in between two enemies, it will strike
+    # them both!"
+    game, white, black = _chess()
+    (pawn,) = _board(white, WHITE_PAWN)
+    left, right = _board(black, BLACK_ROOK, BLACK_ROOK)
+    game.end_turn()
+    assert (left.damage, right.damage) == (1, 1)
+    assert black.hero.damage == 0
+    # Three against two: the edges strike one, the middle strikes both.
+    game, white, black = _chess()
+    _board(white, WHITE_PAWN, WHITE_ROOK, WHITE_PAWN)
+    left, right = _board(black, BLACK_ROOK, BLACK_ROOK)
+    game.end_turn()
+    assert left.damage == 1 + 2
+    assert right.damage == 2 + 1
+    assert black.hero.damage == 0
+
+
+def test_chess_pieces_strike_the_hero_when_nothing_is_across():
+    # The wiki (Auto-Attack, Notes): "If a chess Auto-Attack minion has no
+    # minions directly or diagonally across from it, it will deal damage to the
+    # enemy hero."
+    game, white, black = _chess()
+    _board(white, WHITE_PAWN, WHITE_ROOK, WHITE_QUEEN)
+    (middle,) = _board(black, BLACK_ROOK)
+    game.end_turn()
+    assert middle.damage == 2
+    assert black.hero.damage == 1 + 4
+    game, white, black = _chess()
+    _board(white, WHITE_QUEEN)
+    game.end_turn()
+    assert black.hero.damage == 4
+
+
+def test_chess_auto_attacks_resolve_before_any_death():
+    # The wiki (Auto-Attack, Notes): "minions which have taken fatal damage will
+    # not be removed until all pieces have completed their auto-attacks." The
+    # positions do not change in between: the middle Pawn strikes both Black
+    # Pawns, the right Pawn the right one, and the Black King nothing.
+    game, white, black = _chess()
+    _board(white, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN)
+    dying, other = _board(black, BLACK_PAWN, BLACK_PAWN)
+    dying.damage = 5
+    game.end_turn()
+    assert dying.dead or dying.zone == Zone.GRAVEYARD
+    assert list(black.field) == [other]
+    assert other.damage == 2
+    assert black.hero.damage == 0
+
+
+def test_chess_bishops_restore_adjacent_minions():
+    # Bishop: "Auto-Attack: Restore #2 Health to adjacent minions." The wiki (A
+    # Friendly Game of Chess, Notes): "[Bishops] do not attack at all, but
+    # instead restore Health. They do not follow the usual Auto-Attack rules for
+    # targeting, instead healing minions to their immediate left and right."
+    # (Knights around it: they have no Auto-Attack.)
+    for bishop, knight in ((WHITE_BISHOP, WHITE_KNIGHT), (BLACK_BISHOP, BLACK_KNIGHT)):
+        game, white, black = _chess()
+        side = white if bishop == WHITE_BISHOP else black
+        if side is black:
+            game.end_turn()
+        left, middle, right, far = _board(side, knight, bishop, knight, knight)
+        left.damage, right.damage, far.damage = 2, 1, 1
+        game.end_turn()
+        assert (left.damage, right.damage, far.damage) == (0, 0, 1)
+        assert side.opponent.hero.damage == 0
+        assert middle.cant_attack and not middle.can_attack()
+
+
+def test_chess_black_pieces_auto_attack_too():
+    game, white, black = _chess()
+    game.end_turn()
+    _board(black, BLACK_PAWN, BLACK_ROOK, BLACK_QUEEN)
+    (middle,) = _board(white, WHITE_ROOK)
+    game.end_turn()
+    assert middle.damage == 2
+    assert white.hero.damage == 1 + 4
+
+
+def test_chess_knights_charge_but_never_at_a_hero():
+    # Knight: "Charge. Can't Attack Heroes." No Auto-Attack: it attacks as any
+    # minion, and not at the end of the turn.
+    for knight in (WHITE_KNIGHT, BLACK_KNIGHT):
+        game, white, black = _chess()
+        side = white if knight == WHITE_KNIGHT else black
+        if side is black:
+            game.end_turn()
+        side.give(knight).play()
+        piece = side.field[0]
+        assert piece.charge and not piece.cant_attack
+        # Nothing to attack but the King: it cannot.
+        assert not piece.can_attack() and not piece.can_attack(side.opponent.hero)
+        (enemy,) = _board(side.opponent, WHITE_ROOK if side is black else BLACK_ROOK)
+        assert piece.can_attack() and piece.can_attack(enemy)
+        assert not piece.can_attack(side.opponent.hero)
+        # It attacks the Rook, which strikes back; at the end of the turn, the
+        # Knight does nothing more.
+        piece.attack(enemy)
+        assert enemy.damage == 4 and piece.damage == 2
+        game.end_turn()
+        assert enemy.damage == 4 and side.opponent.hero.damage == 0
+
+
+##
 # The Opera: Romulo and Julianne, Big Bad Wolf, The Crone
 
 

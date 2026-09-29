@@ -249,6 +249,159 @@ class KAR_A01_02e:
 
 
 ##
+# The Parlor: Chess (the White King, the player, against the Black King)
+#
+# The pieces with "Auto-Attack" (Pawn, Bishop, Rook, Queen) never attack when
+# commanded (CANT_ATTACK). The wiki (Auto-Attack, Notes): "they deal damage
+# automatically at the end of the owner's turn to those of the opponent's
+# minions across from them" ; "If one player has an odd number of minions and
+# the other player has an even number, chess Auto-Attack minions will deal
+# damage to both minions "diagonally" across from them. A minion on the edge of
+# the line may only have one minion diagonally across from it." ; "If a chess
+# Auto-Attack minion has no minions directly or diagonally across from it, it
+# will deal damage to the enemy hero." ; "minions which have taken fatal damage
+# will not be removed until all pieces have completed their auto-attacks." ;
+# no retaliation ("a positional effect"). The Bishops "do not follow the usual
+# Auto-Attack rules for targeting, instead healing minions to their immediate
+# left and right" (A Friendly Game of Chess, Notes).
+#
+# Across: the two lines are centred on the board, as the game draws them. The
+# piece at index i of a line of n stands at i - (n - 1) / 2; an enemy stands
+# across from it when their places differ by less than one slot (directly: 0,
+# diagonally: one half).
+#
+# All the pieces of a side act in one go, left to right, at the end of its
+# turn: the first of them to hear the end of the turn does it for all, so that
+# no death is processed in between.
+
+
+def chess_across(piece):
+    """The enemy minions across from `piece` (directly, or both diagonally)."""
+    line = piece.controller.field
+    enemies = piece.controller.opponent.field
+    # Twice the place of each minion, to stay with integers.
+    place = 2 * line.index(piece) - (len(line) - 1)
+    return [
+        enemy
+        for index, enemy in enumerate(enemies)
+        if abs(2 * index - (len(enemies) - 1) - place) < 2
+    ]
+
+
+class ChessAutoAttack(TargetedAction):
+    """The end of the turn of the player `target`: the Auto-Attack of each of
+    his chess pieces, all at once (once per turn)."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        game = source.game
+        if getattr(target, "chess_auto_attack_turn", None) == game.turn:
+            return
+        target.chess_auto_attack_turn = game.turn
+        blows = []
+        for piece in list(target.field):
+            auto_attack = getattr(piece.data.scripts, "auto_attack", None)
+            if auto_attack is None or piece.silenced:
+                continue
+            kind, amount = auto_attack
+            if kind == "heal":
+                index = target.field.index(piece)
+                neighbours = list(target.field[max(0, index - 1) : index]) + list(
+                    target.field[index + 1 : index + 2]
+                )
+                blows.append((piece, [Heal(minion, amount) for minion in neighbours]))
+            else:
+                across = chess_across(piece) or [target.opponent.hero]
+                blows.append((piece, [Hit(enemy, amount) for enemy in across]))
+        for piece, actions in blows:
+            log.info("%r auto-attacks", piece)
+            if actions:
+                game.queue_actions(piece, actions)
+
+
+CHESS_AUTO_ATTACK = OWN_TURN_END.on(ChessAutoAttack(CONTROLLER))
+CHESS_PIECE = {GameTag.CANT_ATTACK: True}
+
+
+class KAR_A10_01:
+    """Black Pawn"""
+
+    tags = CHESS_PIECE
+    auto_attack = ("damage", 1)
+    events = CHESS_AUTO_ATTACK
+
+
+class KAR_A10_02:
+    """White Pawn"""
+
+    tags = CHESS_PIECE
+    auto_attack = ("damage", 1)
+    events = CHESS_AUTO_ATTACK
+
+
+class KAR_A10_03:
+    """Black Rook"""
+
+    tags = CHESS_PIECE
+    auto_attack = ("damage", 2)
+    events = CHESS_AUTO_ATTACK
+
+
+class KAR_A10_04:
+    """White Rook"""
+
+    tags = CHESS_PIECE
+    auto_attack = ("damage", 2)
+    events = CHESS_AUTO_ATTACK
+
+
+class KAR_A10_05:
+    """White Bishop"""
+
+    tags = CHESS_PIECE
+    auto_attack = ("heal", 2)
+    events = CHESS_AUTO_ATTACK
+
+
+class KAR_A10_06:
+    """Black Bishop"""
+
+    tags = CHESS_PIECE
+    auto_attack = ("heal", 2)
+    events = CHESS_AUTO_ATTACK
+
+
+class KAR_A10_07:
+    """Black Knight"""
+
+    # "Charge. Can't Attack Heroes." (no Auto-Attack)
+    tags = {GameTag.CANNOT_ATTACK_HEROES: True}
+
+
+class KAR_A10_08:
+    """White Knight"""
+
+    tags = {GameTag.CANNOT_ATTACK_HEROES: True}
+
+
+class KAR_A10_09:
+    """White Queen"""
+
+    tags = CHESS_PIECE
+    auto_attack = ("damage", 4)
+    events = CHESS_AUTO_ATTACK
+
+
+class KAR_A10_10:
+    """Black Queen"""
+
+    tags = CHESS_PIECE
+    auto_attack = ("damage", 4)
+    events = CHESS_AUTO_ATTACK
+
+
+##
 # The Opera: Romulo and Julianne
 
 ROMULO = FRIENDLY_MINIONS + IDS(["KARA_06_01", "KARA_06_01heroic"])
