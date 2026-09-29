@@ -153,6 +153,7 @@ class RLK_223:
     # <b>Reborn</b> <b>Battlecry and Deathrattle:</b> Deal 2 damage to a random
     # enemy.
     tags = RESERVED
+    play = deathrattle = Hit(RANDOM_ENEMY_CHARACTER, 2)
 
 
 # --- LEG_RLK_224

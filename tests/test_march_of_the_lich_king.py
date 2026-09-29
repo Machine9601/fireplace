@@ -441,3 +441,38 @@ def test_remorseless_winter_with_spell_power():
     game.player1.give("RLK_709").play()
     assert game.player2.hero.health == 27
     assert enemy.zone == Zone.GRAVEYARD
+
+
+# --- RLK_223
+def test_thassarian():
+    game = dk_game()
+    thassarian = game.player1.give("RLK_223").play()
+    assert (thassarian.atk, thassarian.health) == (3, 3)
+    assert thassarian.reborn and Race.UNDEAD in thassarian.races
+    # Battlecry: 2 damage to a random enemy (here, only the hero)
+    assert game.player2.hero.health == 28
+    # Deathrattle: 2 more, then Reborn brings it back, and again
+    game.player1.give(FIREBALL).play(target=thassarian)
+    assert thassarian.zone == Zone.GRAVEYARD
+    assert game.player2.hero.health == 26
+    reborn = game.player1.field[0]
+    assert reborn.id == "RLK_223" and reborn.health == 1 and not reborn.reborn
+    game.player1.give(MOONFIRE).play(target=reborn)
+    assert game.player2.hero.health == 24
+    assert not game.player1.field
+
+
+def test_thassarian_hits_one_random_enemy():
+    game = dk_game()
+    enemies = [game.player2.summon(WAR_GOLEM), game.player2.summon(WAR_GOLEM)]
+    game.player1.give("RLK_223").play()
+    damage = [game.player2.hero.damage] + [e.damage for e in enemies]
+    assert sorted(damage) == [0, 0, 2]
+    assert game.player1.hero.health == 30
+
+
+def test_thassarian_never_hits_a_friend():
+    game = dk_game()
+    mine = game.player1.summon(WAR_GOLEM)
+    game.player1.give("RLK_223").play()
+    assert mine.damage == 0
