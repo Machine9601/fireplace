@@ -770,6 +770,19 @@ def test_barnes_keeps_the_enchantments_of_the_deck_card():
     assert summoned.health == 1
 
 
+def test_arcane_giant_countered_spell_does_not_count():
+    game = prepare_game()
+    giant = game.player1.give("KAR_711")
+    game.end_turn()
+    game.player2.give("EX1_287").play()  # Counterspell
+    game.end_turn()
+    game.player1.give(MOONFIRE).play(target=game.player2.hero)
+    assert game.player2.hero.health == 30
+    assert giant.cost == 12
+    game.player1.give(MOONFIRE).play(target=game.player2.hero)
+    assert giant.cost == 11
+
+
 def test_spirit_claws_enemy_jungle_moonkin():
     # "While you have Spell Damage": the enemy's Jungle Moonkin gives it to both players.
     game = prepare_game()

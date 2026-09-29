@@ -38,6 +38,16 @@ MALCHEZAAR_LEGENDARIES = (
 # "While you have Spell Damage": any Spell Damage, the enemy's Jungle Moonkin included.
 HAVE_SPELL_DAMAGE = Find(CONTROLLER + (AttrValue("spellpower") > 0))
 
+# The spells "you've cast this game" (Arcane Giant): a spell countered by
+# Counterspell does not count (hearthstone.wiki.gg).
+SPELLS_CAST_THIS_GAME = FuncSelector(
+    lambda entities, source: [
+        card
+        for card in source.controller.cards_played_this_game
+        if card.type == CardType.SPELL and not card.cant_play
+    ]
+)
+
 ##
 # Minions
 
@@ -334,7 +344,7 @@ class KAR_710:
 class KAR_711:
     """Arcane Giant"""
 
-    cost_mod = -TIMES_SPELL_PLAYED_THIS_GAME
+    cost_mod = -Count(SPELLS_CAST_THIS_GAME)
 
 
 class KAR_712:
