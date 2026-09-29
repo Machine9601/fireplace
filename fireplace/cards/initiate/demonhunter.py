@@ -185,7 +185,11 @@ class BT_801:
             SELF, {GameTag.COST: SET(1)}
         )
 
+    requirements = {PlayReq.REQ_MINION_TARGET: 0, PlayReq.REQ_TARGET_TO_PLAY: 0}
     play = Hit(TARGET, 3)
+    # Outcast here only lowers the cost (`Hand` above), but the tag still sends
+    # the play to the `outcast` script: it must do what `play` does
+    outcast = Hit(TARGET, 3)
 
 
 ##
