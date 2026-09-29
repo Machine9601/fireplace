@@ -260,12 +260,40 @@ RLK_707e2 = buff(atk=3)
 
 
 # --- LEG_RLK_085
+class RaiseAllCorpses(TargetedAction):
+    """Raise all the Corpses of the player as 1/1 Risen Golems; for each that
+    cannot fit, give one of the Golems raised +2/+2 (a random one; "give one":
+    the text does not say more, the wiki neither)."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        game = source.game
+        spent, raised = raise_corpses(source, target, "RLK_085t", spend_all=True)
+        for _ in range(spent - len(raised)):
+            golems = [g for g in raised if g.zone == Zone.PLAY]
+            if not golems:
+                break
+            game.queue_actions(source, [Buff(game.random.choice(golems), "RLK_085e")])
+
+
 class LEG_RLK_085:
     """Lord Marrowgar"""
 
     # <b>Battlecry:</b> Raise ALL of your <b>Corpses</b> as 1/1 Risen Golems
     # with <b>Rush</b>. For each that can't fit, give one +2/+2.
     tags = RESERVED
+    play = RaiseAllCorpses(CONTROLLER)
+
+
+RLK_085e = buff(atk=2, health=2)
+
+
+class RLK_085t:
+    """Risen Golem"""
+
+    # <b>Rush</b> <i>Doesn't leave a <b>Corpse</b>.</i>
+    tags = {enums.LEAVES_NO_CORPSE: True}
 
 
 # --- LEG_RLK_744

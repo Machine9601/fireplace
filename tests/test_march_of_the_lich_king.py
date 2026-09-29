@@ -664,3 +664,72 @@ def test_grave_strength_with_no_minion_still_spends_the_corpses():
     game.player1.corpses = 5
     game.player1.give("RLK_707").play()
     assert game.player1.corpses == 0
+
+
+# --- LEG_RLK_085
+def test_lord_marrowgar():
+    game = dk_game()
+    game.player1.corpses = 3
+    marrowgar = game.player1.give("LEG_RLK_085").play()
+    assert (marrowgar.atk, marrowgar.health) == (9, 7)
+    assert Race.UNDEAD in marrowgar.races
+    golems = game.player1.field[1:]
+    assert [g.id for g in golems] == ["RLK_085t"] * 3
+    assert all((g.atk, g.health) == (1, 1) and g.rush for g in golems)
+    assert game.player1.corpses == 0
+    assert game.player1.corpses_spent_this_game == 3
+
+
+def test_lord_marrowgar_gives_one_bonus_per_corpse_that_cannot_fit():
+    game = dk_game()
+    game.player1.corpses = 9
+    game.player1.give("LEG_RLK_085").play()
+    golems = game.player1.field[1:]
+    # Marrowgar and six Golems fill the board; the 3 other Corpses each give
+    # one Golem +2/+2 (a Golem may get several)
+    assert len(golems) == 6
+    assert sum(g.atk for g in golems) == 6 + 3 * 2
+    assert sum(g.health for g in golems) == 6 + 3 * 2
+    assert game.player1.corpses == 0
+    assert game.player1.corpses_spent_this_game == 9
+
+
+def test_lord_marrowgar_without_a_corpse():
+    game = dk_game()
+    game.player1.give("LEG_RLK_085").play()
+    assert len(game.player1.field) == 1
+
+
+def test_lord_marrowgar_gives_all_the_bonuses_to_the_one_golem_that_fits():
+    game = dk_game()
+    for _ in range(5):
+        game.player1.summon(WISP)
+    game.player1.corpses = 4
+    marrowgar = game.player1.give("LEG_RLK_085").play()
+    golems = [m for m in game.player1.field if m.id == "RLK_085t"]
+    assert len(golems) == 1 and (golems[0].atk, golems[0].health) == (1 + 3 * 2, 1 + 3 * 2)
+    assert game.player1.corpses == 0
+    assert marrowgar.zone == Zone.PLAY
+
+
+def test_lord_marrowgar_on_a_full_board_still_spends_the_corpses():
+    game = dk_game()
+    for _ in range(6):
+        game.player1.summon(WISP)
+    game.player1.corpses = 4
+    game.player1.give("LEG_RLK_085").play()
+    assert len(game.player1.field) == 7
+    assert not [m for m in game.player1.field if m.id == "RLK_085t"]
+    assert game.player1.corpses == 0
+    assert game.player1.corpses_spent_this_game == 4
+
+
+def test_a_risen_golem_leaves_no_corpse():
+    game = dk_game()
+    game.player1.corpses = 1
+    game.player1.give("LEG_RLK_085").play()
+    golem = game.player1.field[-1]
+    game.player1.used_mana = 0
+    game.player1.give(FIREBALL).play(target=golem)
+    assert golem.zone == Zone.GRAVEYARD
+    assert game.player1.corpses == 0
