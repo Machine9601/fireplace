@@ -1,5 +1,27 @@
 from ..utils import *
 
+
+class AnotherHeroClass(LazyValue):
+    """
+    "A card from another class" (Swashburglar): a class card none of whose
+    classes is the hero's. ANOTHER_CLASS keeps NEUTRAL cards, and a dual-class
+    card sharing the hero's class, which the text excludes.
+    Evaluates to a `custom_filter` for cards.filter.
+    """
+
+    def evaluate(self, source):
+        hero_class = CardClass(source.controller.hero.card_class)
+
+        def from_another_class(card):
+            classes = [CardClass(c) for c in card.classes]
+            classes = [c for c in classes if c.is_playable]
+            return bool(classes) and hero_class not in classes
+
+        return from_another_class
+
+# "While you have Spell Damage": any Spell Damage, the enemy's Jungle Moonkin included.
+HAVE_SPELL_DAMAGE = Find(CONTROLLER + (AttrValue("spellpower") > 0))
+
 ##
 # Minions
 
@@ -19,7 +41,7 @@ class KAR_006:
 class KAR_009:
     """Babbling Book"""
 
-    play = Give(CONTROLLER, RandomSpell())
+    play = Give(CONTROLLER, RandomSpell(card_class=CardClass.MAGE))
 
 
 class KAR_010:
@@ -70,7 +92,7 @@ class KAR_035:
 class KAR_036:
     """Arcane Anomaly"""
 
-    events = OWN_SPELL_PLAY.on(Buff(SELF, "KAR_036e"))
+    events = OWN_SPELL_PLAY.after(Buff(SELF, "KAR_036e"))
 
 
 KAR_036e = buff(health=1)
@@ -144,7 +166,7 @@ class KAR_065:
 class KAR_069:
     """Swashburglar"""
 
-    play = Give(CONTROLLER, RandomCollectible(card_class=ENEMY_CLASS))
+    play = Give(CONTROLLER, RandomCollectible(custom_filter=AnotherHeroClass()))
 
 
 class KAR_070:
@@ -228,10 +250,29 @@ class KAR_097:
 
 
 class KAR_097t:
-    events = OWN_SPELL_PLAY.on(
-        Summon(CONTROLLER, RandomMinion(cost=Attr(Play.CARD, GameTag.COST))),
-        Hit(SELF, 1),
-    )
+    """Atiesh"""
+
+    # After the spell, with its final Cost (read when it is cast: once in the
+    # graveyard, a spell no longer has its reductions); a full board keeps the
+    # Durability, a Cost without minion still loses it (hearthstone.wiki.gg).
+    events = [
+        OWN_SPELL_PLAY.on(
+            SetTags(
+                SELF,
+                {GameTag.TAG_SCRIPT_DATA_NUM_1: Attr(Play.CARD, GameTag.COST)},
+            )
+        ),
+        OWN_SPELL_PLAY.after(
+            FULL_BOARD
+            | (
+                Summon(
+                    CONTROLLER,
+                    RandomMinion(cost=Attr(SELF, GameTag.TAG_SCRIPT_DATA_NUM_1)),
+                ),
+                Hit(SELF, 1),
+            )
+        ),
+    ]
 
 
 class KAR_114:
@@ -304,7 +345,9 @@ class KAR_712:
 class KAR_004:
     """Cat Trick"""
 
-    secret = Play(ENEMY, SPELL).after(Summon(CONTROLLER, "KAR_004a"))
+    secret = Play(ENEMY, SPELL).after(
+        FULL_BOARD | (Reveal(SELF), Summon(CONTROLLER, "KAR_004a"))
+    )
 
 
 class KAR_013:
@@ -394,4 +437,4 @@ class KAR_028:
 class KAR_063:
     """Spirit Claws"""
 
-    update = Find(FRIENDLY_MINIONS + SPELLPOWER) & Refresh(SELF, {GameTag.ATK: +2})
+    update = HAVE_SPELL_DAMAGE & Refresh(SELF, {GameTag.ATK: +2})

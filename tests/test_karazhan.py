@@ -216,7 +216,8 @@ def test_swashburglar():
     burglar = game.player1.give("KAR_069")
     burglar.play()
     assert len(game.player1.hand) == 1
-    assert game.player2.hero.card_class in game.player1.hand[0].classes
+    # Patch 21.8: "from another class", not the opponent's class.
+    assert game.player1.hero.card_class not in game.player1.hand[0].classes
 
 
 def test_ethereal_peddler():
@@ -639,3 +640,109 @@ def test_silverware_golem():
     game.player1.give("KAR_205")
     game.player1.give(SOULFIRE).play(target=game.player2.hero)
     assert game.player1.field[0].id == "KAR_205"
+
+
+def test_cat_trick_reveals_once():
+    # A secret triggers once, then is gone: a second spell summons nothing.
+    game = prepare_game()
+    game.player1.give("KAR_004").play()
+    game.end_turn()
+
+    game.player2.give(MOONFIRE).play(target=game.player1.hero)
+    assert [m.id for m in game.player1.field] == ["KAR_004a"]
+    assert not game.player1.secrets
+    game.player2.give(MOONFIRE).play(target=game.player1.hero)
+    assert [m.id for m in game.player1.field] == ["KAR_004a"]
+
+
+def test_cat_trick_full_board():
+    game = prepare_game()
+    for _ in range(7):
+        game.player1.give(WISP).play()
+    game.player1.give("KAR_004").play()
+    game.end_turn()
+
+    game.player2.give(MOONFIRE).play(target=game.player1.hero)
+    assert len(game.player1.field) == 7
+    assert [s.id for s in game.player1.secrets] == ["KAR_004"]
+
+
+def test_babbling_book_mage_spell():
+    for _ in range(20):
+        game = prepare_game(CardClass.WARRIOR, CardClass.WARRIOR)
+        game.player1.discard_hand()
+        game.player1.give("KAR_009").play()
+        spell = game.player1.hand[0]
+        assert spell.type == CardType.SPELL
+        assert CardClass.MAGE in spell.classes
+
+
+def test_swashburglar_another_class():
+    for _ in range(20):
+        game = prepare_empty_game(CardClass.ROGUE, CardClass.MAGE)
+        game.player1.give("KAR_069").play()
+        card = game.player1.hand[0]
+        assert CardClass.ROGUE not in card.classes
+        assert CardClass.NEUTRAL not in card.classes
+
+
+def test_arcane_anomaly_after_the_spell():
+    # "After you cast a spell": Moonfire kills the 2/1 before the +1 Health.
+    game = prepare_game()
+    anomaly = game.player1.give("KAR_036")
+    anomaly.play()
+    game.player1.give(MOONFIRE).play(target=anomaly)
+    assert anomaly.dead
+
+
+def test_atiesh_after_the_spell():
+    # "After you cast a spell": Twisting Nether resolves first, the summon survives.
+    game = prepare_game()
+    game.player1.give("KAR_097").play()
+    game.end_turn()
+    game.end_turn()
+    game.player1.give("EX1_312").play()
+    assert len(game.player1.field) == 1
+    assert game.player1.field[0].cost == 8
+    assert game.player1.weapon.durability == 2
+
+
+def test_atiesh_final_cost():
+    # The final Cost of the spell, Sorcerer's Apprentice included.
+    game = prepare_game()
+    game.player1.give("KAR_097").play()
+    game.end_turn()
+    game.end_turn()
+    game.player1.give("EX1_608").play()
+    frostbolt = game.player1.give("CS2_024")
+    assert frostbolt.cost == 1
+    frostbolt.play(target=game.player2.hero)
+    assert game.player1.field[-1].cost == 1
+    assert game.player1.weapon.durability == 2
+
+
+def test_atiesh_full_board():
+    # No room to summon: Atiesh keeps its Durability.
+    game = prepare_game()
+    game.player1.give("KAR_097").play()
+    for _ in range(6):
+        game.player1.give(WISP).play()
+    game.player1.give(MOONFIRE).play(target=game.player2.hero)
+    assert len(game.player1.field) == 7
+    assert game.player1.weapon.durability == 3
+
+
+def test_spirit_claws_enemy_jungle_moonkin():
+    # "While you have Spell Damage": the enemy's Jungle Moonkin gives it to both players.
+    game = prepare_game()
+    game.player1.give("KAR_063").play()
+    claws = game.player1.weapon
+    assert claws.atk == 1
+    game.end_turn()
+    moonkin = game.player2.give("LOE_051")
+    moonkin.play()
+    assert game.player1.spellpower == 2
+    assert claws.atk == 3
+    game.player2.give(FIREBALL).play(target=moonkin)
+    assert moonkin.dead
+    assert claws.atk == 1
