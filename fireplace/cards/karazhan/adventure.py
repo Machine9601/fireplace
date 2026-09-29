@@ -449,6 +449,73 @@ class KAR_A10_22H:
     activate = MoveLeft(TARGET)
 
 
+# The Kings. Moroes (Chess): "You don't have many pieces. If you run out, you
+# will lose." ; "You have run out of pieces. The game is forfeit." A piece is a
+# minion on the board (not dying), in the hand or in the deck. Both sides are
+# looked at each time a minion dies: when both run out together, the game is a
+# draw.
+
+
+def chess_pieces(player):
+    return (
+        [minion for minion in player.field if not minion.dead]
+        + [card for card in player.hand if card.type == CardType.MINION]
+        + [card for card in player.deck if card.type == CardType.MINION]
+    )
+
+
+class ChessOutOfPieces(GameAction):
+    """A King without any piece left loses."""
+
+    def do(self, source):
+        game = source.game
+        losing = [
+            player
+            for player in game.players
+            if player.hero is not None
+            and getattr(player.hero.data.scripts, "chess_king", False)
+            and player.playstate == PlayState.PLAYING
+            and not chess_pieces(player)
+        ]
+        if not losing:
+            return
+        for player in losing:
+            log.info("%r has run out of pieces: the game is forfeit", player)
+            player.playstate = PlayState.LOSING
+        game.check_for_end_game()
+
+
+CHESS_KING_EVENTS = Death(MINION).on(ChessOutOfPieces())
+
+
+class KAR_a10_Boss1:
+    """White King"""
+
+    chess_king = True
+    events = CHESS_KING_EVENTS
+
+
+class KAR_a10_Boss1H:
+    """White King (Heroic)"""
+
+    chess_king = True
+    events = CHESS_KING_EVENTS
+
+
+class KAR_a10_Boss2:
+    """Black King"""
+
+    chess_king = True
+    events = CHESS_KING_EVENTS
+
+
+class KAR_a10_Boss2H:
+    """Black King (Heroic)"""
+
+    chess_king = True
+    events = CHESS_KING_EVENTS
+
+
 ##
 # The Opera: Romulo and Julianne
 

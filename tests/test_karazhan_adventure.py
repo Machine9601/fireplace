@@ -482,6 +482,63 @@ def test_castle_heroic_moves_a_friendly_minion_left():
     assert black.hero.damage == 4 + 2
 
 
+def test_chess_a_side_without_pieces_loses():
+    # Moroes (Chess): "You don't have many pieces. If you run out, you will
+    # lose." ; "You have run out of pieces. The game is forfeit." A piece is a
+    # minion on the board, in the hand or in the deck.
+    for king in ("KAR_a10_Boss1", "KAR_a10_Boss1H"):
+        game, white, black = _chess(white=king, deck=[])
+        game.end_turn()
+        (last,) = _board(white, WHITE_ROOK)
+        assert not white.deck and all(c.type != CardType.MINION for c in white.hand)
+        with pytest.raises(GameOver):
+            black.hero.power.use()
+        assert white.playstate == PlayState.LOST
+        assert black.playstate == PlayState.WON
+    # One left in the hand: the game goes on.
+    game, white, black = _chess(deck=[])
+    game.end_turn()
+    _board(white, WHITE_ROOK)
+    white.give(WHITE_PAWN)
+    black.hero.power.use()
+    assert game.state != State.COMPLETE and white.playstate == PlayState.PLAYING
+    # The Black King too, when his last piece falls to an Auto-Attack.
+    for king in ("KAR_a10_Boss2", "KAR_a10_Boss2H"):
+        game, white, black = _chess(black=king, deck2=[])
+        _board(white, WHITE_QUEEN)
+        (last,) = _board(black, BLACK_PAWN)
+        last.damage = 2
+        with pytest.raises(GameOver):
+            game.end_turn()
+        assert black.playstate == PlayState.LOST
+        assert white.playstate == PlayState.WON
+
+
+def test_chess_both_sides_without_pieces_tie():
+    # The last White Knight and the last Black Pawn fall together.
+    game, white, black = _chess(deck=[], deck2=[])
+    (knight,) = _board(white, WHITE_KNIGHT)
+    (pawn,) = _board(black, BLACK_PAWN)
+    knight.damage, pawn.damage = 2, 2
+    with pytest.raises(GameOver):
+        knight.attack(pawn)
+    assert white.playstate == PlayState.TIED
+    assert black.playstate == PlayState.TIED
+
+
+def test_chess_rules_are_the_kings_only():
+    # Another hero whose last minion dies does not lose.
+    game, white, black = _chess(black="HERO_08", deck2=[WISP] * 20)
+    game.end_turn()
+    (wisp,) = _board(black, WISP)
+    game.end_turn()
+    for card in list(black.hand) + list(black.deck):
+        card.zone = Zone.SETASIDE
+    white.give(WHITE_KNIGHT).play()
+    white.field[-1].attack(wisp)
+    assert game.state != State.COMPLETE
+
+
 ##
 # The Opera: Romulo and Julianne, Big Bad Wolf, The Crone
 
