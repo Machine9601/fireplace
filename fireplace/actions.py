@@ -1971,10 +1971,14 @@ class Summon(TargetedAction):
             cards = [cards]
 
         for card in cards:
-            if not card.is_summonable():
-                continue
-            if card.controller != target:
+            # Summonable where it is summoned: a card created for the summoner
+            # (Leeroy's whelps) is counted against the target's board, not its own.
+            controller = card.controller
+            if controller != target:
                 card.controller = target
+            if not card.is_summonable():
+                card.controller = controller
+                continue
             # Poisoned Blade
             if (
                 card.controller.weapon
