@@ -237,3 +237,69 @@ def test_deathbringer_saurfang_comes_back_again():
     # Every death brings it back, costing Health again
     assert back.zone == Zone.HAND and back.card_costs_health
     assert game.player1.hand[-1] is back
+
+
+# --- RLK_720
+def test_gnome_muncher():
+    game = dk_game(class2=CardClass.MAGE)
+    muncher = game.player1.give("RLK_720").play()
+    assert muncher.taunt and muncher.lifesteal
+    assert (muncher.atk, muncher.health) == (5, 6)
+    wisp = game.player2.summon(WISP)
+    crocolisk = game.player2.summon(CROCOLISK)
+    golem = game.player2.summon(WAR_GOLEM)
+    game.player1.hero.set_current_health(20)
+    game.end_turn()
+    # It attacked the lowest Health enemy, the Wisp, and healed by its Lifesteal
+    assert wisp.zone == Zone.GRAVEYARD
+    assert crocolisk.damage == 0 and golem.damage == 0
+    assert muncher.damage == 1
+    assert game.player1.hero.health == 25
+    # A forced attack does not use the Muncher's own attack
+    assert muncher.num_attacks == 0
+
+
+def test_gnome_muncher_attacks_the_hero_when_alone():
+    game = dk_game()
+    game.player1.give("RLK_720").play()
+    game.end_turn()
+    assert game.player2.hero.health == 25
+
+
+def test_gnome_muncher_attacks_the_lowest_health_character_even_the_hero():
+    game = dk_game()
+    game.player1.give("RLK_720").play()
+    game.player2.hero.set_current_health(6)
+    golem = game.player2.summon(WAR_GOLEM)
+    game.end_turn()
+    assert game.player2.hero.health == 1
+    assert golem.damage == 0
+
+
+def test_gnome_muncher_only_at_the_end_of_its_owners_turn():
+    game = dk_game()
+    game.player1.give("RLK_720").play()
+    game.end_turn()
+    assert game.player2.hero.health == 25
+    wisp = game.player2.summon(WISP)
+    # The other player's turn ends: the Muncher does not attack
+    game.end_turn()
+    assert wisp.zone == Zone.PLAY and game.player2.hero.health == 25
+
+
+def test_gnome_muncher_takes_one_of_two_equal_targets():
+    game = dk_game()
+    game.player1.give("RLK_720").play()
+    wisps = [game.player2.summon(WISP), game.player2.summon(WISP)]
+    game.end_turn()
+    assert sorted(w.zone for w in wisps) == [Zone.PLAY, Zone.GRAVEYARD]
+
+
+def test_gnome_muncher_ignores_taunt():
+    game = dk_game()
+    game.player1.give("RLK_720").play()
+    footman = game.player2.summon(GOLDSHIRE_FOOTMAN)  # 1/2 Taunt
+    wisp = game.player2.summon(WISP)
+    game.end_turn()
+    assert wisp.zone == Zone.GRAVEYARD
+    assert footman.damage == 0

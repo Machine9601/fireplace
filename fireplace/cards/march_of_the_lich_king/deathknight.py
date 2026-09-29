@@ -71,8 +71,13 @@ class RLK_720:
     """Gnome Muncher"""
 
     # <b>Taunt</b>, <b>Lifesteal</b> At the end of your turn, attack the lowest
-    # Health enemy.
+    # Health enemy. (A forced attack on any enemy character, the hero too,
+    # chosen at random among the lowest Health; it does not use the attack
+    # of the minion itself, the wiki "Force attack".)
     tags = RESERVED
+    events = OWN_TURN_END.on(
+        Attack(SELF, RANDOM(LOWEST_HEALTH(ENEMY_CHARACTERS - DEAD)))
+    )
 
 
 # --- RLK_025
