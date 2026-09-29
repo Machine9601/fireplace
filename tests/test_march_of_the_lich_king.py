@@ -89,6 +89,9 @@ def test_the_twenty_cards_are_reserved_for_visions_of_sayge():
     db = cards_db.db
     for id in SAYGE:
         assert not db[id].collectible, id
+        # Their set is the expansion they come from, March of the Lich King
+        # (the build files them in Core or Legacy since): no mode draws in it
+        assert db[id].card_set == CardSet.RETURN_OF_THE_LICH_KING, id
     reserved = set(SAYGE)
     for card_class in (CardClass.MAGE, CardClass.WARRIOR, CardClass.DEATHKNIGHT):
         assert not reserved & set(random_draft(card_class))

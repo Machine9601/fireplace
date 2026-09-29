@@ -3,18 +3,24 @@ the Tavern Brawl Visions of Sayge ask for (texts of HearthstoneJSON build
 253216, the one the official wiki shows).
 
 **Reserved.** These cards are written for that Brawl only: they are not
-collectible here (`RESERVED`), so no random pool, no random deck and no
+collectible here and are of their original set, March of the Lich King
+(`RESERVED`), so no random pool, no random deck, no mode's card pool and no
 Discover ever offers them; a deck that names them plays them.
 """
 
-from hearthstone.enums import Zone
+from hearthstone.enums import CardSet, Zone
 
 from ... import enums
 from ..utils import *
 
 # The cards of this module: playable when a deck names them, never drawn at
-# random (the CardDefs.xml of build 253216 marks them collectible).
-RESERVED = {GameTag.COLLECTIBLE: False}
+# random (the CardDefs.xml of build 253216 marks them collectible, in Core or
+# Legacy: they are here of the expansion they come from, March of the Lich
+# King, a set that no mode draws in).
+RESERVED = {
+    GameTag.COLLECTIBLE: False,
+    GameTag.CARD_SET: CardSet.RETURN_OF_THE_LICH_KING,
+}
 
 
 # --- RLK_503
@@ -84,7 +90,7 @@ class RLK_720:
 def _rune_card(rune):
     """A card of the Rune `rune` that may be Discovered: at least one such
     rune, and not a triple-rune card (they cannot be generated nor Discovered
-    since patch 26.0.4, the wiki Â« Rune Â»)."""
+    since patch 26.0.4, the wiki "Rune")."""
 
     def custom_filter(card):
         runes = (
