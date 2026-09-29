@@ -97,7 +97,9 @@ class BlackrockShowdownBrawl(Game):
         super().setup()
         for player in self.players:
             if player.hero.id == self.NEFARIAN_DECK[1]:
-                player.max_mana = 4
+                # Three here, the turn adds the fourth: Nefarian starts with 4 crystals
+                # (the wiki), whether he plays first or second.
+                player.max_mana = 3
                 player.hero.armor = 30
             else:
                 player.summon("BRMC_94")  # Sulfuras

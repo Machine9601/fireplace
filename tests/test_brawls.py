@@ -154,6 +154,28 @@ def test_brawl_fixed_decks():
     assert GrandTournamentBrawl.ALLERIA_DECK[0].count("AT_108") == 2
 
 
+def test_showdown_nefarian_has_four_crystals_on_his_first_turn():
+    # The wiki: Nefarian starts his first turn with 4 mana crystals (Ragnaros, 1),
+    # whoever the coin sends first. setup() gives the crystals the turn will not add.
+    nefarian = BlackrockShowdownBrawl.NEFARIAN_DECK[1]
+    for seed in range(6):
+        random.seed(seed)
+        game = BlackrockShowdownBrawl.new_game(
+            Player("Player1", [], "HERO_01"), Player("Player2", [], "HERO_01")
+        )
+        game.start()
+        _empty_mulligan(game)
+        seen = set()
+        for _ in range(4):
+            player = game.current_player
+            if player.hero.id not in seen:
+                seen.add(player.hero.id)
+                expected = 4 if player.hero.id == nefarian else 1
+                assert player.max_mana == expected, (seed, player.hero.id)
+            game.end_turn()
+        assert len(seen) == 2
+
+
 def test_grand_tournament_brawl():
     # Alleria and Medivh, each with their own deck, drawn between the seats
     for _ in range(4):
