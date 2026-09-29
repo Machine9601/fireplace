@@ -1,24 +1,6 @@
 from ..utils import *
 
 
-class AnotherHeroClass(LazyValue):
-    """
-    "A card from another class" (Swashburglar): a class card none of whose
-    classes is the hero's. ANOTHER_CLASS keeps NEUTRAL cards, and a dual-class
-    card sharing the hero's class, which the text excludes.
-    Evaluates to a `custom_filter` for cards.filter.
-    """
-
-    def evaluate(self, source):
-        hero_class = CardClass(source.controller.hero.card_class)
-
-        def from_another_class(card):
-            classes = [CardClass(c) for c in card.classes]
-            classes = [c for c in classes if c.is_playable]
-            return bool(classes) and hero_class not in classes
-
-        return from_another_class
-
 class HeroClassOrNeutral(LazyValue):
     """The card classes "suitable for the player's class": neutral and the hero's."""
 
