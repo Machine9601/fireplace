@@ -46,7 +46,7 @@ class FP1_007:
 class FP1_009:
     """Deathlord"""
 
-    deathrattle = Summon(OPPONENT, RANDOM(ENEMY_DECK + MINION))
+    deathrattle = SummonAtTheFarRight(OPPONENT, RANDOM(ENEMY_DECK + MINION))
 
 
 class FP1_011:

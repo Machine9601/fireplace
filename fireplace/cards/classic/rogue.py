@@ -236,7 +236,7 @@ class EX1_182:
     """Pilfer"""
 
     # Add a random card from another class to_your hand.</i>.
-    play = Give(CONTROLLER, RandomCollectible(card_class=ANOTHER_CLASS))
+    play = Give(CONTROLLER, RandomCollectible(custom_filter=AnotherHeroClass()))
 
 
 class EX1_191:
