@@ -423,6 +423,65 @@ def test_chess_knights_charge_but_never_at_a_hero():
         assert enemy.damage == 4 and side.opponent.hero.damage == 0
 
 
+def test_cheat_destroys_the_left_most_enemy_minion():
+    # Cheat (the Black King, both modes): "Hero Power Destroy the left-most
+    # enemy minion." Without an enemy minion, it cannot be used.
+    for king in ("KAR_a10_Boss2", "KAR_a10_Boss2H"):
+        game, white, black = _chess(black=king)
+        game.end_turn()
+        assert black.hero.power.id == "KAR_A10_33" and black.hero.power.cost == 2
+        assert not black.hero.power.is_usable()
+        left, right = _board(white, WHITE_ROOK, WHITE_QUEEN)
+        assert black.hero.power.is_usable()
+        black.hero.power.use()
+        assert list(white.field) == [right]
+        assert left.zone == Zone.GRAVEYARD
+        assert not black.hero.power.is_usable()
+
+
+def test_castle_discovers_a_chess_piece():
+    # Castle (the White King, normal): "Hero Power Discover a chess piece." Three
+    # of the five white pieces.
+    game, white, black = _chess()
+    power = white.hero.power
+    assert power.id == "KAR_A10_22" and power.cost == 2
+    hand = len(white.hand)
+    power.use()
+    choice = white.choice
+    ids = [c.id for c in choice.cards]
+    assert len(ids) == 3 and len(set(ids)) == 3
+    assert set(ids) <= set(WHITE_PIECES)
+    choice.choose(choice.cards[1])
+    assert len(white.hand) == hand + 1 and white.hand[-1].id == ids[1]
+    assert not power.is_usable()
+
+
+def test_castle_heroic_moves_a_friendly_minion_left():
+    # Castle (the White King, heroic): "Hero Power Move a friendly minion left.
+    # Repeatable." (1 Mana each time)
+    game, white, black = _chess(white="KAR_a10_Boss1H")
+    power = white.hero.power
+    assert power.id == "KAR_A10_22H" and power.cost == 1
+    a, b, c = _board(white, WHITE_PAWN, WHITE_ROOK, WHITE_QUEEN)
+    (enemy,) = _board(black, BLACK_PAWN)
+    mana = white.mana
+    assert enemy not in power.targets and white.hero not in power.targets
+    power.use(target=c)
+    assert list(white.field) == [a, c, b]
+    power.use(target=c)
+    assert list(white.field) == [c, a, b]
+    # The left-most one stays where it is.
+    power.use(target=c)
+    assert list(white.field) == [c, a, b]
+    assert white.mana == mana - 3
+    assert power.is_usable()
+    # Where they stand is where they strike: the Pawn faces the Black Pawn now,
+    # the Queen and the Rook the Black King.
+    game.end_turn()
+    assert enemy.damage == 1
+    assert black.hero.damage == 4 + 2
+
+
 ##
 # The Opera: Romulo and Julianne, Big Bad Wolf, The Crone
 

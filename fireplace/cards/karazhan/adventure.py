@@ -401,6 +401,54 @@ class KAR_A10_10:
     events = CHESS_AUTO_ATTACK
 
 
+class MoveLeft(TargetedAction):
+    """The minion `target` changes places with its left neighbour (the
+    left-most one stays where it is)."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        line = target.controller.field
+        index = line.index(target)
+        if index == 0:
+            return
+        log.info("%r moves %r left", source, target)
+        line[index - 1], line[index] = line[index], line[index - 1]
+        source.game.manager.targeted_action(self, source, target)
+
+
+class KAR_A10_33:
+    """Cheat"""
+
+    # "Hero Power Destroy the left-most enemy minion." (the Black King)
+    requirements = {PlayReq.REQ_MINIMUM_ENEMY_MINIONS: 1}
+    activate = Destroy(LEFTMOST(ENEMY_MINIONS))
+
+
+CHESS_WHITE_PIECES = ("KAR_A10_02", "KAR_A10_05", "KAR_A10_04", "KAR_A10_08", "KAR_A10_09")
+
+
+class KAR_A10_22:
+    """Castle"""
+
+    # "Hero Power Discover a chess piece." (the White King, normal): one of
+    # his own pieces, the white ones.
+    activate = DISCOVER(RandomID(*CHESS_WHITE_PIECES))
+
+
+class KAR_A10_22H:
+    """Castle (Heroic)"""
+
+    # "Hero Power Move a friendly minion left. Repeatable."
+    tags = {GameTag.HEROPOWER_ADDITIONAL_ACTIVATIONS: -1}
+    requirements = {
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_FRIENDLY_TARGET: 0,
+    }
+    activate = MoveLeft(TARGET)
+
+
 ##
 # The Opera: Romulo and Julianne
 
