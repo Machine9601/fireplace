@@ -538,3 +538,142 @@ class KARA_09_07heroic:
 
     requirements = {PlayReq.REQ_TARGET_TO_PLAY: 0}
     play = Hit(TARGET, 5), Heal(FRIENDLY_HERO, 5)
+
+
+##
+# The Spire: Shade of Aran
+
+
+class KARA_12_02:
+    """Ley Lines"""
+
+    # "Passive Hero Power Both players have Spell Damage +3."
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    update = Refresh(ALL_PLAYERS, {GameTag.SPELLPOWER: +3})
+
+
+class KARA_12_02H:
+    """Ley Lines (Heroic)"""
+
+    tags = {enums.PASSIVE_HERO_POWER: True}
+    update = Refresh(ALL_PLAYERS, {GameTag.SPELLPOWER: +5})
+
+
+class KARA_12_03:
+    """Flame Wreath"""
+
+    # "Secret: When an enemy attacks, deal 5 damage to all other enemies."
+    secret = Attack(ENEMY_CHARACTERS).on(
+        Reveal(SELF), Hit(ENEMY_CHARACTERS - Attack.ATTACKER, 5)
+    )
+
+
+class KARA_12_03H:
+    """Flame Wreath (Heroic)"""
+
+    secret = Attack(ENEMY_CHARACTERS).on(
+        Reveal(SELF), Hit(ENEMY_CHARACTERS - Attack.ATTACKER, 10)
+    )
+
+
+##
+# The Spire: Netherspite
+
+
+class KARA_08_02:
+    """Nether Rage"""
+
+    # "Hero Power Give your hero +3 Attack this turn." (Auto-cast: A54.)
+    activate = Buff(FRIENDLY_HERO, "KARA_08_02e")
+
+
+class KARA_08_02H:
+    """Nether Rage (Heroic)"""
+
+    activate = Buff(FRIENDLY_HERO, "KARA_08_02eH")
+
+
+KARA_08_02e = buff(atk=3, tag_one_turn_effect=True)
+KARA_08_02eH = buff(atk=8, tag_one_turn_effect=True)
+
+
+class KARA_08_03:
+    """Nether Breath"""
+
+    # "Change the Health of all enemy minions to 1." (as Decimate does)
+    play = Buff(ENEMY_MINIONS, "KARA_08_03e")
+
+
+class KARA_08_03H:
+    """Nether Breath (Heroic)"""
+
+    play = Buff(ENEMY_MINIONS, "KARA_08_03e")
+
+
+class KARA_08_03e:
+    max_health = SET(1)
+
+
+class KARA_08_05:
+    """Terrifying Roar"""
+
+    requirements = {
+        PlayReq.REQ_ENEMY_TARGET: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+    }
+    play = Bounce(TARGET)
+
+
+class KARA_08_05H:
+    """Terrifying Roar (Heroic)"""
+
+    requirements = {
+        PlayReq.REQ_ENEMY_TARGET: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+    }
+    play = Bounce(TARGET)
+
+
+def _beam(rightward):
+    """The character in a portal's beam: the beam runs from the portal across
+    its board (rightward from the Blue Portal, leftward from the Red one) to
+    the first minion that is not dormant (the wiki: a dormant minion does not
+    stop it, "carrying on to the next non-dormant minion"); with none in its
+    path, it reaches Netherspite, the enemy hero."""
+
+    def select(entities, source):
+        field = source.controller.field
+        if source not in field:
+            return []
+        i = field.index(source)
+        path = field[i + 1 :] if rightward else list(reversed(field[:i]))
+        for minion in path:
+            if not minion.dormant:
+                return [minion]
+        return [source.controller.opponent.hero]
+
+    return FuncSelector(select)
+
+
+class KARA_08_06:
+    """Blue Portal"""
+
+    # A portal is permanent ("Permanent", UNTOUCHABLE): dormant for good, as
+    # Yellow-Brick Brawl's Dorothee; its beam is an aura.
+    tags = {GameTag.DORMANT: True}
+    dormant_update = Refresh(_beam(True), buff="KARA_08_06e2")
+
+
+KARA_08_06e2 = buff(heavily_armored=True)
+
+
+class KARA_08_08:
+    """Red Portal"""
+
+    tags = {GameTag.DORMANT: True}
+    dormant_update = Refresh(_beam(False), buff="KARA_08_08e2")
+
+
+KARA_08_08e2 = buff(windfury=True)

@@ -440,3 +440,106 @@ def test_illhoofs_spells():
         boss.give("KARA_09_07" + suffix).play(target=other.hero)
         assert other.hero.health == 25
         assert boss.hero.health == 25
+
+
+##
+# The Spire: Shade of Aran, Netherspite
+
+
+def test_ley_lines():
+    # "Passive Hero Power Both players have Spell Damage +3." (heroic +5)
+    for hero, more in (("KARA_12_01", 3), ("KARA_12_01H", 5)):
+        game, boss, other = _boss_game(hero)
+        assert db_passive(boss.hero.power.id)
+        assert boss.spellpower == more and other.spellpower == more
+        boss.give(MOONFIRE).play(target=other.hero)
+        assert other.hero.health == 30 - 1 - more
+
+
+def test_flame_wreath():
+    # "Secret: When an enemy attacks, deal 5 damage to all other enemies."
+    # (heroic 10) ; immune to Spell Damage (Ley Lines).
+    for hero, secret, damage in (
+        ("KARA_12_01", "KARA_12_03", 5),
+        ("KARA_12_01H", "KARA_12_03H", 10),
+    ):
+        game, boss, other = _boss_game(hero)
+        boss.give(secret).play()
+        assert len(boss.secrets) == 1
+        game.end_turn()
+        attacker = other.summon("CS2_182")
+        attacker.turns_in_play = 1
+        bystander = other.summon("EX1_620")  # Molten Giant, 8/8
+        attacker.attack(boss.hero)
+        assert not boss.secrets
+        assert bystander.dead if damage >= 8 else bystander.damage == damage
+        assert other.hero.health == 30 - damage
+        assert attacker.damage == 0
+
+
+def test_nether_rage():
+    # "Hero Power Give your hero +3 Attack this turn." (heroic +8, 1 mana)
+    for hero, more in (("KARA_08_01", 3), ("KARA_08_01H", 8)):
+        game, boss, other = _boss_game(hero)
+        boss.hero.power.use()
+        assert boss.hero.atk == more
+        boss.hero.attack(other.hero)
+        assert other.hero.health == 30 - more
+        game.end_turn()
+        assert boss.hero.atk == 0
+
+
+def test_nether_breath_and_terrifying_roar():
+    # Nether Breath: "Change the Health of all enemy minions to 1." ;
+    # Terrifying Roar: "Return an enemy minion to your opponent's hand."
+    for suffix in ("", "H"):
+        game, boss, other = _boss_game("KARA_08_01")
+        yeti = other.summon("CS2_182")
+        giant = other.summon("EX1_620")
+        mine = boss.summon("CS2_182")
+        boss.give("KARA_08_03" + suffix).play()
+        assert yeti.health == 1 and giant.health == 1 and mine.health == 5
+        boss.give("KARA_08_05" + suffix).play(target=yeti)
+        assert yeti.zone == Zone.HAND and yeti.controller is other
+
+
+BLUE, RED = "KARA_08_06", "KARA_08_08"
+
+
+def test_netherspites_portals():
+    # Blue Portal: "The character in the blue beam only takes 1 damage at a
+    # time." Red Portal: "The character in the red beam has Windfury." The
+    # portals stand at the ends of the player's board, Blue on the left, Red
+    # on the right; each beam runs from its portal across the board (the wiki:
+    # a beam goes on "to the next non-dormant minion"), and hits Netherspite
+    # when no minion is in its path.
+    game, boss, other = _boss_game("KARA_08_01")
+    blue = other.summon(BLUE)
+    red = other.summon(RED)
+    assert blue.dormant and red.dormant
+    # No minion: both beams on Netherspite.
+    assert boss.hero.heavily_armored and boss.hero.windfury
+    boss.give(FIREBALL).play(target=other.hero)
+    game.end_turn()
+    other.give(FIREBALL).play(target=boss.hero)
+    assert boss.hero.health == 29
+    # A minion on the right of the Red Portal: the blue beam, not the red one.
+    right = other.give("CS2_182")
+    right.play(index=2)
+    assert right.heavily_armored and not right.windfury
+    assert not boss.hero.heavily_armored and boss.hero.windfury
+    game.end_turn()
+    game.end_turn()
+    # A minion between them takes both beams.
+    middle = other.give("CS2_182")
+    middle.play(index=1)
+    assert other.field == [blue, middle, red, right]
+    assert middle.heavily_armored and middle.windfury
+    assert not right.heavily_armored
+    assert not boss.hero.heavily_armored and not boss.hero.windfury
+    other.give(FIREBALL).play(target=middle)
+    assert middle.damage == 1
+    # The portals are permanent: no spell, no attack, no board clear.
+    game.end_turn()
+    boss.give("EX1_312").play()  # Twisting Nether
+    assert other.field == [blue, red]
