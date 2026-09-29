@@ -150,6 +150,23 @@ def test_deathlord():
     assert len(game.player2.deck) == 2
 
 
+def test_deathlord_summons_at_the_far_right_of_the_enemy_board():
+    # The opponent's minion comes to the far right of their board, not where
+    # Deathlord itself stood on its own board (WP-129d, as Moat Lurker).
+    game = prepare_empty_game()
+    game.player1.give(WISP).play()
+    deathlord = game.player1.give("FP1_009")
+    deathlord.play(index=0)
+    assert game.player1.field[0] is deathlord
+    game.end_turn()
+    game.player2.give("CS2_182").play()
+    game.player2.give(CHICKEN).play()
+    game.player2.give(WISP).shuffle_into_deck()
+    game.end_turn()
+    deathlord.destroy()
+    assert [m.id for m in game.player2.field] == ["CS2_182", CHICKEN, WISP]
+
+
 def test_echoing_ooze():
     game = prepare_game()
     ooze = game.player1.give("FP1_003")

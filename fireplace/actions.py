@@ -176,17 +176,19 @@ class Action(metaclass=ActionMeta):
                 ):
                     entity.trigger_event(source, event, args)
 
+    def _listeners(self, game):
+        """Every entity an event is broadcast to, in order."""
+        yield from game.entities
+        for hand in game.hands:
+            yield from hand.entities
+        for deck in game.decks:
+            yield from deck.entities
+
     def broadcast(self, source, at, *args):
         source.game.action_start(BlockType.TRIGGER, source, 0, None)
 
-        for entity in source.game.entities:
+        for entity in self._listeners(source.game):
             self._broadcast(entity, source, at, *args)
-        for hand in source.game.hands:
-            for entity in hand.entities:
-                self._broadcast(entity, source, at, *args)
-        for deck in source.game.decks:
-            for entity in deck.entities:
-                self._broadcast(entity, source, at, *args)
 
         source.game.action_end(BlockType.TRIGGER, source)
 
@@ -499,6 +501,35 @@ class Play(GameAction):
         if entity is args[1]:
             return
         return super()._broadcast(entity, source, at, *args)
+
+    def broadcast(self, source, at, *args):
+        card = args[1]
+        if at != EventListener.ON or card.type != CardType.SPELL:
+            return super().broadcast(source, at, *args)
+
+        # "Counterspell beats 'whenever' and 'after' triggers" (patch 11.2): the
+        # opponent's secrets answer a spell first, and a countered spell is not
+        # cast, so the other "whenever you cast a spell" never see it.
+        game = source.game
+        game.action_start(BlockType.TRIGGER, source, 0, None)
+
+        secrets = [
+            entity
+            for entity in game.entities
+            if entity.type == CardType.SPELL
+            and entity.data.secret
+            and entity.controller is not source
+        ]
+        for entity in secrets:
+            self._broadcast(entity, source, at, *args)
+
+        if not card.cant_play:
+            answered = {id(entity) for entity in secrets}
+            for entity in self._listeners(game):
+                if id(entity) not in answered:
+                    self._broadcast(entity, source, at, *args)
+
+        game.action_end(BlockType.TRIGGER, source)
 
     def do(self, source, card, target, index, choose):
         player = source
@@ -1406,7 +1437,11 @@ class Fatigue(TargetedAction):
     TARGET = ActionArg()
 
     def do(self, source, target):
-        if target.cant_fatigue:
+        # CANT_BE_FATIGUED on the hero (the heroic Black King, Karazhan's Chess)
+        hero_cant_fatigue = target.hero is not None and target.hero.data.tags.get(
+            GameTag.CANT_BE_FATIGUED
+        )
+        if target.cant_fatigue or hero_cant_fatigue:
             log.info("%s can't fatigue and does not take damage", target)
             return
         target.fatigue_counter += 1
@@ -1971,10 +2006,14 @@ class Summon(TargetedAction):
             cards = [cards]
 
         for card in cards:
-            if not card.is_summonable():
-                continue
-            if card.controller != target:
+            # Summonable where it is summoned: a card created for the summoner
+            # (Leeroy's whelps) is counted against the target's board, not its own.
+            controller = card.controller
+            if controller != target:
                 card.controller = target
+            if not card.is_summonable():
+                card.controller = controller
+                continue
             # Poisoned Blade
             if (
                 card.controller.weapon

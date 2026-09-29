@@ -21,13 +21,15 @@ class NAX1h_04:
 class NAX2_03:
     """Rain of Fire"""
 
-    activate = Hit(RANDOM_ENEMY_MINION, 1) * Count(ENEMY_HAND)
+    # Fire a missile for each card in your opponent's hand: each one picks a
+    # random enemy, the hero included, like Arcane Missiles.
+    activate = Hit(RANDOM_ENEMY_CHARACTER, 1) * Count(ENEMY_HAND)
 
 
 class NAX2_03H:
     """Rain of Fire (Heroic)"""
 
-    activate = Hit(RANDOM_ENEMY_MINION, 1) * Count(ENEMY_HAND)
+    activate = Hit(RANDOM_ENEMY_CHARACTER, 1) * Count(ENEMY_HAND)
 
 
 class NAX2_05:

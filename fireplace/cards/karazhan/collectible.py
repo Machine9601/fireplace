@@ -1,5 +1,50 @@
 from ..utils import *
 
+
+class HeroClassOrNeutral(LazyValue):
+    """The card classes "suitable for the player's class": neutral and the hero's."""
+
+    def evaluate(self, source):
+        return [CardClass.NEUTRAL, CardClass(source.controller.hero.card_class)]
+
+
+# Prince Malchezaar: five different Legendary minions of his player's class or
+# neutral, none already in the starting deck (hearthstone.wiki.gg).
+MALCHEZAAR_LEGENDARIES = (
+    RandomLegendaryMinion(
+        card_class=HeroClassOrNeutral(), exclude=DeDuplicate(STARTING_DECK)
+    )
+    * 5
+)
+
+# "While you have Spell Damage": any Spell Damage, the enemy's Jungle Moonkin included.
+HAVE_SPELL_DAMAGE = Find(CONTROLLER + (AttrValue("spellpower") > 0))
+
+# The spells "you've cast this game" (Arcane Giant): a spell countered by
+# Counterspell does not count (hearthstone.wiki.gg).
+SPELLS_CAST_THIS_GAME = FuncSelector(
+    lambda entities, source: [
+        card
+        for card in source.controller.cards_played_this_game
+        if card.type == CardType.SPELL and not card.cant_play
+    ]
+)
+
+
+class BaseCost(LazyNum):
+    """The base Cost of the cards in a selector, before any Cost modifier."""
+
+    def __init__(self, selector):
+        super().__init__()
+        self.selector = selector
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.selector)
+
+    def evaluate(self, source):
+        return self.num(sum(e.data.cost for e in self.get_entities(source) if e))
+
+
 ##
 # Minions
 
@@ -19,7 +64,7 @@ class KAR_006:
 class KAR_009:
     """Babbling Book"""
 
-    play = Give(CONTROLLER, RandomSpell())
+    play = Give(CONTROLLER, RandomSpell(card_class=CardClass.MAGE))
 
 
 class KAR_010:
@@ -70,7 +115,7 @@ class KAR_035:
 class KAR_036:
     """Arcane Anomaly"""
 
-    events = OWN_SPELL_PLAY.on(Buff(SELF, "KAR_036e"))
+    events = OWN_SPELL_PLAY.after(Buff(SELF, "KAR_036e"))
 
 
 KAR_036e = buff(health=1)
@@ -94,7 +139,7 @@ class KAR_041:
         PlayReq.REQ_MINION_TARGET: 0,
     }
     play = Destroy(TARGET)
-    deathrattle = HAS_TARGET & Summon(TARGET_PLAYER, Copy(TARGET))
+    deathrattle = HAS_TARGET & SummonAtTheFarRight(TARGET_PLAYER, Copy(TARGET))
 
 
 class KAR_044:
@@ -107,7 +152,9 @@ class KAR_057:
     """Ivory Knight"""
 
     play = Discover(CONTROLLER, RandomSpell()).then(
-        Give(CONTROLLER, Discover.CARD), Heal(FRIENDLY_HERO, COST(Discover.CARD))
+        # The base Cost of the discovered card (hearthstone.wiki.gg).
+        Give(CONTROLLER, Discover.CARD),
+        Heal(FRIENDLY_HERO, BaseCost(Discover.CARD)),
     )
 
 
@@ -144,7 +191,7 @@ class KAR_065:
 class KAR_069:
     """Swashburglar"""
 
-    play = Give(CONTROLLER, RandomCollectible(card_class=ENEMY_CLASS))
+    play = Give(CONTROLLER, RandomCollectible(custom_filter=AnotherHeroClass()))
 
 
 class KAR_070:
@@ -205,20 +252,10 @@ class KAR_096:
     """Prince Malchezaar"""
 
     class Deck:
-        events = GameStart().on(
-            Shuffle(
-                CONTROLLER, RandomLegendaryMinion(exclude=DeDuplicate(STARTING_DECK))
-            )
-            * 5
-        )
+        events = GameStart().on(Shuffle(CONTROLLER, MALCHEZAAR_LEGENDARIES))
 
     class Hand:
-        events = GameStart().on(
-            Shuffle(
-                CONTROLLER, RandomLegendaryMinion(exclude=DeDuplicate(STARTING_DECK))
-            )
-            * 5
-        )
+        events = GameStart().on(Shuffle(CONTROLLER, MALCHEZAAR_LEGENDARIES))
 
 
 class KAR_097:
@@ -228,16 +265,36 @@ class KAR_097:
 
 
 class KAR_097t:
-    events = OWN_SPELL_PLAY.on(
-        Summon(CONTROLLER, RandomMinion(cost=Attr(Play.CARD, GameTag.COST))),
-        Hit(SELF, 1),
-    )
+    """Atiesh"""
+
+    # After the spell, with its final Cost (read when it is cast: once in the
+    # graveyard, a spell no longer has its reductions); a full board keeps the
+    # Durability, a Cost without minion still loses it (hearthstone.wiki.gg).
+    events = [
+        OWN_SPELL_PLAY.on(
+            SetTags(
+                SELF,
+                {GameTag.TAG_SCRIPT_DATA_NUM_1: Attr(Play.CARD, GameTag.COST)},
+            )
+        ),
+        OWN_SPELL_PLAY.after(
+            FULL_BOARD
+            | (
+                Summon(
+                    CONTROLLER,
+                    RandomMinion(cost=Attr(SELF, GameTag.TAG_SCRIPT_DATA_NUM_1)),
+                ),
+                Hit(SELF, 1),
+            )
+        ),
+    ]
 
 
 class KAR_114:
     """Barnes"""
 
-    play = Summon(CONTROLLER, Copy(RANDOM(FRIENDLY_DECK + MINION))).then(
+    # The copy keeps the enchantments of the card in the deck (patch 12.0).
+    play = Summon(CONTROLLER, ExactCopy(RANDOM(FRIENDLY_DECK + MINION))).then(
         Buff(Summon.CARD, "KAR_114e")
     )
 
@@ -286,7 +343,7 @@ class KAR_710:
 class KAR_711:
     """Arcane Giant"""
 
-    cost_mod = -TIMES_SPELL_PLAYED_THIS_GAME
+    cost_mod = -Count(SPELLS_CAST_THIS_GAME)
 
 
 class KAR_712:
@@ -304,7 +361,9 @@ class KAR_712:
 class KAR_004:
     """Cat Trick"""
 
-    secret = Play(ENEMY, SPELL).after(Summon(CONTROLLER, "KAR_004a"))
+    secret = Play(ENEMY, SPELL).after(
+        FULL_BOARD | (Reveal(SELF), Summon(CONTROLLER, "KAR_004a"))
+    )
 
 
 class KAR_013:
@@ -394,4 +453,4 @@ class KAR_028:
 class KAR_063:
     """Spirit Claws"""
 
-    update = Find(FRIENDLY_MINIONS + SPELLPOWER) & Refresh(SELF, {GameTag.ATK: +2})
+    update = HAVE_SPELL_DAMAGE & Refresh(SELF, {GameTag.ATK: +2})

@@ -1,6 +1,20 @@
 from utils import *
 
 
+def test_kobold_apprentice_hits_all_enemies():
+    # "Battlecry: Deal 3 damage randomly split among all enemies." The enemy hero
+    # is one of them: with no enemy minion, the three missiles all hit it.
+    game = prepare_empty_game()
+    game.player1.give("LOOT_347").play()
+    assert game.player2.hero.damage == 3
+    # With a 1-Health minion, it takes at most one missile; nothing is lost.
+    for _ in range(10):
+        game = prepare_empty_game()
+        wisp = game.player2.summon(WISP)
+        game.player1.give("LOOT_347").play()
+        assert game.player2.hero.damage + (1 if wisp.dead else 0) == 3
+
+
 def test_lesser_jasper_spellstone():
     game = prepare_empty_game(CardClass.DRUID, CardClass.DRUID)
     game.player1.give("LOOT_051")

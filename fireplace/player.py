@@ -410,6 +410,14 @@ class Player(Entity, TargetableByAuras):
             if self.is_standard and not card.is_standard:
                 self.is_standard = False
         self.starting_deck = CardList(self.deck[:])
+        # A hero whose script names cards kept at the bottom of the deck
+        # (`bottom_of_deck`, {id: count}: the last `count` copies of `id` in the
+        # starting deck), through the mulligan and every shuffle (the fifteen
+        # extra Pawns of the heroic Black King, Karazhan's Chess).
+        bottom_of_deck = getattr(self.hero.data.scripts, "bottom_of_deck", None) or {}
+        for id, count in bottom_of_deck.items():
+            for card in [c for c in self.deck if c.id == id][-count:]:
+                card.stays_at_bottom = True
         self.mulligan_shuffle_deck()
         self.cthun = self.card("OG_280")
         self.playstate = PlayState.PLAYING
@@ -499,6 +507,8 @@ class Player(Entity, TargetableByAuras):
         """
 
         def key_func(card):
+            if getattr(card, "stays_at_bottom", False):
+                return -2, self.game.random.random()
             if card.tags.get(GameTag.QUEST):
                 return 1, self.game.random.random()
             if card.tags.get(GameTag.CANT_DRAW_DURING_MULLIGAN):
@@ -510,6 +520,13 @@ class Player(Entity, TargetableByAuras):
     def shuffle_deck(self):
         self.log("%r shuffles their deck", self)
         self.game.random.shuffle(self.deck)
+        bottom = [c for c in self.deck if getattr(c, "stays_at_bottom", False)]
+        if bottom:
+            # The cards kept at the bottom (`bottom_of_deck`) go back under the
+            # others, in their new order.
+            self.deck[:] = bottom + [
+                c for c in self.deck if not getattr(c, "stays_at_bottom", False)
+            ]
 
     def draw(self, count=1):
         if self.cant_draw:
