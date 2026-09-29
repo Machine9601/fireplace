@@ -526,6 +526,61 @@ def test_chess_both_sides_without_pieces_tie():
     assert black.playstate == PlayState.TIED
 
 
+HEROIC_WHITE_DECK = (
+    [WHITE_PAWN] * 8 + [WHITE_BISHOP] * 2 + [WHITE_ROOK] * 2 + [WHITE_KNIGHT] * 2 + [WHITE_QUEEN]
+)
+HEROIC_BLACK_DECK = (
+    [BLACK_PAWN] * 8
+    + [BLACK_BISHOP] * 2
+    + [BLACK_ROOK] * 2
+    + [BLACK_KNIGHT] * 2
+    + [BLACK_QUEEN]
+    + [BLACK_PAWN] * 15
+)
+
+
+def test_heroic_black_king_keeps_fifteen_pawns_at_the_bottom():
+    # The wiki (Chess, Decks): "On Heroic the number of each card in the
+    # player's deck is halved, resulting in a deck of just 15 cards. The Black
+    # King's deck matches the player's deck, but has an additional 15 Pawns at
+    # the bottom of the deck." They stay there through the mulligan and every
+    # shuffle.
+    for game_class in (Game, BaseTestGame):
+        white = Player("White", list(HEROIC_WHITE_DECK), "KAR_a10_Boss1H")
+        black = Player("Black", list(HEROIC_BLACK_DECK), "KAR_a10_Boss2H")
+        game = game_class(players=(white, black))
+        game.start()
+        if black.choice:
+            # The mulligan: the Black King sends every card back.
+            black.choice.choose(*black.choice.cards)
+            white.choice.choose()
+        bottom = [c for c in black.deck if getattr(c, "stays_at_bottom", False)]
+        assert len(bottom) == 15 and all(c.id == BLACK_PAWN for c in bottom)
+        assert list(black.deck[: len(bottom)]) == bottom
+        assert not any(getattr(c, "stays_at_bottom", False) for c in black.hand)
+        black.shuffle_deck()
+        assert set(black.deck[:15]) == set(bottom)
+        # The other cards are drawn first.
+        while len(black.deck) > 15:
+            assert not getattr(black.draw(), "stays_at_bottom", False)
+        assert black.draw() in bottom
+    # Normal: no card is kept at the bottom.
+    game, white, black = _chess(black="KAR_a10_Boss2", deck2=HEROIC_BLACK_DECK)
+    assert not any(getattr(c, "stays_at_bottom", False) for c in black.deck)
+
+
+def test_heroic_black_king_is_never_fatigued():
+    # Black King (Heroic): CANT_BE_FATIGUED. The normal one is.
+    for king, fatigued in (("KAR_a10_Boss2H", False), ("KAR_a10_Boss2", True)):
+        game, white, black = _chess(black=king, deck2=[])
+        before = black.hero.damage
+        game.end_turn()
+        assert game.current_player is black
+        assert (black.hero.damage > before) == fatigued
+        if not fatigued:
+            assert black.hero.damage == 0
+
+
 def test_chess_rules_are_the_kings_only():
     # Another hero whose last minion dies does not lose.
     game, white, black = _chess(black="HERO_08", deck2=[WISP] * 20)

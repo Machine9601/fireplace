@@ -1406,7 +1406,11 @@ class Fatigue(TargetedAction):
     TARGET = ActionArg()
 
     def do(self, source, target):
-        if target.cant_fatigue:
+        # CANT_BE_FATIGUED on the hero (the heroic Black King, Karazhan's Chess)
+        hero_cant_fatigue = target.hero is not None and target.hero.data.tags.get(
+            GameTag.CANT_BE_FATIGUED
+        )
+        if target.cant_fatigue or hero_cant_fatigue:
             log.info("%s can't fatigue and does not take damage", target)
             return
         target.fatigue_counter += 1

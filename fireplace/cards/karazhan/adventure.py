@@ -512,7 +512,12 @@ class KAR_a10_Boss2:
 class KAR_a10_Boss2H:
     """Black King (Heroic)"""
 
+    # The wiki (Chess, Decks): "The Black King's deck matches the player's
+    # deck, but has an additional 15 Pawns at the bottom of the deck." (the
+    # last fifteen of his deck; `Player.prepare_for_game`). He is never
+    # fatigued (CANT_BE_FATIGUED, the card's own tag: `Fatigue`).
     chess_king = True
+    bottom_of_deck = {"KAR_A10_01": 15}
     events = CHESS_KING_EVENTS
 
 
