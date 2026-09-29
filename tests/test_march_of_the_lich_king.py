@@ -168,3 +168,24 @@ def test_skeletal_sidekick_without_a_target():
     sidekick.play()
     assert game.player1.field[-1] is sidekick
     assert sidekick.atk == 1
+
+
+# --- RLK_708
+def test_chillfallen_baron():
+    game = dk_game()
+    for _ in range(4):
+        game.player1.card(WISP, zone=Zone.DECK)
+    baron = game.player1.give("RLK_708")
+    # (Its second tribe, Draenei, is a tag of a newer build that the reader of
+    # CardDefs.xml does not know: nothing here reacts to it.)
+    assert Race.UNDEAD in baron.races
+    hand = len(game.player1.hand)  # with the Baron
+    baron.play()
+    # The Baron leaves the hand, the Battlecry draws a card
+    assert len(game.player1.hand) == hand
+    assert len(game.player1.deck) == 3
+    # The Deathrattle draws another
+    game.player1.give(FIREBALL).play(target=baron)
+    assert baron.zone == Zone.GRAVEYARD
+    assert len(game.player1.hand) == hand + 1
+    assert len(game.player1.deck) == 2

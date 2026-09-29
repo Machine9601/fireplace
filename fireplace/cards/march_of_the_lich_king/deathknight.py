@@ -50,6 +50,7 @@ class RLK_708:
 
     # <b>Battlecry and Deathrattle:</b> Draw a card.
     tags = RESERVED
+    play = deathrattle = Draw(CONTROLLER)
 
 
 # --- LEG_RLK_082
