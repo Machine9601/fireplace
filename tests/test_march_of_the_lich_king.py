@@ -542,3 +542,64 @@ def test_plagued_grain_four_crates_in_a_row():
     # Each crate casts itself and draws the next one
     assert [m.id for m in game.player1.field] == ["RLK_070t"] * 4
     assert not game.player1.deck
+
+
+# --- RLK_061 and the raising of Corpses
+def test_battlefield_necromancer():
+    game = dk_game()
+    necromancer = game.player1.give("RLK_061").play()
+    assert (necromancer.atk, necromancer.health) == (2, 2)
+    game.player1.corpses = 2
+    game.end_turn()
+    footman = game.player1.field[-1]
+    assert footman.id == "RLK_061t"
+    assert (footman.atk, footman.health) == (1, 3) and footman.taunt
+    assert game.player1.corpses == 1
+    assert game.player1.corpses_spent_this_game == 1
+    game.end_turn()
+    game.end_turn()
+    assert [m.id for m in game.player1.field] == ["RLK_061", "RLK_061t", "RLK_061t"]
+    assert game.player1.corpses == 0
+
+
+def test_battlefield_necromancer_without_a_corpse():
+    game = dk_game()
+    game.player1.give("RLK_061").play()
+    game.end_turn()
+    assert len(game.player1.field) == 1
+
+
+def test_battlefield_necromancer_only_at_the_end_of_your_turn():
+    game = dk_game()
+    game.player1.give("RLK_061").play()
+    game.player1.corpses = 3
+    game.end_turn()
+    assert game.player1.corpses == 2
+    # The other player's turns raise nothing: 2 turns of yours, 2 Corpses spent
+    game.end_turn()
+    game.end_turn()
+    game.end_turn()
+    assert game.player1.corpses == 1
+    assert len(game.player1.field) == 3
+
+
+def test_battlefield_necromancer_with_a_full_board_spends_nothing():
+    game = dk_game()
+    game.player1.give("RLK_061").play()
+    for _ in range(6):
+        game.player1.summon(WISP)
+    game.player1.corpses = 2
+    game.end_turn()
+    assert game.player1.corpses == 2
+
+
+def test_a_risen_footman_leaves_no_corpse():
+    game = dk_game()
+    game.player1.give("RLK_061").play()
+    game.player1.corpses = 1
+    game.end_turn()
+    game.end_turn()
+    footman = game.player1.field[-1]
+    game.player1.give(FIREBALL).play(target=footman)
+    assert footman.zone == Zone.GRAVEYARD
+    assert game.player1.corpses == 0

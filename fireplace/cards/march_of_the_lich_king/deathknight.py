@@ -211,6 +211,14 @@ class RLK_061:
     # At the end of your turn, raise a <b>Corpse</b> as a 1/3 Risen Footman
     # with <b>Taunt</b>.
     tags = RESERVED
+    events = OWN_TURN_END.on(RaiseCorpses(CONTROLLER, 1, "RLK_061t"))
+
+
+class RLK_061t:
+    """Risen Footman"""
+
+    # <b>Taunt</b> <i>Doesn't leave a <b>Corpse</b>.</i>
+    tags = {enums.LEAVES_NO_CORPSE: True}
 
 
 # --- LEG_RLK_705
