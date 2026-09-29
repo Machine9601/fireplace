@@ -1760,6 +1760,75 @@ class SpendCorpses(TargetedAction):
         return ret
 
 
+class GainCorpses(TargetedAction):
+    """
+    Make player targets gain \a amount Corpses (the death knight): "Gain a
+    Corpse". Nothing to do with a minion that dies: the counter is only raised.
+    """
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+
+    def do(self, source, target, amount):
+        if not amount or amount <= 0:
+            return 0
+        log.info("%r gains %i Corpses", target, amount)
+        target.corpses += amount
+        source.game.manager.targeted_action(self, source, target, amount)
+        return amount
+
+
+def raise_corpses(source, player, card_id, amount=None, spend_all=False):
+    """
+    "Raise" Corpses (the death knight): \a player spends Corpses to summon a
+    \a card_id for each. As many as the player has, up to \a amount (None: all
+    of them), and only as many as fit on its board: a Corpse that cannot be
+    raised is not spent, unless \a spend_all ("Raise ALL of your Corpses",
+    Lord Marrowgar): every Corpse is spent, only what fits is raised.
+    Returns (the number of Corpses spent, the list of the minions raised).
+    """
+    game = source.game
+    wanted = player.corpses if amount is None else min(amount, player.corpses)
+    if wanted <= 0:
+        return 0, []
+    spent = wanted if spend_all else min(wanted, player.minion_slots)
+    if spent <= 0:
+        return 0, []
+    log.info("%r raises %i Corpses as %s", player, spent, card_id)
+    player.corpses -= spent
+    player.corpses_spent_this_game += spent
+    raised = []
+    for _ in range(min(wanted, spent)):
+        if player.minion_slots <= 0:
+            break
+        for cards in game.queue_actions(source, [Summon(player, card_id)])[0]:
+            raised += [c for c in cards if c.zone == Zone.PLAY]
+    return spent, raised
+
+
+class RaiseCorpses(TargetedAction):
+    """
+    Make player targets raise Corpses as a minion: RaiseCorpses(player,
+    amount, card_id) ("Raise up to 5 Corpses as 2/2 Risen Ghouls", "raise a
+    Corpse as a 1/3 Risen Footman"). See raise_corpses().
+    """
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+
+    def get_target_args(self, source, target):
+        amount = self._args[1]
+        if isinstance(amount, LazyValue):
+            amount = amount.evaluate(source)
+        return [amount, self._args[2]]
+
+    def do(self, source, target, amount, card_id):
+        spent, raised = raise_corpses(source, target, card_id, amount)
+        if spent:
+            source.game.manager.targeted_action(self, source, target, spent)
+        return spent
+
+
 class Retarget(TargetedAction):
     TARGET = ActionArg()
     NEW_TARGET = CardArg()
