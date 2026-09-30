@@ -66,20 +66,76 @@ OG_300e = buff(+2, +2)
 class OG_133:
     """N'Zoth, the Corruptor"""
 
-    play = Summon(CONTROLLER, Copy(FRIENDLY + KILLED + MINION + DEATHRATTLE))
+    # In the order they died. "If there is not enough room on the board to
+    # summon a copy of each, N'Zoth will randomly choose which ones to summon"
+    # (hearthstone.wiki.gg): as many as there is room for, drawn at random,
+    # still in the order they died.
+    def play(self):
+        dead = list((FRIENDLY + KILLED + MINION + DEATHRATTLE).eval(self.game, self))
+        room = self.controller.minion_slots
+        if len(dead) > room:
+            kept = self.game.random.sample(dead, room)
+            dead = [card for card in dead if card in kept]
+        if dead:
+            yield Summon(CONTROLLER, [card.id for card in dead])
+
+
+class CastSpellWhateverBecomesOfTheCaster(CastSpell):
+    """
+    CastSpell, but it goes on when the minion that casts is destroyed,
+    Silenced, transformed or returned to the hand: Yogg-Saron, since patch
+    16.6 (hearthstone.wiki.gg).
+    """
+
+    def do(self, source, card, targets):
+        player = source.controller
+        old_choice = player.choice
+        player.choice = None
+        if card.twinspell:
+            source.game.queue_actions(card, [Give(player, card.twinspell_copy)])
+        if card.must_choose_one:
+            card = source.game.random.choice(card.choose_cards)
+        for target in targets:
+            if card.requires_target() and not target:
+                if len(card.targets) > 0:
+                    if target not in card.targets:
+                        target = self.choose_target(source, card)
+                else:
+                    return
+            card.target = target
+            card.zone = Zone.PLAY
+            source.game.manager.targeted_action(self, source, card, target)
+            source.game.queue_actions(card, [Battlecry(card, card.target)])
+            while player.choice:
+                player.choice.choose(source.game.random.choice(player.choice.cards))
+            while player.opponent.choice:
+                player.opponent.choice.choose(
+                    source.game.random.choice(player.opponent.choice.cards)
+                )
+            player.choice = old_choice
 
 
 class OG_134:
     """Yogg-Saron, Hope's End"""
 
+    # "Cast a random spell for each spell you've cast this game": the spells
+    # played from the hand, a spell countered by Counterspell excepted, and
+    # none cast by an effect. At most 30 (hearthstone.wiki.gg). Since patch
+    # 16.6, Yogg-Saron goes on when it is destroyed, Silenced, transformed or
+    # returned to the hand.
     def play(self):
-        times = TIMES_SPELL_PLAYED_THIS_GAME.evaluate(self)
-        times = min(times, 30)
-        for _ in range(times):
-            yield CastSpell(RandomSpell())
-            yield Deaths()
-            if self.dead or self.silenced or self.zone != Zone.PLAY:
+        times = len(
+            [
+                card
+                for card in self.controller.cards_played_this_game
+                if card.type == CardType.SPELL and not card.cant_play
+            ]
+        )
+        for _ in range(min(times, 30)):
+            if self.game.ended:
                 break
+            yield CastSpellWhateverBecomesOfTheCaster(RandomSpell())
+            yield Deaths()
 
 
 class OG_280:

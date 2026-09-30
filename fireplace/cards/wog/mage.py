@@ -37,7 +37,8 @@ class OG_207:
 class OG_087:
     """Servant of Yogg-Saron"""
 
-    play = CastSpell(RandomSpell(id="DS1_184"))
+    # "Cast a random spell that costs (5) or less (targets chosen randomly)"
+    play = CastSpell(RandomSpell(cost=range(0, 6)))
 
 
 ##

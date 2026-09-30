@@ -27,6 +27,8 @@ class OG_121:
 
 
 class OG_121e:
+    # "The next spell you cast this turn": gone at the end of the turn.
+    tags = {GameTag.TAG_ONE_TURN_EFFECT: True}
     events = OWN_SPELL_PLAY.on(Destroy(SELF))
     update = Refresh(CONTROLLER, {GameTag.SPELLS_COST_HEALTH: True})
 
@@ -40,7 +42,8 @@ class OG_241:
 class OG_302:
     """Usher of Souls"""
 
-    events = Death(FRIENDLY_MINIONS).on(Buff(CTHUN, "OG_281e", atk=1, max_health=1))
+    # FRIENDLY_MINIONS is the minions in play: a dying one is no longer there.
+    events = Death(FRIENDLY + MINION).on(Buff(CTHUN, "OG_281e", atk=1, max_health=1))
 
 
 ##
@@ -50,7 +53,8 @@ class OG_302:
 class OG_116:
     """Spreading Madness"""
 
-    play = Hit(RANDOM_CHARACTER, 1) * 9
+    # "$9", ImmuneToSpellpower: Spell Damage adds hits, as Arcane Missiles.
+    play = Hit(RANDOM_CHARACTER, 1) * SPELL_DAMAGE(9)
 
 
 class OG_118:
