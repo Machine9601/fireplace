@@ -4,6 +4,7 @@ from .patch_karazhan import *
 from .patch_icc import *
 from .patch_dalaran import *
 from .patch_outlands import *
+from .raid import *
 
 
 # Pre-nerf Warsong Commander for tests
