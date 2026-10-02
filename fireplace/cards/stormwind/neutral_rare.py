@@ -17,6 +17,8 @@ class SW_306:
     """Encumbered Pack Mule"""
 
     # [x]<b>Taunt</b> When you draw this, add a _copy of it to your hand.
+    # WP-197: the data forgot Taunt.
+    tags = {GameTag.TAUNT: True}
     draw = Give(CONTROLLER, ExactCopy(SELF))
 
 
@@ -62,15 +64,14 @@ class DED_524:
 
     # [x]<b>Battlecry:</b> Draw a card for each different spell school _you've
     # cast this game.
+    # WP-197: it drew a card *of that school* from the deck (and nothing when
+    # the deck had none); the text draws a card, whatever it is.
     play = (
-        Find(CARDS_PLAYED_THIS_GAME + ARCANE)
-        & ForceDraw(RANDOM(FRIENDLY_DECK + ARCANE)),
-        Find(CARDS_PLAYED_THIS_GAME + FIRE) & ForceDraw(RANDOM(FRIENDLY_DECK + FIRE)),
-        Find(CARDS_PLAYED_THIS_GAME + FROST) & ForceDraw(RANDOM(FRIENDLY_DECK + FROST)),
-        Find(CARDS_PLAYED_THIS_GAME + NATURE)
-        & ForceDraw(RANDOM(FRIENDLY_DECK + NATURE)),
-        Find(CARDS_PLAYED_THIS_GAME + HOLY) & ForceDraw(RANDOM(FRIENDLY_DECK + HOLY)),
-        Find(CARDS_PLAYED_THIS_GAME + SHADOW)
-        & ForceDraw(RANDOM(FRIENDLY_DECK + SHADOW)),
-        Find(CARDS_PLAYED_THIS_GAME + FEL) & ForceDraw(RANDOM(FRIENDLY_DECK + FEL)),
+        Find(CARDS_PLAYED_THIS_GAME + ARCANE) & Draw(CONTROLLER),
+        Find(CARDS_PLAYED_THIS_GAME + FIRE) & Draw(CONTROLLER),
+        Find(CARDS_PLAYED_THIS_GAME + FROST) & Draw(CONTROLLER),
+        Find(CARDS_PLAYED_THIS_GAME + NATURE) & Draw(CONTROLLER),
+        Find(CARDS_PLAYED_THIS_GAME + HOLY) & Draw(CONTROLLER),
+        Find(CARDS_PLAYED_THIS_GAME + SHADOW) & Draw(CONTROLLER),
+        Find(CARDS_PLAYED_THIS_GAME + FEL) & Draw(CONTROLLER),
     )

@@ -66,7 +66,8 @@ class DED_516:
     """Deepwater Evoker"""
 
     # [x]<b>Battlecry:</b> Draw a spell. Gain Armor equal to its Cost.
-    play = ForceDraw(FRIENDLY_DECK + SPELL).then(
+    # WP-197: it drew every spell of the deck (no RANDOM).
+    play = ForceDraw(RANDOM(FRIENDLY_DECK + SPELL)).then(
         GainArmor(FRIENDLY_HERO, COST(ForceDraw.TARGET))
     )
 
@@ -203,8 +204,13 @@ class SW_462:
 
 
 class SW_462e:
+    # WP-197: Hot Streak is a Fire spell itself and used up its own discount
+    # the moment it was cast; and it lasted past the turn.
     update = Refresh(FRIENDLY_HAND + FIRE, {GameTag.COST: -2})
-    events = Play(CONTROLLER, FIRE).after(Destroy(SELF))
+    events = (
+        Play(CONTROLLER, FIRE - ID("SW_462")).after(Destroy(SELF)),
+        OWN_TURN_END.on(Destroy(SELF)),
+    )
 
 
 class DED_517:
@@ -241,9 +247,10 @@ class SW_001:
     events = Play(CONTROLLER, SPELL).after(
         AddProgress(SELF, Play.CARD, COST(Play.CARD))
     )
-    reward = Buff(RANDOM(FRIENDLY_HAND + SPELL), "SW_001e")
+    # WP-197: (5) less, not (2), and the weapon loses 1 Durability.
+    reward = Buff(RANDOM(FRIENDLY_HAND + SPELL), "SW_001e"), Hit(SELF, 1)
 
 
 class SW_001e:
-    tags = {GameTag.COST: -2}
+    tags = {GameTag.COST: -5}
     events = REMOVED_IN_PLAY

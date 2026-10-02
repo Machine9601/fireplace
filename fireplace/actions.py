@@ -2871,7 +2871,10 @@ class Trade(GameAction):
         player.pay_cost(player, 1)
         target.zone = Zone.SETASIDE
         self.broadcast(source, EventListener.ON, target)
-        player.draw()
+        if not player.choice:
+            # Auctioneer Jaxon opens a Discover in its place: the card chosen
+            # is drawn, not the one on top (WP-197).
+            player.draw()
         target._summon_index = source.game.random.randint(0, len(player.deck))
         target.zone = Zone.DECK
         source.game.manager.targeted_action(self, source, target)
