@@ -87,11 +87,12 @@ def test_illgynoth_lifesteal():
     game.player1.hero.damage = 15
     assert game.player1.hero.health == 15
     wisp = game.player1.give(WISP).play()
+    # Drain Soul deals 3 at patch 21.8 (WP-184; 2 before).
     game.player1.give("ICC_055").play(target=wisp)
-    assert game.player1.hero.health == 15 + 2
+    assert game.player1.hero.health == 15 + 3
     assert game.player2.hero.damage == 0
     wisp2 = game.player1.give(WISP).play()
     game.player1.give("DMF_230").play()
     game.player1.give("ICC_055").play(target=wisp2)
-    assert game.player1.hero.health == 15 + 2
-    assert game.player2.hero.damage == 2
+    assert game.player1.hero.health == 15 + 3
+    assert game.player2.hero.damage == 3
