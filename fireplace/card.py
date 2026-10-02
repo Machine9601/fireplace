@@ -475,6 +475,40 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
             for id in self.data.choose_cards:
                 card = self.controller.card(id, source=self, parent=self)
                 self.choose_cards.append(card)
+            if getattr(self.data.scripts, "identify", None):
+                self.identify()
+
+    def identify(self):
+        """
+        An "Unidentified" card ("Gains a bonus effect in your hand": the three
+        of Kobolds & Catacombs, Unidentified Contract) becomes one of its
+        `identify` cards as soon as it enters the hand, however it gets there
+        (drawn, starting hand, mulligan, given, discovered, copied), before
+        anything sees it there: the user's decision of 2026-10-02 (A136,
+        WP-185). No Morph is announced: in the hand, the card has always been
+        the identified one. It keeps its place in the hand and, if it started
+        in the deck, it still counts as such; like a Morph, it loses its
+        enchantments. Who holds the old card reads `morphed` (Draw, Give and
+        Player.card do).
+        """
+        def index_of(cards):
+            return next((i for i, card in enumerate(cards) if card is self), None)
+
+        new = self.controller.card(
+            self.game.random.choice(self.data.scripts.identify),
+            source=getattr(self, "creator", None),
+        )
+        new._summon_index = index_of(self.controller.hand)
+        new.zone = Zone.HAND
+        new._summon_index = None
+        self.clear_buffs()
+        self.zone = Zone.SETASIDE
+        self.morphed = new
+        starting_deck = self.controller.starting_deck
+        i = index_of(starting_deck)
+        if i is not None:
+            starting_deck[i] = new
+        return new
 
     def destroy(self):
         return self.game.cheat_action(self, [actions.Destroy(self), actions.Deaths()])

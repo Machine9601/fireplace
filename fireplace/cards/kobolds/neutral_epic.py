@@ -4,23 +4,28 @@ from ..utils import *
 # Minions
 
 
+SPELLS_OF_5_OR_MORE_CAST_THIS_TURN = FuncSelector(
+    lambda entities, source: [
+        card
+        for card in source.controller.cards_played_this_game
+        if card.type == CardType.SPELL
+        and card.turn_played == source.game.turn
+        and not card.cant_play
+        and card.cost >= 5
+    ]
+)
+
+
 class LOOT_130:
     """Arcane Tyrant"""
 
     # Costs (0) if you've cast a spell that costs (5) or more this turn.
+    # A condition, not a trigger: a Tyrant that comes to the hand after the
+    # spell costs (0) too (WP-185).
     class Hand:
-        events = Play(CONTROLLER, SPELL + (COST >= 5)).after(Buff(SELF, "LOOT_130e"))
-
-
-@custom_card
-class LOOT_130e:
-    tags = {
-        GameTag.CARDNAME: "Arcane Tyrant Buff",
-        GameTag.CARDTYPE: CardType.ENCHANTMENT,
-        GameTag.TAG_ONE_TURN_EFFECT: True,
-    }
-    cost = SET(0)
-    events = REMOVED_IN_PLAY
+        update = Find(SPELLS_OF_5_OR_MORE_CAST_THIS_TURN) & Refresh(
+            SELF, {GameTag.COST: SET(0)}
+        )
 
 
 class LOOT_149:
@@ -82,7 +87,8 @@ class LOOT_529:
     """Void Ripper"""
 
     # <b>Battlecry:</b> Swap the Attack and Health of all_other_minions.
-    play = Buff(ALL_MINIONS, "LOOT_529e")
+    # "all other minions": not itself (WP-185).
+    play = Buff(ALL_MINIONS - SELF, "LOOT_529e")
 
 
 LOOT_529e = AttackHealthSwapBuff()

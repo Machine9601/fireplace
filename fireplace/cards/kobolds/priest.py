@@ -71,11 +71,10 @@ class LOOT_187:
     requirements = {
         PlayReq.REQ_FRIENDLY_MINION_DIED_THIS_GAME: 0,
     }
-    play = (
-        Summon(CONTROLLER, Copy(RANDOM(FRIENDLY + KILLED + MINION + DEATHRATTLE))).then(
-            Buff(Summon.CARD, "LOOT_187e")
-        )
-        * 2
+    # Two different minions, not the same one twice (WP-185).
+    play = Summon(
+        CONTROLLER,
+        Buff(Copy(RANDOM(FRIENDLY + KILLED + MINION + DEATHRATTLE) * 2), "LOOT_187e"),
     )
 
 
@@ -93,8 +92,8 @@ class LOOT_278:
         PlayReq.REQ_MINION_TARGET: 0,
     }
     play = Buff(TARGET, "LOOT_278e")
-    entourage = ["LOOT_278t1", "LOOT_278t2", "LOOT_278t3", "LOOT_278t4"]
-    draw = Morph(SELF, RandomEntourage())
+    # Revealed as soon as it enters the hand, however it gets there (A136).
+    identify = ["LOOT_278t1", "LOOT_278t2", "LOOT_278t3", "LOOT_278t4"]
 
 
 LOOT_278e = buff(+2, +2)
@@ -174,7 +173,8 @@ class LOOT_278t4e:
         GameTag.ATK: 2,
         GameTag.HEALTH: 2,
     }
-    deathrattle = Summon(CONTROLLER, Copy(OWNER))
+    # "Return this minion to your hand", not summon it again (WP-185).
+    deathrattle = Bounce(OWNER)
 
 
 class LOOT_353:

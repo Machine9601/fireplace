@@ -75,9 +75,10 @@ class DAL_366:
         PlayReq.REQ_TARGET_TO_PLAY: 0,
         PlayReq.REQ_MINION_TARGET: 0,
     }
-    entourage = ["DAL_366t1", "DAL_366t2", "DAL_366t3", "DAL_366t4"]
     play = Destroy(TARGET)
-    draw = Morph(SELF, RandomEntourage())
+    # Revealed as soon as it enters the hand, however it gets there (A136,
+    # WP-185, the user's decision of 2026-10-02).
+    identify = ["DAL_366t1", "DAL_366t2", "DAL_366t3", "DAL_366t4"]
 
 
 class DAL_366t1:

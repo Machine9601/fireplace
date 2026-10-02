@@ -115,8 +115,8 @@ class LOOT_286:
     """Unidentified Maul"""
 
     # Gains a bonus effect in_your hand.
-    entourage = ["LOOT_286t1", "LOOT_286t2", "LOOT_286t3", "LOOT_286t4"]
-    draw = Morph(SELF, RandomEntourage())
+    # Revealed as soon as it enters the hand, however it gets there (A136).
+    identify = ["LOOT_286t1", "LOOT_286t2", "LOOT_286t3", "LOOT_286t4"]
 
 
 class LOOT_286t1:
@@ -154,7 +154,8 @@ class LOOT_500:
     """Val'anyr"""
 
     # <b>Deathrattle:</b> Give a minion in your hand +4/+2. When it dies, reequip this.
-    deathrattle = Buff(RANDOM(FRIENDLY_MINIONS), "LOOT_500e")
+    # A minion in the hand, not on the board (WP-185).
+    deathrattle = Buff(RANDOM(FRIENDLY_HAND + MINION), "LOOT_500e")
 
 
 class LOOT_500e:

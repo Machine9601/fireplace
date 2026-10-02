@@ -33,7 +33,8 @@ class LOOT_537:
 
     # <b>Battlecry:</b> If you're holding any cards that didn't start in your deck, reduce
     # their Cost by (2).
-    play = Buff(FRIENDLY_HAND + STARTING_DECK, "LOOT_537e")
+    # The cards that did NOT start in the deck (WP-185).
+    play = Buff(FRIENDLY_HAND - STARTING_DECK, "LOOT_537e")
 
 
 @custom_card

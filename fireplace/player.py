@@ -356,7 +356,10 @@ class Player(Entity, TargetableByAuras):
     def card(self, id, source=None, parent=None, zone=Zone.SETASIDE):
         card = Card(id)
         card.controller = self
-        card.zone = zone
+        # An "Unidentified" card created in the hand enters it once it is a
+        # whole card, and is identified there (A136, WP-185).
+        identify = zone == Zone.HAND and getattr(card.data.scripts, "identify", None)
+        card.zone = Zone.SETASIDE if identify else zone
         if source is not None:
             card.creator = source
         if parent is not None:
@@ -365,6 +368,9 @@ class Player(Entity, TargetableByAuras):
         if self.cthun and id == self.cthun.id:
             self.copy_cthun_buff(card)
         self.game.manager.new_entity(card)
+        if identify:
+            card.zone = Zone.HAND
+            card = card.morphed or card
         return card
 
     def prepare_for_game(self):

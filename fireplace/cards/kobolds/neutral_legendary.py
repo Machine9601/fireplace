@@ -65,7 +65,8 @@ class LOOT_521:
     """Master Oakheart"""
 
     # <b>Battlecry:</b> <b>Recruit</b> a 1, 2, and 3-Attack minion.
-    play = Recruit(COST == 1), Recruit(COST == 2), Recruit(COST == 3)
+    # By Attack, not by Cost (WP-185).
+    play = Recruit(ATK == 1), Recruit(ATK == 2), Recruit(ATK == 3)
 
 
 class LOOT_526:
@@ -75,7 +76,8 @@ class LOOT_526:
     # drawn, this awakens.
     tags = {GameTag.DORMANT: True}
     progress_total = 3
-    play = Shuffle(CONTROLLER, "LOOT_526t") * 3
+    # "into the enemy deck" (WP-185); the third Candle drawn awakens it.
+    play = Shuffle(OPPONENT, "LOOT_526t") * 3
     reward = Awaken(SELF)
 
 

@@ -1415,6 +1415,18 @@ class Discover(TargetedAction):
         self.trigger_choice_callback()
 
 
+def _identified(card):
+    """
+    The card that is in the hand now that \a card entered it: an
+    "Unidentified" card became its identified card on the way
+    (`PlayableCard.identify`, A136, WP-185).
+    """
+    morphed = getattr(card, "morphed", None)
+    if card.zone != Zone.HAND and morphed is not None and morphed.zone == Zone.HAND:
+        return morphed
+    return card
+
+
 class Draw(TargetedAction):
     """
     Make player targets draw a card from their deck.
@@ -1446,6 +1458,7 @@ class Draw(TargetedAction):
         else:
             log.info("%s draws %r", target, card)
             card.zone = Zone.HAND
+            card = _identified(card)
             card.turn_drawn = source.game.turn
             source.controller.cards_drawn_this_turn += 1
             source.game.manager.targeted_action(self, source, target, card)
@@ -1615,6 +1628,7 @@ class Give(TargetedAction):
                 continue
             card.controller = target
             card.zone = Zone.HAND
+            card = _identified(card)
             ret.append(card)
             source.game.manager.targeted_action(self, source, target, card)
             self.broadcast(source, EventListener.AFTER, target, card)

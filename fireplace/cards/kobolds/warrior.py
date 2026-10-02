@@ -15,7 +15,8 @@ class LOOT_365:
     """Gemstudded Golem"""
 
     # <b>Taunt</b> Can only attack if you have 5 or more Armor.
-    update = (ARMOR(FRIENDLY_HAND) >= 5) | Refresh(SELF, {GameTag.CANT_ATTACK: True})
+    # The hero's Armor, not the hand's (WP-185).
+    update = (ARMOR(FRIENDLY_HERO) >= 5) | Refresh(SELF, {GameTag.CANT_ATTACK: True})
 
 
 class LOOT_367:
@@ -70,9 +71,9 @@ class LOOT_285:
     """Unidentified Shield"""
 
     # Gain 5 Armor. Gains a bonus effect in_your hand.
-    entourage = ["LOOT_285t", "LOOT_285t2", "LOOT_285t3", "LOOT_285t4"]
     play = GainArmor(FRIENDLY_HERO, 5)
-    draw = Morph(SELF, RandomEntourage())
+    # Revealed as soon as it enters the hand, however it gets there (A136).
+    identify = ["LOOT_285t", "LOOT_285t2", "LOOT_285t3", "LOOT_285t4"]
 
 
 class LOOT_285t:

@@ -8,7 +8,8 @@ class LOOT_048:
     """Ironwood Golem"""
 
     # <b>Taunt</b> Can only attack if you have 3 or more Armor.
-    update = (ARMOR(FRIENDLY_HAND) >= 3) | Refresh(SELF, {GameTag.CANT_ATTACK: True})
+    # The hero's Armor, not the hand's (WP-185).
+    update = (ARMOR(FRIENDLY_HERO) >= 3) | Refresh(SELF, {GameTag.CANT_ATTACK: True})
 
 
 class LOOT_056:
