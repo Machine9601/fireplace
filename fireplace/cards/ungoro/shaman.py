@@ -76,7 +76,8 @@ class UNG_817:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_TARGET_TO_PLAY: 0,
     }
-    play = Hit(TARGET, 4), Heal(FRIENDLY_HERO, 4)
+    # Lifesteal (a tag of the card) heals the hero: no second heal.
+    play = Hit(TARGET, 4)
 
 
 class UNG_942(QuestRewardProtect):

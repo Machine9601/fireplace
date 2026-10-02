@@ -68,7 +68,8 @@ class UNG_847:
 class UNG_848:
     """Primordial Drake"""
 
-    play = Hit(ALL_MINIONS, 2)
+    # "all other minions"
+    play = Hit(ALL_MINIONS - SELF, 2)
 
 
 class UNG_946:

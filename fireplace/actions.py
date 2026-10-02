@@ -2501,6 +2501,21 @@ class Adapt(TargetedAction):
         cards = [source.controller.card(card, source=source) for card in cards]
         return [cards]
 
+    def _trigger(self, i, source):
+        # "Adapt your minions" (Gentle Megasaur, Evolving Spores, Lightfused
+        # Stegodon): one choice, the same adaptation for every target. Each
+        # target used to open its own choice over the last one, and only the
+        # last target was adapted.
+        if source.controller.choice:
+            return super()._trigger(i, source)
+        targets = [target for target in self.get_targets(source) if target is not None]
+        if len(targets) <= 1:
+            return super()._trigger(i, source)
+        self.trigger_index = i
+        log.info("%r triggering %r targeting %r", source, self, targets)
+        (cards,) = self.get_target_args(source, targets[0])
+        return [self.do(source, targets, cards)]
+
     def do(self, source, target, cards):
         log.info("%r adapts %r for %s", source, cards, target)
         self.cards = cards
@@ -2512,7 +2527,8 @@ class Adapt(TargetedAction):
         self.cards = cards
         self.min_count = 1
         self.max_count = 1
-        source.game.manager.targeted_action(self, source, target, cards)
+        first = target[0] if isinstance(target, list) else target
+        source.game.manager.targeted_action(self, source, first, cards)
 
     def choose(self, card):
         if card not in self.cards:
@@ -2520,7 +2536,9 @@ class Adapt(TargetedAction):
                 "%r is not a valid choice (one of %r)" % (card, self.cards)
             )
         self.player.choice = None
-        self.source.game.trigger(self.source, (Battlecry(card, self.target),), None)
+        targets = self.target if isinstance(self.target, list) else [self.target]
+        for target in targets:
+            self.source.game.trigger(self.source, (Battlecry(card, target),), None)
         self.trigger_choice_callback()
 
 
