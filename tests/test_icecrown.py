@@ -1,7 +1,7 @@
 import pytest
 from utils import *
 
-from fireplace.exceptions import GameOver
+from fireplace.exceptions import GameOver, InvalidAction
 
 
 def test_happy_ghoul():
@@ -452,6 +452,20 @@ def test_shadow_essence_leaves_the_deck():
     game.player1.give("ICC_235").play()
     assert [(m.id, m.atk, m.health) for m in game.player1.field] == [(WISP, 5, 5)]
     assert [c.id for c in game.player1.deck] == [WISP]
+
+
+def test_valeera_the_hollow_cannot_be_attacked_while_stealthed():
+    game = prepare_empty_game()
+    game.player1.give("ICC_827").play()
+    game.end_turn()
+    boar = game.player2.give("CS2_171").play()
+    assert game.player1.hero.stealthed
+    assert game.player1.hero not in boar.attack_targets
+    with pytest.raises(InvalidAction):
+        boar.attack(game.player1.hero)
+    game.end_turn()
+    game.end_turn()
+    assert game.player1.hero in boar.attack_targets
 
 
 def test_shadow_reflection_leaves_the_hand_at_end_of_turn():

@@ -1016,6 +1016,10 @@ class Character(LiveEntity):
 
     @property
     def attackable(self):
+        # A stealthed hero is not attacked either (Valeera the Hollow, WP-184:
+        # only a minion's Stealth was read here).
+        if self.stealthed:
+            return False
         return not self.immune
 
     @property
