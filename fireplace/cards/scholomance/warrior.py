@@ -20,7 +20,7 @@ class SCH_337:
     # At the end of your turn, summon two 3/3 Ruffians that attack random
     # enemies.
     events = OWN_TURN_END.on(
-        Summon(CONTROLLER, "SCH_337t").then(
+        SummonBothSides(CONTROLLER, "SCH_337t").then(
             Attack(Summon.CARD, RANDOM(ENEMY_CHARACTERS))
         )
         * 2

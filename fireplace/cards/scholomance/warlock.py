@@ -16,9 +16,11 @@ class SCH_181:
     """Archwitch Willow"""
 
     # <b>Battlecry:</b> Summon a random Demon from your hand and deck.
+    # One on each side of it (D-108, A109): the Demon of the hand on its right,
+    # the Demon of the deck on its left.
     play = (
         Summon(CONTROLLER, RANDOM(FRIENDLY_HAND + DEMON)),
-        Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + DEMON)),
+        SummonLeftOfSource(CONTROLLER, RANDOM(FRIENDLY_DECK + DEMON)),
     )
 
 

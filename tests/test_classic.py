@@ -666,6 +666,24 @@ def test_cenarius():
     game.end_turn()
 
 
+def test_cenarius_with_both_choices_summons_a_treant_on_each_side():
+    # D-108, A109 (rule 80a): two minions summoned at once by a minion in play
+    # stand one on each side of it.
+    game = prepare_empty_game(CardClass.DRUID, CardClass.DRUID)
+    game.player1.give(FANDRAL_STAGHELM).play()
+    game.player1.give(WISP).play()
+    game.player1.used_mana = 0
+    cenarius = game.player1.give("EX1_573").play(index=1)
+    assert [m.id for m in game.player1.field] == [
+        FANDRAL_STAGHELM,
+        "EX1_573t",
+        "EX1_573",
+        "EX1_573t",
+        WISP,
+    ]
+    assert game.player1.field[2] is cenarius
+
+
 def test_cleave():
     game = prepare_game()
     # play some wisps

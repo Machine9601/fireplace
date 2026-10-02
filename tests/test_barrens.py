@@ -751,3 +751,18 @@ def test_keywords_the_data_forgot():
             assert card.has_frenzy
         else:
             assert card.has_battlecry
+
+
+def test_overlord_saurfang_resurrects_one_minion_on_each_side_of_itself():
+    # D-108, A109 (rule 80a): two minions summoned at once by a minion in play
+    # stand one on each side of it.
+    game = prepare_empty_game(CardClass.WARRIOR, CardClass.WARRIOR)
+    game.player1.summon("BAR_022").destroy()  # Peon
+    game.player1.summon("BAR_031").destroy()  # Sunscale Raptor
+    game.player1.give("CS2_182").play()  # a Yeti
+    game.player1.used_mana = 0
+    saurfang = game.player1.give("BAR_334").play(index=1)
+    field = game.player1.field
+    assert [m.id for m in field][0] == "CS2_182"
+    assert field[2] is saurfang
+    assert sorted([field[1].id, field[3].id]) == ["BAR_022", "BAR_031"]

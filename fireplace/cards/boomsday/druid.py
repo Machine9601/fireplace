@@ -70,16 +70,6 @@ class BOT_434e:
         )
 
 
-class SummonLeftOfSource(Summon):
-    """Invoque à la gauche de la source (le serviteur en jeu qui invoque)."""
-
-    TARGET = ActionArg()
-    CARD = ActionArg()
-
-    def get_summon_index(self, source_index):
-        return source_index
-
-
 class BOT_507:
     """Gloop Sprayer"""
 

@@ -10,7 +10,10 @@ class BAR_334:
     # <b>Battlecry:</b> Resurrect 2 friendly <b>Frenzy</b> minions. Deal 1
     # damage to all other minions.
     play = (
-        Summon(CONTROLLER, Copy(RANDOM(FRIENDLY + KILLED + MINION + FRENZY) * 2)),
+        # one on each side of it (D-108, A109)
+        SummonBothSides(
+            CONTROLLER, Copy(RANDOM(FRIENDLY + KILLED + MINION + FRENZY) * 2)
+        ),
         Hit(ALL_MINIONS - SELF, 1),
     )
 

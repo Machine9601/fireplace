@@ -17,7 +17,7 @@ class DRG_072:
 
     # <b>Battlecry:</b> If you're holding a Dragon, summon 2 random Murlocs.
     powered_up = HOLDING_DRAGON
-    play = powered_up & Summon(CONTROLLER, RandomMurloc()) * 2
+    play = powered_up & SummonBothSides(CONTROLLER, RandomMurloc()) * 2
 
 
 class DRG_082:

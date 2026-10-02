@@ -521,3 +521,19 @@ def test_zephrys_the_great_offers_three_cards_of_its_list():
     choice.choose(chosen)
     assert p1.choice is None
     assert chosen in p1.hand
+
+
+def test_garden_gnome_summons_a_treant_on_each_side_of_itself():
+    # D-108, A109 (rule 80a): two minions summoned at once by a minion in play
+    # stand one on each side of it.
+    game = prepare_empty_game(CardClass.DRUID, CardClass.DRUID)
+    game.player1.give(WISP).play()
+    game.player1.give(PYROBLAST)  # a spell that costs 5 or more in hand
+    gnome = game.player1.give("ULD_137").play(index=1)
+    assert [m.id for m in game.player1.field] == [
+        WISP,
+        "ULD_137t",
+        "ULD_137",
+        "ULD_137t",
+    ]
+    assert game.player1.field[2] is gnome

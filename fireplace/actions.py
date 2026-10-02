@@ -2167,6 +2167,19 @@ class SummonBothSides(Summon):
     def get_summon_index(self, source_index):
         return source_index + ((self.trigger_index + 1) % 2)
 
+    def do(self, source, target, cards):
+        # Several cards at once (a list: Overlord Saurfang's two resurrected
+        # minions): one on each side, as the repeated triggers do (D-108, A109).
+        if isinstance(cards, list) and len(cards) > 1:
+            ret = []
+            first = self.trigger_index
+            for i, card in enumerate(cards):
+                self.trigger_index = first + i
+                ret += super().do(source, target, [card]) or []
+            self.trigger_index = first
+            return ret
+        return super().do(source, target, cards)
+
 
 class SummonCustomMinion(TargetedAction):
     """

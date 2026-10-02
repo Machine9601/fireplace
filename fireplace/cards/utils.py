@@ -341,6 +341,16 @@ ZEPHRYS_POOL = [
 ]
 
 
+class SummonLeftOfSource(Summon):
+    """Summons to the left of the source (the minion in play that summons)."""
+
+    TARGET = ActionArg()
+    CARD = ActionArg()
+
+    def get_summon_index(self, source_index):
+        return source_index
+
+
 class SummonRightOf(Summon):
     """
     Summon right of a given minion of the field, whatever the source is (a

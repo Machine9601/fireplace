@@ -35,7 +35,7 @@ class ULD_137:
     # [x]<b>Battlecry:</b> If you're holding a spell that costs (5) or more, summon two 2/2
     # Treants.
     powered_up = Find(FRIENDLY_HAND + SPELL + (COST >= 5))
-    play = powered_up & Summon(CONTROLLER, "ULD_137t") * 2
+    play = powered_up & SummonBothSides(CONTROLLER, "ULD_137t") * 2
 
 
 class ULD_138:

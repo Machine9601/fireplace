@@ -568,3 +568,16 @@ def test_chaos_gazer_card_can_be_played_in_the_opponents_turn():
     assert yeti.is_playable()
     yeti.play()
     assert yeti.zone == Zone.PLAY
+
+
+def test_skyfin_summons_a_murloc_on_each_side_of_itself():
+    # D-108, A109 (rule 80a): two minions summoned at once by a minion in play
+    # stand one on each side of it.
+    game = prepare_empty_game()
+    game.player1.give(WISP).play()
+    game.player1.give(WHELP)  # a Dragon in hand
+    skyfin = game.player1.give("DRG_072").play(index=1)
+    field = game.player1.field
+    assert field[2] is skyfin
+    assert len(field) == 4
+    assert Race.MURLOC in field[1].races and Race.MURLOC in field[3].races

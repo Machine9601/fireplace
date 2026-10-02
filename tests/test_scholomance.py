@@ -753,3 +753,23 @@ def test_transfer_student_without_a_named_pool_discovers_in_scholomance():
     assert getattr(game, "month_expansions", None) is None
     for card in _transfer_student_offer(game):
         assert card.data.card_set == CardSet.SCHOLOMANCE, card.id
+
+
+def test_troublemaker_summons_a_ruffian_on_each_side_of_itself():
+    # D-108, A109 (rule 80a): two minions summoned at once by a minion in play
+    # stand one on each side of it.
+    game = _game(CardClass.WARRIOR)
+    game.player1.give("SCH_337").play()
+    game.end_turn()
+    assert [m.id for m in game.player1.field] == ["SCH_337t", "SCH_337", "SCH_337t"]
+
+
+def test_archwitch_willow_summons_its_two_demons_on_each_side_of_itself():
+    # D-108, A109 (rule 80a): the Demon of the hand on its right, the Demon of
+    # the deck on its left.
+    game = _game(CardClass.WARLOCK)
+    game.player1.give("CS2_065").zone = Zone.HAND  # Voidwalker, in hand
+    game.player1.give("EX1_319").shuffle_into_deck()  # Flame Imp, in deck
+    willow = game.player1.give("SCH_181").play()
+    assert [m.id for m in game.player1.field] == ["EX1_319", "SCH_181", "CS2_065"]
+    assert game.player1.field[1] is willow
