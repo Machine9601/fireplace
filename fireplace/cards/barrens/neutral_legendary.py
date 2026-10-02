@@ -13,9 +13,19 @@ class BAR_080:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
     }
-    play = Find(TARGET + FRIENDLY) & Swap(
-        TARGET, RANDOM(FRIENDLY_HAND + MINION)
-    ) | Swap(TARGET, RANDOM(ENEMY_HAND + MINION))
+    # With no minion in its owner's hand, the target returns there alone
+    # ("the targeted minion will return to its owner's hand with no
+    # replacement", hearthstone.wiki.gg, Shadow Hunter Vol'jin): it stayed
+    # (WP-196)
+    def play(self):
+        target = self.target
+        if target is None:
+            return
+        hand = [c for c in target.controller.hand if c.type == CardType.MINION]
+        if hand:
+            yield Swap(target, self.game.random.choice(hand))
+        else:
+            yield Bounce(target)
 
 
 class BAR_077:
@@ -130,7 +140,12 @@ class BAR_079:
                 elif card2 == "BAR_079t14c":
                     golem.spellpower = 4
                 else:
-                    golem.data.scripts.play = card2.data.scripts.play
+                    # The effect is kept on this Golem, not written into the
+                    # card data that every Golem of this cost shares (a later
+                    # Golem, in any game, cast the last one's effect, WP-196,
+                    # as Hagatha's Horror, WP-189); `_golem_play` casts it.
+                    golem.golem_effect = card2.id
+                    golem.has_battlecry = True
 
                 golem.tags[GameTag.CARDTEXT_ENTITY_0] = card1.description
                 golem.tags[GameTag.CARDTEXT_ENTITY_1] = card2.description
@@ -141,6 +156,40 @@ class BAR_079:
 
     powered_up = -Find(FRIENDLY_DECK + (COST == 4))
     play = powered_up & KazakusAction(CONTROLLER)
+
+
+def _golem_play(self):
+    # Kazakus's Golem: the effect chosen for this Golem (WP-196)
+    effect = getattr(self, "golem_effect", None)
+    if not effect:
+        return
+    actions = db[effect].scripts.play
+    if callable(actions):
+        actions = actions(self)
+    if not actions:
+        return
+    if not hasattr(actions, "__iter__"):
+        actions = (actions,)
+    for action in actions:
+        yield action
+
+
+class BAR_079_m1:
+    """Lesser Golem"""
+
+    play = _golem_play
+
+
+class BAR_079_m2:
+    """Greater Golem"""
+
+    play = _golem_play
+
+
+class BAR_079_m3:
+    """Superior Golem"""
+
+    play = _golem_play
 
 
 class BAR_721:
@@ -175,6 +224,9 @@ class WC_035:
 
     # [x]<b>Dormant</b> for 2 turns. While <b>Dormant</b>, add a Dream card to
     # your hand __at the end of your turn.
+    # CardDefs.xml has no DORMANT tag: it was never dormant, and gave no
+    # Dream card (WP-196, as Imprisoned Phoenix)
+    tags = {GameTag.DORMANT: True}
     dormant_turns = 2
     dormant_events = OWN_TURN_END.on(
         Give(CONTROLLER, RandomCard(card_class=CardClass.DREAM))

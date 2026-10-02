@@ -318,6 +318,9 @@ CARD_ATTRIBUTE_MAP = {
     enums.MINION_EXTRA_BATTLECRIES: "minion_extra_battlecries",
     enums.MINION_EXTRA_COMBOS: "minion_extra_combos",
     enums.KILLED_THIS_TURN: "killed_this_turn",
+    # Read on a character (Protect the Innocent: "your hero was healed this
+    # turn"); missing, the tag raised a KeyError (WP-196)
+    enums.HEALED_THIS_TURN: "healed_this_turn",
     enums.DISCARDED: "discarded",
     enums.UNLIMITED_ATTACKS: "unlimited_attacks",
     enums.EXTRA_END_TURN_EFFECT: "extra_end_turn_effect",

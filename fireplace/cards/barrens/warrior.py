@@ -126,7 +126,9 @@ class BAR_842t:
     # [x]Give minions in your hand +2/+2. <i>(Upgrades when you have 10
     # Mana.)</i>
     class Hand:
-        update = (MANA(CONTROLLER) >= 5) & Morph(SELF, "BAR_842t2")
+        # Rank 3 at 10 Mana Crystals (5 was written: Rank 1 became Rank 3 at
+        # 5, WP-196)
+        update = (MANA(CONTROLLER) >= 10) & Morph(SELF, "BAR_842t2")
 
     play = Buff(FRIENDLY_HAND + MINION, "BAR_842e2")
 
@@ -142,9 +144,14 @@ class BAR_845:
     """Rancor"""
 
     # [x]Deal $2 damage to all minions. Gain 2 Armor for each destroyed.
-    play = Hit(ALL_MINIONS, 2).then(
-        GainArmor(FRIENDLY_HERO, Count(ALL_MINIONS + DEAD) * 2)
-    )
+    # 2 Armor per minion the spell destroyed (the count, read after the
+    # deaths, was too high: 10 Armor for three, WP-196, as Soul Rend)
+    def play(self):
+        minions = ALL_MINIONS.eval(self.game, self)
+        yield Hit(ALL_MINIONS, 2)
+        destroyed = len([m for m in minions if m.dead])
+        if destroyed:
+            yield GainArmor(FRIENDLY_HERO, destroyed * 2)
 
 
 ##

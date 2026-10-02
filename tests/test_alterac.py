@@ -95,3 +95,15 @@ def test_wildheart_guff():
     game.player1.hero.power.use(choose="AV_205a")  # Ice Blossom
     assert game.player1.max_mana == crystals + 1
 
+
+def test_protect_the_innocent_reads_the_heros_healing():
+    # HEALED_THIS_TURN read on a hero was a KeyError (managers.py, WP-196)
+    game = prepare_empty_game()
+    game.player1.give("AV_342").play()
+    assert [m.id for m in game.player1.field] == ["AV_342t"]
+    game = prepare_empty_game()
+    game.player1.hero.set_current_health(20)
+    game.player1.give(HOLY_LIGHT).play(target=game.player1.hero)
+    game.player1.give("AV_342").play()
+    assert [m.id for m in game.player1.field] == ["AV_342t", "AV_342t"]
+

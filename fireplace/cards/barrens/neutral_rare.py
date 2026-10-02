@@ -30,6 +30,9 @@ class BAR_430:
 
     # <b>Battlecry:</b> Copy your opponent's <b>Secrets</b> and put them into
     # play.
+    # CardDefs.xml forgets its BATTLECRY tag (WP-196); a Secret already active
+    # is not summoned again (`Summon`)
+    tags = {GameTag.BATTLECRY: True}
     play = Summon(CONTROLLER, Copy(ENEMY_SECRETS))
 
 

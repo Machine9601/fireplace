@@ -1733,6 +1733,9 @@ class Heal(TargetedAction):
             source.game.manager.targeted_action(self, source, target, amount)
             self.queue_broadcast(self, (source, EventListener.ON, target, amount))
             target.healed_this_turn += amount
+            # "If you've restored Health this turn" (Barrens): the healer's
+            # player, whoever is healed (WP-196)
+            source.controller.healed_this_turn += amount
             source.controller.healed_this_game += amount
             if target.type == CardType.HERO:
                 # The healed hero's player, not the healer's

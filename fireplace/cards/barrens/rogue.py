@@ -4,12 +4,24 @@ from ..utils import *
 # Minions
 
 
+ENTERED_HAND_THIS_TURN = FuncSelector(
+    lambda entities, source: [
+        e
+        for e in entities
+        if getattr(e, "turn_entered_hand", -1) == source.game.turn
+    ]
+)
+
+
 class BAR_316:
     """Oil Rig Ambusher"""
 
     # [x]<b>Battlecry:</b> Deal 2 damage. If this entered your hand _this turn,
     # deal 4 instead.
-    play = Find(DRAWN_THIS_TURN + SELF) & Hit(TARGET, 4) | Hit(TARGET, 2)
+    # A target if there is one (no requirement: it dealt nothing); "entered
+    # your hand", drawn, given or returned (only a draw counted, WP-196)
+    requirements = {PlayReq.REQ_TARGET_IF_AVAILABLE: 0}
+    play = Find(SELF + ENTERED_HAND_THIS_TURN) & Hit(TARGET, 4) | Hit(TARGET, 2)
 
 
 class BAR_317:
@@ -47,16 +59,17 @@ class BAR_552:
 
 
 class BAR_552e:
+    # The next two cards of any kind, this turn (only Battlecry and Combo
+    # cards spent it, and the second never ended with the turn, WP-196)
     tags = {GameTag.TAG_ONE_TURN_EFFECT: True}
     update = Refresh(FRIENDLY_HAND, {GameTag.COST: -3})
-    events = Play(CONTROLLER, (BATTLECRY | COMBO)).after(
-        Destroy(SELF), Buff(CONTROLLER, "BAR_552o")
-    )
+    events = Play(CONTROLLER).on(Destroy(SELF), Buff(CONTROLLER, "BAR_552o"))
 
 
 class BAR_552o:
+    tags = {GameTag.TAG_ONE_TURN_EFFECT: True}
     update = Refresh(FRIENDLY_HAND, {GameTag.COST: -3})
-    events = Play(CONTROLLER, (BATTLECRY | COMBO)).after(Destroy(SELF))
+    events = Play(CONTROLLER).on(Destroy(SELF))
 
 
 class WC_015:
@@ -139,14 +152,18 @@ class BAR_323:
         player = self.controller
         old_hero_power = player.hero_power
         yield GenericChoice(CONTROLLER, RandomBasicHeroPower() * 3).then(
-            StoringBuff(GenericChoice.CARD, "BAR_323e", [old_hero_power])
+            StoringBuff(CONTROLLER, "BAR_323e", [old_hero_power])
         )
 
 
 class BAR_323e:
-    cost = SET(0)
+    # On the player, not on the stolen hero power: an enchantment on a hero
+    # power hears no event, and the old one never came back (WP-196). The
+    # stolen power costs (0); at "after", `Activate` has not counted the use
+    # being made yet: the second use is heard with one counted.
+    update = Refresh(FRIENDLY_HERO_POWER, {GameTag.COST: SET(0)})
     events = Activate(FRIENDLY_HERO_POWER).after(
-        (Attr(FRIENDLY_HERO_POWER, "activations_this_game") >= 2)
+        (Attr(FRIENDLY_HERO_POWER, "activations_this_game") >= 1)
         & (Summon(CONTROLLER, ExactCopy(STORE_CARD)), Destroy(SELF))
     )
 
@@ -155,11 +172,10 @@ class WC_016:
     """Shroud of Concealment"""
 
     # Draw 2 minions. Any played this turn gain <b>Stealth</b> for 1 turn.
-    play = (
-        ForceDraw(CONTROLLER, RANDOM(FRIENDLY_DECK + MINION)).then(
-            Buff(ForceDraw.TARGET, "WC_016e")
-        )
-        * 2
+    # ForceDraw(CONTROLLER, …) drew the top card of the deck, and the
+    # enchantment went to the player (WP-196)
+    play = ForceDraw(RANDOM(FRIENDLY_DECK + MINION) * 2).then(
+        Buff(ForceDraw.TARGET, "WC_016e")
     )
 
 

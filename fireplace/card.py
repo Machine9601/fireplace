@@ -349,6 +349,9 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
         self.morphed = None
         self.corrupt_card = data.corrupt_card
         self.turn_drawn = -1
+        # The turn the card last entered a hand, drawn or not (Oil Rig
+        # Ambusher: "If this entered your hand this turn", WP-196)
+        self.turn_entered_hand = -1
         self.turn_played = -1
         self.cast_on_friendly_characters = False
         self.cast_on_friendly_minions = False
@@ -470,6 +473,7 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
             self.becomes_card_again()
 
         if self.zone == Zone.HAND:
+            self.turn_entered_hand = self.game.turn
             # Create the "Choose One" subcards
             del self.choose_cards[:]
             for id in self.data.choose_cards:
@@ -1199,7 +1203,10 @@ class Hero(Character):
             if self.controller.hero_power:
                 yield self.controller.hero_power
             if self.controller.weapon:
-                yield self.controller.weapon
+                # The weapon's enchantments too: a Poison's "After your hero
+                # attacks, draw a card" and "Immune while attacking" were never
+                # heard (Silverleaf and Paralytic Poison, WP-196)
+                yield from self.controller.weapon.entities
         yield from self.buffs
 
     @property
