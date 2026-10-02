@@ -62,7 +62,8 @@ class ICC_221:
     requirements = {
         PlayReq.REQ_WEAPON_EQUIPPED: 0,
     }
-    play = GiveLifesteal(FRIENDLY_WEAPON)
+    # "Lifesteal this turn" (ICC_221e is a one-turn effect; WP-184: it stayed).
+    play = Buff(FRIENDLY_WEAPON, "ICC_221e")
 
 
 class ICC_233:
@@ -128,13 +129,16 @@ class ICC_827t:
 
 
 class ICC_827e:
+    # The reflection itself (OWNER) leaves the hand at the end of the turn, or
+    # when Death's Shadow is gone (the wiki; WP-184: only this enchantment
+    # was destroyed, and the copy stayed).
     class Hand:
         events = (
             Play(CONTROLLER).on(
                 Morph(OWNER, ExactCopy(Play.CARD)).then(Buff(Morph.CARD, "ICC_827e"))
             ),
-            OWN_TURN_END.on(Destroy(SELF)),
+            OWN_TURN_END.on(Destroy(OWNER)),
         )
-        update = Find(FRIENDLY_HERO_POWER - EXHAUSTED + ID("ICC_827p")) | Destroy(SELF)
+        update = Find(FRIENDLY_HERO_POWER - EXHAUSTED + ID("ICC_827p")) | Destroy(OWNER)
 
     events = REMOVED_IN_PLAY

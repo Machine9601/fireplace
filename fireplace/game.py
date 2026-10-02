@@ -427,6 +427,14 @@ class BaseGame(Entity):
             for buff in CardList(entity.entities).filter(one_turn_effect=True):
                 self.log("Ending One-Turn effect: %r", buff)
                 buff.remove()
+        # A weapon's enchantments are not among `self.entities` (Hero.entities
+        # yields the weapon, not its buffs): a "this turn" effect on a weapon
+        # (Leeching Poison, ICC_221e) never ended (WP-184).
+        for player in self.players:
+            if player.weapon:
+                for buff in CardList(player.weapon.buffs).filter(one_turn_effect=True):
+                    self.log("Ending One-Turn effect: %r", buff)
+                    buff.remove()
         # Extra turn
         if self.next_players:
             next_player = self.next_players.pop(0)

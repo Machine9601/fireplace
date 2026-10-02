@@ -14,7 +14,8 @@ class ICC_025:
 class ICC_096:
     """Furnacefire Colossus"""
 
-    play = Discard(IN_HAND + WEAPON).then(
+    # "from your hand" (WP-184: the opponent's weapons too).
+    play = Discard(FRIENDLY_HAND + WEAPON).then(
         Buff(
             SELF,
             "ICC_096e",
@@ -55,7 +56,8 @@ class ICC_812:
     """Meat Wagon"""
 
     deathrattle = Summon(
-        CONTROLLER, RANDOM(FRIENDLY_DECK + MINION + (ATK <= ATK(SELF)))
+        # "less Attack than this minion", strictly (WP-184: or equal).
+        CONTROLLER, RANDOM(FRIENDLY_DECK + MINION + (ATK < ATK(SELF)))
     )
 
 

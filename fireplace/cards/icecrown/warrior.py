@@ -19,13 +19,15 @@ class ICC_238:
 class ICC_405:
     """Rotface"""
 
-    events = SELF_DAMAGE.on(Summon(CONTROLLER, RandomLegendaryMinion()))
+    # "After this minion survives damage" (WP-184: also when it died), as
+    # Grim Patron.
+    events = SELF_DAMAGE.on(Dead(SELF) | Summon(CONTROLLER, RandomLegendaryMinion()))
 
 
 class ICC_408:
     """Val'kyr Soulclaimer"""
 
-    events = SELF_DAMAGE.on(Summon(CONTROLLER, "ICC_900t"))
+    events = SELF_DAMAGE.on(Dead(SELF) | Summon(CONTROLLER, "ICC_900t"))
 
 
 class ICC_450:
