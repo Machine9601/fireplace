@@ -2428,7 +2428,7 @@ class ExtraAttack(TargetedAction):
 
     def do(self, source, target):
         log.info("%s gets an extra attack change.", target)
-        target.num_attacks -= 1
+        target.extra_attacks += 1
         source.game.manager.targeted_action(self, source, target)
 
 

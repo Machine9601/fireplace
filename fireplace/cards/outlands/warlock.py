@@ -39,7 +39,7 @@ class BT_305:
     # hand +2/+1.
     tags = {GameTag.DORMANT: True}
     dormant_turns = 2
-    awaken = Buff(FRIENDLY_HAND, "BT_305e")
+    awaken = Buff(FRIENDLY_HAND + MINION, "BT_305e")
 
 
 BT_305e = buff(+2, +1)
@@ -49,7 +49,7 @@ class BT_307:
     """Darkglare"""
 
     # After your hero takes damage, refresh 2 Mana_Crystals.
-    events = Damage(FRIENDLY_HERO).on(FillMana(CONTROLLER, 2))
+    events = Damage(FRIENDLY_HERO).on(FillMana(CONTROLLER, 1))
 
 
 class BT_309:

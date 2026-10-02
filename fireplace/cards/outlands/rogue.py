@@ -10,7 +10,13 @@ class BT_188:
     # [x]After you play a <b>Secret</b>, <b>Discover</b> a <b>Secret</b> from a
     # different class.
     events = Play(CONTROLLER, SECRET).after(
-        DISCOVER(RandomSpell(card_class=ANOTHER_CLASS, secret=True))
+        # (card_class keeps Discover from weighting the pool towards the hero's
+        # class; the filter then drops the neutral and shared-class cards)
+        DISCOVER(
+            RandomSpell(
+                card_class=ANOTHER_CLASS, secret=True, custom_filter=AnotherHeroClass()
+            )
+        )
     )
 
 
@@ -27,7 +33,8 @@ class BT_702:
     play = Buff(TARGET, "BT_702e")
 
 
-BT_702e = buff(atk=3, immune=True)
+# "this turn": the enchantment of CardDefs.xml has no one-turn tag
+BT_702e = buff(atk=3, immune=True, tag_one_turn_effect=True)
 
 
 class BT_703:

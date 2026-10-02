@@ -864,7 +864,8 @@ def SAME_RACE(entity1, entity2):
     races1 = getattr(entity1, "races", [])
     races2 = getattr(entity2, "races", [])
     for race in races1:
-        if race in races2:
+        # A minion without a type shares none (Waste Warden on a Wisp)
+        if race != Race.INVALID and race in races2:
             return True
     return False
 

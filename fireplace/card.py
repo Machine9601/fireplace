@@ -738,6 +738,13 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
 
         for req in TARGETING_PREREQUISITES:
             if req in self.requirements:
+                if (
+                    req == PlayReq.REQ_TARGET_IF_AVAILABLE_AND_NOT_DRAWN_THIS_TURN
+                    and self.drawn_this_turn
+                ):
+                    # Keli'dan drawn this turn needs no target: its battlecry
+                    # (destroy all minions) must still resolve without one.
+                    continue
                 return True
         return False
 
@@ -1035,6 +1042,9 @@ class Character(LiveEntity):
         self._frozen = False
         self.attack_target = None
         self.num_attacks = 0
+        # Attacks granted on top of max_attacks this turn (ExtraAttack); keeps
+        # num_attacks the true count of attacks made ("your hero attacked").
+        self.extra_attacks = 0
         self.race = Race.INVALID
         super().__init__(data)
 
@@ -1126,7 +1136,7 @@ class Character(LiveEntity):
     def exhausted(self):
         if self.unlimited_attacks:
             return False
-        if self.num_attacks >= self.max_attacks:
+        if self.num_attacks >= self.max_attacks + self.extra_attacks:
             return True
         return False
 
@@ -1517,6 +1527,7 @@ class Minion(Character):
         # (attack_target stays: a minion returned during its attack, by
         # Freezing Trap, must still leave the combat, Character.should_exit_combat.)
         self.num_attacks = 0
+        self.extra_attacks = 0
         self.turn_killed = -1
         self.damaged_this_turn = 0
         self.damaged_on_opponent_turn = 0

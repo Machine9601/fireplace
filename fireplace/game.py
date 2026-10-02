@@ -487,6 +487,7 @@ class BaseGame(Entity):
 
         for character in self.characters:
             character.num_attacks = 0
+            character.extra_attacks = 0
             character.damaged_this_turn = 0
             character.healed_this_turn = 0
             if character.controller != player:
