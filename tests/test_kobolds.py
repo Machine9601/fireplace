@@ -432,6 +432,24 @@ def test_pearl_spellstone_counts_only_its_own_healing():
     assert game.player1.hand[0].id == "LOOT_091t1"
 
 
+def test_shifting_scroll_transforms_at_the_end_of_its_turn():
+    # The wiki (D-38): "Shifting Scroll transforms at the end of your turn";
+    # "While the actual Shifting Scroll is in your hand, it cannot be cast".
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    game.player1.give("LOOT_104")
+    assert not game.player1.hand[0].is_playable()
+    game.end_turn()
+    first = game.player1.hand[0]
+    assert first.id != "LOOT_104"
+    assert first.type == CardType.SPELL
+    game.end_turn()
+    assert game.player1.hand[0] is first
+    game.end_turn()
+    second = game.player1.hand[0]
+    assert second is not first
+    assert second.type == CardType.SPELL
+
+
 def test_primal_talismans_only_friendly_minions():
     game = prepare_empty_game()
     enemy = game.player2.summon(WISP)
@@ -530,6 +548,10 @@ def test_unidentified_cards_are_revealed_in_the_starting_hand_and_mulligan():
         assert all(c.id != "LOOT_285" for c in player.hand)
         player.choice.choose(*mulligan)
         assert all(c.id != "LOOT_285" for c in player.hand)
+        # Still cards that started in the deck (Leyline Manipulator).
+        for card in player.hand:
+            if card.id != THE_COIN:
+                assert any(card is c for c in player.starting_deck)
         # In the deck, the cards never drawn stay unidentified; the ones sent
         # back by the mulligan (some may come back at once) stay what they became.
         unidentified = [c for c in player.deck if c.id == "LOOT_285"]

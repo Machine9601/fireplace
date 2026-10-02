@@ -100,8 +100,10 @@ class LOOT_104:
         PlayReq.REQ_CANNOT_PLAY_THIS: 0,
     }
 
+    # The wiki: "Shifting Scroll transforms at the end of your turn" (not at
+    # its start; WP-185).
     class Hand:
-        events = OWN_TURN_BEGIN.on(
+        events = OWN_TURN_END.on(
             Morph(SELF, RandomSpell(card_class=CardClass.MAGE)).then(
                 Buff(Morph.CARD, "LOOT_104e")
             )
@@ -110,7 +112,7 @@ class LOOT_104:
 
 class LOOT_104e:
     class Hand:
-        events = OWN_TURN_BEGIN.on(
+        events = OWN_TURN_END.on(
             Morph(OWNER, RandomSpell(card_class=CardClass.MAGE)).then(
                 Buff(Morph.CARD, "LOOT_104e")
             )
