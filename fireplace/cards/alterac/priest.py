@@ -59,7 +59,7 @@ class ONY_028:
 
     # [x]<b>Divine Shield</b>, <b>Lifesteal</b> <b>Deathrattle:</b> Shuffle a
     # Fragment into your deck that resummons Mi'da when drawn.
-    deathrattle = Shuffle("ONY_028t")
+    deathrattle = Shuffle(CONTROLLER, "ONY_028t")
 
 
 class ONY_028t:
@@ -81,7 +81,7 @@ class AV_315:
     }
     play = Hit(TARGET, 3)
     honorable_kill = Summon(CONTROLLER, Copy(TARGET)).then(
-        Buff(Summon.TARGET, "AV_315e2")
+        Buff(Summon.CARD, "AV_315e2")
     )
 
 
@@ -99,8 +99,8 @@ class AV_324:
         PlayReq.REQ_MINION_TARGET: 0,
     }
     play = (
-        Buff(SELF, "AV_324e2") * Count(ALL_MINIONS - SELF),
-        Buff(ALL_MINIONS - SELF, "AV_324eb"),
+        Buff(TARGET, "AV_324e2") * Count(ALL_MINIONS - TARGET),
+        Buff(ALL_MINIONS - TARGET, "AV_324eb"),
     )
 
 

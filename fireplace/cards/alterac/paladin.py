@@ -32,7 +32,7 @@ class AV_343:
 
 
 class AV_343e:
-    tags = {GameTag.COST: SET(0)}
+    cost = SET(0)
     events = REMOVED_IN_PLAY
 
 
@@ -96,6 +96,7 @@ class AV_338:
 
 AV_338e = buff(+2, +1)
 AV_338e2 = buff(lifesteal=True)
+ONY_027e = buff(+1, +1)
 
 
 class AV_342:
@@ -123,7 +124,7 @@ class AV_344:
     """Dun Baldar Bridge"""
 
     # [x]After you summon a minion, give it +2/+2. Lasts 3 turns.
-    events = Summon(CONTROLLER, MINION).after(Buff(Summon.TARGET, "AV_344e"))
+    events = Summon(CONTROLLER, MINION).after(Buff(Summon.CARD, "AV_344e"))
 
 
 AV_344e = buff(+2, +2)
@@ -149,7 +150,7 @@ class AV_206:
 
     # [x]<b>Battlecry:</b> Deal 2 damage to all enemies. Equip a 2/5 Immovable
     # Object.
-    play = Hit(ENEMY_MINIONS, 2), Summon(CONTROLLER, "AV_146")
+    play = Hit(ENEMY_CHARACTERS, 2), Summon(CONTROLLER, "AV_146")
 
 
 class AV_206p:
@@ -162,8 +163,21 @@ class AV_206p:
 AV_206pe = buff(+4, +4)
 
 
+class HalveDamage(TargetedAction):
+    """
+    Half of the damage about to be dealt to the target, rounded up. Called
+    from a Predamage handler: Damage reads `target.predamage` afterwards.
+    """
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        target.predamage = (target.predamage + 1) // 2
+
+
 class AV_146:
+    """The Immovable Object"""
+
+    # [x]This doesn't lose Durability. Your hero takes half damage, rounded up.
     update = Refresh(SELF, {GameTag.IMMUNE: True})
-    events = Predamage(FRIENDLY_HERO).on(
-        Predamage(FRIENDLY_HERO, (Predamage.AMOUNT + 1) // 2)
-    )
+    events = Predamage(FRIENDLY_HERO).on(HalveDamage(FRIENDLY_HERO))

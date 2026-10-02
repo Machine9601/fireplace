@@ -1155,6 +1155,8 @@ class Damage(TargetedAction):
                 and target.type != CardType.WEAPON
                 and target.health == 0
             ):
+                # Korrak the Bloodrager reads it: "if this wasn't Honorably Killed"
+                target.honorably_killed = True
                 for entity in source.entities:
                     actions = entity.get_actions("honorable_kill", target)
                     if actions:
@@ -1649,6 +1651,13 @@ class Give(TargetedAction):
             card.zone = Zone.HAND
             card = _identified(card)
             ret.append(card)
+            # Wildpaw Gnoll: "each card you've added to your hand from another
+            # class", the class card of none of the hero's classes
+            if target.hero and getattr(card, "data", None):
+                classes = [CardClass(c) for c in card.data.classes]
+                classes = [c for c in classes if c.is_playable]
+                if classes and CardClass(target.hero.card_class) not in classes:
+                    target.cards_added_from_another_class_this_game += 1
             source.game.manager.targeted_action(self, source, target, card)
             self.broadcast(source, EventListener.AFTER, target, card)
         return ret
@@ -2141,6 +2150,9 @@ class Summon(TargetedAction):
                 card.zone = Zone.PLAY
             if card.type == CardType.MINION and Race.TOTEM in card.races:
                 card.controller.times_totem_summoned_this_game += 1
+            # Frostsaber Matriarch counts the Beasts summoned, as well as played
+            if card.type == CardType.MINION and Race.BEAST in card.races:
+                card.controller.times_beast_summoned_this_game += 1
             source.game.manager.targeted_action(self, source, target, card)
             self.queue_broadcast(self, (source, EventListener.ON, target, card))
             self.broadcast(source, EventListener.AFTER, target, card)

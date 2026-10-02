@@ -1099,7 +1099,9 @@ class Character(LiveEntity):
     def frozen(self):
         if self.cant_be_frozen:
             self._frozen = False
-        return self._frozen
+            return False
+        # "This is Frozen" (Frozen Mammoth, Frozen Champion): a Refresh of FROZEN
+        return self._frozen or any(getattr(slot, "frozen", False) for slot in self.slots)
 
     @frozen.setter
     def frozen(self, value):

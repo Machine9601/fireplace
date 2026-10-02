@@ -37,7 +37,9 @@ class AV_267:
     """Caria Felsoul"""
 
     # <b>Battlecry:</b> Transform into a 6/6 copy of a Demon in your deck.
-    play = Morph(SELF, RANDOM(FRIENDLY_DECK + DEMON)).then(Buff(SELF, "AV_267e2"))
+    play = Find(FRIENDLY_DECK + DEMON) & (
+        Morph(SELF, RANDOM(FRIENDLY_DECK + DEMON)).then(Buff(Morph.CARD, "AV_267e2"))
+    )
 
 
 class AV_267e2:
@@ -80,7 +82,9 @@ class AV_269:
 
 
 class AV_269e:
-    events = Death(OWNER).on(Summon(CONTROLLER, "AV_269t"))
+    # The enchantment ends with the turn (TAG_ONE_TURN_EFFECT).
+    tags = {GameTag.DEATHRATTLE: True}
+    deathrattle = Summon(CONTROLLER, "AV_269t")
 
 
 class ONY_014:
@@ -170,7 +174,7 @@ class AV_204p:
     # <b>Hero Power</b> +2 Attack this turn. After a friendly minion attacks,
     # refresh this.
     activate = Buff(FRIENDLY_HERO, "AV_204e")
-    events = Death(FRIENDLY_MINIONS).on(RefreshHeroPower(SELF))
+    events = Attack(FRIENDLY_MINIONS).after(RefreshHeroPower(SELF))
 
 
 AV_204e = buff(atk=2)

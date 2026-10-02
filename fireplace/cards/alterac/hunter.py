@@ -1,4 +1,5 @@
 from ..utils import *
+from .common import *
 
 ##
 # Minions
@@ -40,8 +41,10 @@ class AV_336:
 
 class AV_336e:
     tags = {GameTag.RUSH: True}
+    # "If it kills a minion this turn": the enchantment ends with the turn.
     events = Attack(OWNER, ALL_MINIONS).after(
-        Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + BEAST)).then(
+        Dead(Attack.DEFENDER)
+        & Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + BEAST)).then(
             Buff(Summon.CARD, "AV_336e")
         )
     )
@@ -71,6 +74,8 @@ class AV_224:
 
     # Deal $3 damage to a minion and cast a <b>Secret</b> from your deck.
     # <b>Honorable Kill:</b> Cast 2.
+    # The data lists HONORABLEKILL as a referenced tag only: the card has it.
+    tags = {GameTag.HONORABLE_KILL: True}
     requirements = {
         PlayReq.REQ_TARGET_TO_PLAY: 0,
         PlayReq.REQ_MINION_TARGET: 0,
@@ -100,9 +105,9 @@ class AV_333:
     """Revive Pet"""
 
     # <b>Discover</b> a friendly Beast that died this game. Summon it.
-    play = GenericChoice(
+    play = DiscoverOnly(
         CONTROLLER, Copy(RANDOM(DeDuplicate(FRIENDLY + KILLED + MINION + BEAST)) * 3)
-    ).then(Summon(GenericChoice.CARD))
+    ).then(Summon(CONTROLLER, GenericChoice.CARD))
 
 
 class ONY_008:
@@ -140,7 +145,7 @@ class AV_147:
 
 
 class AV_147e:
-    tags = {GameTag.COST: SET(1)}
+    cost = SET(1)
     events = REMOVED_IN_PLAY
 
 
@@ -167,8 +172,18 @@ class AV_113:
 
     # [x]<b>Battlecry:</b> <b>Discover</b> and cast 2 Improved <b>Secrets</b>.
     entourage = ["AV_113t1", "AV_113t2", "AV_113t3", "AV_113t7", "AV_113t8", "AV_113t9"]
-    play = GenericChoice(CONTROLLER, RandomEntourage() * 3).then(
-        Summon(GenericChoice.CARD)
+
+    # The 5 Armor of the hero card: `Hero.play` gains it after the battlecry, and
+    # an action queued behind an open choice is dropped. The second choice opens
+    # when the first Secret is cast, and offers none already in play.
+    play = (
+        GainArmor(FRIENDLY_HERO, 5),
+        DiscoverOnly(CONTROLLER, SecretsToDiscover()).then(
+            Summon(CONTROLLER, GenericChoice.CARD),
+            DiscoverOnly(CONTROLLER, SecretsToDiscover()).then(
+                Summon(CONTROLLER, GenericChoice.CARD)
+            ),
+        ),
     )
 
 
@@ -239,8 +254,11 @@ class AV_113t8:
     # [x]<b>Secret:</b> When your turn starts, if you control two minions,
     # summon two Animal Companions.
     entourage = ["NEW1_032", "NEW1_033", "NEW1_034"]
-    secret = OWN_TURN_BEGIN.on(
-        FULL_BOARD | (Reveal(SELF), Summon(CONTROLLER, RandomEntourage() * 2))
+    # As Open the Cages (DMF_123): in `events`, a Secret that answers at the start
+    # of its own player's turn; two minions or more, and not a full board.
+    events = OWN_TURN_BEGIN.on(
+        (Count(FRIENDLY_MINIONS) >= 2)
+        & (FULL_BOARD | (Reveal(SELF), Summon(CONTROLLER, RandomEntourage() * 2)))
     )
 
 
