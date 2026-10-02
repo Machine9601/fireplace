@@ -30,19 +30,29 @@ class LOOT_517:
     play = Buff(CONTROLLER, "LOOT_517e")
 
 
+BUFF_SOURCE = FuncSelector(lambda entities, source: [source.source])
+
+
 class LOOT_517e:
     tags = {GameTag.TAG_ONE_TURN_EFFECT: True}
     update = Refresh(CONTROLLER, {enums.EXTRA_BATTLECRIES: True})
-    events = Play(CONTROLLER, BATTLECRY).after(Destroy(SELF))
+    # The Elemental's own Battlecry is not "the next one": its Play ends
+    # after the enchantment is there, which it destroyed at once (WP-185).
+    events = Play(CONTROLLER, BATTLECRY - BUFF_SOURCE).after(Destroy(SELF))
 
 
 class LOOT_518:
     """Windshear Stormcaller"""
 
     # <b>Battlecry:</b> If you control all 4 basic Totems, summon Al'Akir_the_Windlord.
-    play = FindAll(*[FRIENDLY_MINIONS + ID(totem) for totem in BASIC_TOTEMS]) & Summon(
-        CONTROLLER, "NEW1_010"
-    )
+    # The wiki: Healing, Searing and Stoneclaw Totems, and "one of Wrath of Air
+    # Totem and Strength Totem" (WP-185).
+    play = FindAll(
+        FRIENDLY_MINIONS + ID("CS2_050"),
+        FRIENDLY_MINIONS + ID("CS2_051"),
+        FRIENDLY_MINIONS + ID("NEW1_009"),
+        FRIENDLY_MINIONS + (ID("CS2_052") | ID("CS2_058")),
+    ) & Summon(CONTROLLER, "NEW1_010")
 
 
 ##
@@ -74,8 +84,9 @@ class LOOT_064:
     progress_total = 3
     reward = Morph(SELF, "LOOT_064t1")
 
+    # "Overload 3 Mana Crystals", not "Play Deathrattle cards" (WP-185).
     class Hand:
-        events = Play(CONTROLLER, DEATHRATTLE).after(AddProgress(SELF, Play.CARD))
+        events = Overload(CONTROLLER).on(AddProgress(SELF, SELF, Overload.AMOUNT))
 
 
 class LOOT_064t1:
@@ -92,7 +103,7 @@ class LOOT_064t1:
     reward = Morph(SELF, "LOOT_064t2")
 
     class Hand:
-        events = Play(CONTROLLER, DEATHRATTLE).after(AddProgress(SELF, Play.CARD))
+        events = Overload(CONTROLLER).on(AddProgress(SELF, SELF, Overload.AMOUNT))
 
 
 class LOOT_064t2:
@@ -111,7 +122,8 @@ class LOOT_344:
     """Primal Talismans"""
 
     # Give your minions "<b>Deathrattle:</b> Summon a random basic Totem."
-    play = Buff(ALL_MINIONS, "LOOT_344e")
+    # "your minions" (WP-185).
+    play = Buff(FRIENDLY_MINIONS, "LOOT_344e")
 
 
 class LOOT_344e:
@@ -145,7 +157,11 @@ class LOOT_504t:
         PlayReq.REQ_FRIENDLY_TARGET: 0,
     }
     play = Evolve(TARGET, 1), Give(CONTROLLER, "LOOT_504t")
-    events = OWN_TURN_END.on(Destroy(SELF))
+
+    # "Repeatable this turn": the copy leaves the hand at the end of the turn
+    # (its event was on the board, where it never is; WP-185).
+    class Hand:
+        events = OWN_TURN_END.on(Destroy(SELF))
 
 
 ##

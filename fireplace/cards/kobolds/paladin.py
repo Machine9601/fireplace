@@ -8,7 +8,8 @@ class LOOT_216:
     """Lynessa Sunsorrow"""
 
     # [x]<b>Battlecry:</b> Cast each spell you cast on your minions this game on this one.
-    play = CastSpell(CARDS_PLAYED_THIS_GAME + CAST_ON_FRIENDLY_MINIONS, SELF)
+    # The wiki: "limited to 30 cards and casts the buffs in a random order" (WP-185).
+    play = CastSpell(RANDOM(CARDS_PLAYED_THIS_GAME + CAST_ON_FRIENDLY_MINIONS) * 30, SELF)
 
 
 class LOOT_313:
@@ -58,8 +59,9 @@ class LOOT_091:
     play = Summon(CONTROLLER, "LOOT_091t")
     reward = Morph(SELF, "LOOT_091t1")
 
+    # The healing of its player only, not the opponent's (WP-185).
     class Hand:
-        events = Heal().on(AddProgress(SELF, Heal.TARGET, Heal.AMOUNT))
+        events = Heal(source=FRIENDLY).on(AddProgress(SELF, Heal.TARGET, Heal.AMOUNT))
 
 
 class LOOT_091t1:
@@ -74,7 +76,7 @@ class LOOT_091t1:
     reward = Morph(SELF, "LOOT_091t2")
 
     class Hand:
-        events = Heal().on(AddProgress(SELF, Heal.TARGET, Heal.AMOUNT))
+        events = Heal(source=FRIENDLY).on(AddProgress(SELF, Heal.TARGET, Heal.AMOUNT))
 
 
 class LOOT_091t2:
@@ -115,8 +117,8 @@ class LOOT_286:
     """Unidentified Maul"""
 
     # Gains a bonus effect in_your hand.
-    entourage = ["LOOT_286t1", "LOOT_286t2", "LOOT_286t3", "LOOT_286t4"]
-    draw = Morph(SELF, RandomEntourage())
+    # Revealed as soon as it enters the hand, however it gets there (A136).
+    identify = ["LOOT_286t1", "LOOT_286t2", "LOOT_286t3", "LOOT_286t4"]
 
 
 class LOOT_286t1:
@@ -154,7 +156,8 @@ class LOOT_500:
     """Val'anyr"""
 
     # <b>Deathrattle:</b> Give a minion in your hand +4/+2. When it dies, reequip this.
-    deathrattle = Buff(RANDOM(FRIENDLY_MINIONS), "LOOT_500e")
+    # A minion in the hand, not on the board (WP-185).
+    deathrattle = Buff(RANDOM(FRIENDLY_HAND + MINION), "LOOT_500e")
 
 
 class LOOT_500e:

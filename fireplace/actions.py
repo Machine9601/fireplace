@@ -1422,6 +1422,30 @@ class Discover(TargetedAction):
         self.trigger_choice_callback()
 
 
+def keep_starting_deck(old, new):
+    """
+    \a new takes the place of \a old in its player's starting deck, if \a old
+    was there: it is the same card, changed in the hand (WP-185).
+    """
+    starting_deck = old.controller.starting_deck
+    for i, card in enumerate(starting_deck):
+        if card is old:
+            starting_deck[i] = new
+            return
+
+
+def _identified(card):
+    """
+    The card that is in the hand now that \a card entered it: an
+    "Unidentified" card became its identified card on the way
+    (`PlayableCard.identify`, A136, WP-185).
+    """
+    morphed = getattr(card, "morphed", None)
+    if card.zone != Zone.HAND and morphed is not None and morphed.zone == Zone.HAND:
+        return morphed
+    return card
+
+
 class Draw(TargetedAction):
     """
     Make player targets draw a card from their deck.
@@ -1453,6 +1477,7 @@ class Draw(TargetedAction):
         else:
             log.info("%s draws %r", target, card)
             card.zone = Zone.HAND
+            card = _identified(card)
             card.turn_drawn = source.game.turn
             source.controller.cards_drawn_this_turn += 1
             source.game.manager.targeted_action(self, source, target, card)
@@ -1622,6 +1647,7 @@ class Give(TargetedAction):
                 continue
             card.controller = target
             card.zone = Zone.HAND
+            card = _identified(card)
             ret.append(card)
             source.game.manager.targeted_action(self, source, target, card)
             self.broadcast(source, EventListener.AFTER, target, card)
@@ -1790,6 +1816,13 @@ class Morph(TargetedAction):
         target.clear_buffs()
         target.zone = Zone.SETASIDE
         target.morphed = card
+        if target_zone == Zone.HAND and (
+            source is target or getattr(source, "owner", None) is target
+        ):
+            # A card that transforms itself in the hand (Shifting Scroll, a
+            # Spellstone, Molten Blade, Shifter Zerus) still started in the
+            # deck if it did (the wiki, Leyline Manipulator; WP-185).
+            keep_starting_deck(target, card)
         source.game.manager.targeted_action(self, source, target, card)
         return card
 

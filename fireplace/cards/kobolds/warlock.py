@@ -178,4 +178,5 @@ class LOOT_420:
     """Skull of the Man'ari"""
 
     # At the start of your turn, summon a Demon from your hand.
-    events = OWN_TURN_BEGIN.on(Give(CONTROLLER, RandomDemon()))
+    # Summons a Demon from the hand, not a random new one to the hand (WP-185).
+    events = OWN_TURN_BEGIN.on(Summon(CONTROLLER, RANDOM(FRIENDLY_HAND + DEMON)))

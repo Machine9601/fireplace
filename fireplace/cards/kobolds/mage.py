@@ -33,7 +33,8 @@ class LOOT_537:
 
     # <b>Battlecry:</b> If you're holding any cards that didn't start in your deck, reduce
     # their Cost by (2).
-    play = Buff(FRIENDLY_HAND + STARTING_DECK, "LOOT_537e")
+    # The cards that did NOT start in the deck (WP-185).
+    play = Buff(FRIENDLY_HAND - STARTING_DECK, "LOOT_537e")
 
 
 @custom_card
@@ -99,8 +100,10 @@ class LOOT_104:
         PlayReq.REQ_CANNOT_PLAY_THIS: 0,
     }
 
+    # The wiki: "Shifting Scroll transforms at the end of your turn" (not at
+    # its start; WP-185).
     class Hand:
-        events = OWN_TURN_BEGIN.on(
+        events = OWN_TURN_END.on(
             Morph(SELF, RandomSpell(card_class=CardClass.MAGE)).then(
                 Buff(Morph.CARD, "LOOT_104e")
             )
@@ -109,7 +112,7 @@ class LOOT_104:
 
 class LOOT_104e:
     class Hand:
-        events = OWN_TURN_BEGIN.on(
+        events = OWN_TURN_END.on(
             Morph(OWNER, RandomSpell(card_class=CardClass.MAGE)).then(
                 Buff(Morph.CARD, "LOOT_104e")
             )

@@ -31,8 +31,10 @@ class LOOT_998j:
     requirements = {
         PlayReq.REQ_NUM_MINION_SLOTS: 1,
     }
+    # Two copies: summoning the discovered card twice summoned it once (WP-185).
     play = Discover(CONTROLLER, RandomLegendaryMinion()).then(
-        Summon(CONTROLLER, Discover.CARD) * 2
+        Summon(CONTROLLER, Discover.CARD),
+        Summon(CONTROLLER, Copy(Discover.CARD)),
     )
 
 
@@ -65,7 +67,8 @@ class LOOT_521:
     """Master Oakheart"""
 
     # <b>Battlecry:</b> <b>Recruit</b> a 1, 2, and 3-Attack minion.
-    play = Recruit(COST == 1), Recruit(COST == 2), Recruit(COST == 3)
+    # By Attack, not by Cost (WP-185).
+    play = Recruit(ATK == 1), Recruit(ATK == 2), Recruit(ATK == 3)
 
 
 class LOOT_526:
@@ -73,9 +76,12 @@ class LOOT_526:
 
     # [x]Starts dormant. <b>Battlecry:</b> Shuffle 3 Candles into the enemy deck. When
     # drawn, this awakens.
-    tags = {GameTag.DORMANT: True}
+    # The wiki: "exempt from random summon or transform effects" (WP-185); the
+    # tag keeps it out of every random pick (cards.filter).
+    tags = {GameTag.DORMANT: True, GameTag.DONT_PICK_FROM_SUBSETS: True}
     progress_total = 3
-    play = Shuffle(CONTROLLER, "LOOT_526t") * 3
+    # "into the enemy deck" (WP-185); the third Candle drawn awakens it.
+    play = Shuffle(OPPONENT, "LOOT_526t") * 3
     reward = Awaken(SELF)
 
 

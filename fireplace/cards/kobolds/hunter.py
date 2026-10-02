@@ -8,7 +8,9 @@ class LOOT_078:
     """Cave Hydra"""
 
     # Also damages the minions next to whomever this attacks.
-    events = Attack(SELF).on(CLEAVE)
+    # CLEAVE reads TARGET, which an attack does not set: the neighbours of
+    # the defender, once the combat damage is dealt (as Foe Reaper 4000; WP-185).
+    events = Attack(SELF).after(Hit(ADJACENT(Attack.DEFENDER), ATK(SELF)))
 
 
 class LOOT_511:
@@ -47,7 +49,8 @@ class LOOT_079:
 
     # <b>Secret:</b> When an enemy attacks your hero, summon a 3-Cost minion as the new
     # target.
-    secret = Attack(ENEMY_MINIONS, FRIENDLY_HERO).on(
+    # "an enemy": an enemy hero too (WP-185).
+    secret = Attack(ENEMY_CHARACTERS, FRIENDLY_HERO).on(
         Reveal(SELF),
         Retarget(Attack.ATTACKER, Summon(CONTROLLER, RandomMinion(cost=3))),
     )

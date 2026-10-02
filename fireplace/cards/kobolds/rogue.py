@@ -48,14 +48,16 @@ class LOOT_211:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_FRIENDLY_TARGET: 0,
     }
-    combo = ForceDraw(RANDOM(FRIENDLY_DECK + MINION))
+    # Two minions, not one (WP-185).
+    combo = ForceDraw(RANDOM(FRIENDLY_DECK + MINION) * 2)
 
 
 class LOOT_412:
     """Kobold Illusionist"""
 
     # <b>Deathrattle:</b> Summon a 1/1 copy of a minion from your hand.
-    deathrattle = Summon(CONTROLLER, RANDOM(FRIENDLY_HAND + MINION)).then(
+    # A copy: the card stays in the hand (WP-185).
+    deathrattle = Summon(CONTROLLER, Copy(RANDOM(FRIENDLY_HAND + MINION))).then(
         Buff(Summon.CARD, "LOOT_412e")
     )
 
@@ -74,8 +76,10 @@ class LOOT_204:
 
     # <b>Secret:</b> When a friendly minion dies, return it to your hand. It costs (2)
     # less.
+    # The (2) less is given once in the hand: a card returned to the hand
+    # loses its enchantments (WP-185).
     secret = Death(FRIENDLY + MINION).on(
-        Reveal(SELF), Bounce(Buff(Death.ENTITY, "LOOT_204e"))
+        Reveal(SELF), Bounce(Death.ENTITY).then(Buff(Bounce.TARGET, "LOOT_204e"))
     )
 
 
@@ -99,10 +103,12 @@ class LOOT_214:
     """Evasion"""
 
     # <b>Secret:</b> After your hero takes damage, become <b>Immune</b> this turn.
-    secret = Damage(FRIENDLY_HERO).on(Buff(FRIENDLY_HERO, "LOOT_214e"))
+    # Revealed (spent), and Immune until the end of the turn (WP-185).
+    secret = Damage(FRIENDLY_HERO).on(Reveal(SELF), Buff(FRIENDLY_HERO, "LOOT_214e"))
 
 
-LOOT_214e = buff(immune=True)
+class LOOT_214e:
+    tags = {GameTag.IMMUNE: True, GameTag.TAG_ONE_TURN_EFFECT: True}
 
 
 class LOOT_503:
@@ -129,7 +135,8 @@ class LOOT_503t:
     }
     play = Destroy(RANDOM_ENEMY_MINION * 2)
     progress_total = 3
-    reward = Morph(SELF, "LOOT_503t")
+    # To the Greater one, not to itself (WP-185).
+    reward = Morph(SELF, "LOOT_503t2")
 
     class Hand:
         events = Play(CONTROLLER, DEATHRATTLE).after(AddProgress(SELF, Play.CARD))

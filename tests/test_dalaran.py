@@ -657,3 +657,27 @@ def test_swampqueen_hagatha_horror_casts_both_spells():
     assert yeti.damage in (2, 3)
     assert len(game.player1.hand) == hand
     assert game.player1.overloaded == 2
+
+
+def test_unidentified_contract_is_revealed_however_it_enters_the_hand():
+    # A136, decision of the user (2026-10-02, WP-185): revealed as soon as it
+    # enters the hand (given, discovered, starting hand), not only when drawn.
+    contracts = {"DAL_366t1", "DAL_366t2", "DAL_366t3", "DAL_366t4"}
+    game = prepare_empty_game()
+    given = game.player1.give("DAL_366")
+    assert given.id in contracts
+    assert [c.id for c in game.player1.hand] == [given.id]
+    game.player1.card("DAL_366", zone=Zone.DECK)
+    assert game.player1.deck[0].id == "DAL_366"
+    drawn = game.player1.draw()
+    assert drawn.id in contracts
+    deck = ["DAL_366"] * 30
+    game = Game(
+        players=(
+            Player("Player1", deck, CardClass.ROGUE.default_hero),
+            Player("Player2", deck, CardClass.ROGUE.default_hero),
+        )
+    )
+    game.start()
+    for player in game.players:
+        assert all(c.id in contracts for c in player.choice.cards)
