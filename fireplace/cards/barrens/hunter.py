@@ -18,6 +18,9 @@ class BAR_031:
 
     # <b>Frenzy:</b> Shuffle a Sunscale Raptor into your deck with permanent
     # +2/+1.
+    # CardDefs.xml forgets its FRENZY tag: it never frenzied (WP-196)
+    tags = {GameTag.FRENZY: True}
+
     def frenzy(self, amount):
         def create_custom_card(self):
             card = self.controller.card("BAR_031")
@@ -45,7 +48,8 @@ class BAR_033:
     events = OWN_TURN_BEGIN.on(Buff(FRIENDLY_HAND + MINION, "BAR_033e"))
 
 
-BAR_031e = buff(+1, +1)
+# The enchantment of CardDefs.xml has no stats: +0/+0 (WP-196)
+BAR_033e = buff(+1, +1)
 
 
 class BAR_035:
@@ -55,14 +59,39 @@ class BAR_035:
     events = Play(CONTROLLER, SPELL).after(Summon(CONTROLLER, "BAR_035t"))
 
 
+class WranglerBuff(TargetedAction):
+    """
+    Warsong Wrangler: +2/+1 to every copy of the chosen card (the same card
+    id) that its player has, in hand, deck or battlefield (SameId took the
+    opponent's too, WP-196).
+    """
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        player = source.controller
+        copies = [
+            card
+            for card in list(player.hand) + list(player.deck) + list(player.field)
+            if card.id == target.id
+        ]
+        return source.game.queue_actions(
+            source, [Buff(card, "BAR_037e") for card in copies]
+        )
+
+
 class BAR_037:
     """Warsong Wrangler"""
 
     # [x]<b>Battlecry:</b> <b>Discover</b> a Beast from your deck. Give all
     # copies of it +2/+1 <i>(wherever_they_are)</i>.
-    play = GenericChoice(
-        CONTROLLER, RANDOM(DeDuplicate(FRIENDLY_DECK + BEAST)) * 3
-    ).then(Buff(SameId(GenericChoice.CARD), "BAR_037e"))
+    # The chosen Beast is drawn and the two others stay in the deck
+    # (GenericChoice discarded them from the deck, WP-196); the copies are
+    # those of its player, hand, deck and battlefield
+    play = Choice(CONTROLLER, RANDOM(DeDuplicate(FRIENDLY_DECK + BEAST)) * 3).then(
+        ForceDraw(Choice.CARD),
+        WranglerBuff(Choice.CARD),
+    )
 
 
 BAR_037e = buff(+2, +1)

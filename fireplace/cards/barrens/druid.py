@@ -37,7 +37,9 @@ class BAR_540:
 
     # [x]After a friendly minion with <b>Taunt</b> dies, summon a new _copy of
     # it without <b>Taunt</b>.
-    events = Death(FRIENDLY_MINIONS + TAUNT).after(
+    # A dead minion is no longer among FRIENDLY_MINIONS when its death is
+    # heard: it never answered (WP-196)
+    events = Death(FRIENDLY + MINION + TAUNT).after(
         Summon(CONTROLLER, Copy(Death.ENTITY)).then(
             UnsetTag(Summon.CARD, GameTag.TAUNT)
         )
@@ -48,14 +50,14 @@ class BAR_720:
     """Guff Runetotem"""
 
     # After you cast a Nature spell, give another friendly minion +2/+2.
-    events = CastSpell(CONTROLLER, SPELL + NATURE).after(
+    # A Nature spell played (CastSpell only hears the spells cast by an
+    # effect) gives +2/+2 (the enchantment cost 2 less, WP-196)
+    events = Play(CONTROLLER, SPELL + NATURE).after(
         Buff(RANDOM(FRIENDLY_MINIONS - SELF), "BAR_720e")
     )
 
 
-class BAR_720e:
-    tags = {GameTag.COST: -2}
-    events = REMOVED_IN_PLAY
+BAR_720e = buff(+2, +2)
 
 
 class WC_004:

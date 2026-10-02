@@ -9,7 +9,8 @@ class BAR_307:
 
     # [x]<b>Battlecry:</b> For each spell in your hand, deal 1 damage to a
     # random enemy minion.
-    play = Hit(RANDOM(ENEMY_MINIONS), 1) * Count(FRIENDLY_HAND + SPELL)
+    # Never on a minion already dead (RANDOM(ENEMY_MINIONS) could, WP-196)
+    play = Hit(RANDOM_ENEMY_MINION, 1) * Count(FRIENDLY_HAND + SPELL)
 
 
 class BAR_310:
@@ -33,7 +34,9 @@ class BAR_313:
 
     # <b>Taunt</b>. <b>Battlecry:</b> If you've restored Health this turn, gain
     # +3/+3.
-    powered_up = HEALED_THIS_TURN(FRIENDLY_HERO) > 0
+    # "You've restored": the Health restored by its player this turn, to any
+    # character (HEALED_THIS_TURN of the hero was a KeyError, WP-196)
+    powered_up = HEALED_THIS_TURN(CONTROLLER) > 0
     play = powered_up & Buff(SELF, "BAR_313e")
 
 
@@ -72,8 +75,8 @@ class BAR_735:
 
     # <b>Battlecry:</b> If you've restored Health this turn, deal that much
     # damage to all enemy minions.
-    powered_up = HEALED_THIS_TURN(FRIENDLY_HERO) > 0
-    play = powered_up & Hit(ENEMY_MINIONS, HEALED_THIS_TURN(FRIENDLY_HERO))
+    powered_up = HEALED_THIS_TURN(CONTROLLER) > 0
+    play = powered_up & Hit(ENEMY_MINIONS, HEALED_THIS_TURN(CONTROLLER))
 
 
 class WC_013:
@@ -96,8 +99,12 @@ class WC_803:
 
     # <b>Battlecry:</b> If you've restored Health this turn, <b>Discover</b> a
     # spell from your deck.
-    powered_up = HEALED_THIS_TURN(FRIENDLY_HERO) > 0
-    play = powered_up & GenericChoice(CONTROLLER, RANDOM(FRIENDLY_DECK + SPELL, 3))
+    # The chosen spell is drawn and the other two stay in the deck
+    # (GenericChoice discarded them from the deck, WP-196)
+    powered_up = HEALED_THIS_TURN(CONTROLLER) > 0
+    play = powered_up & Choice(
+        CONTROLLER, RANDOM(DeDuplicate(FRIENDLY_DECK + SPELL)) * 3
+    ).then(ForceDraw(Choice.CARD))
 
 
 ##
@@ -131,7 +138,9 @@ class BAR_311:
 
     # [x]<b>Lifesteal</b>. Deal $4 damage randomly split among all enemy
     # minions.
-    play = Hit(RANDOM(ENEMY_MINIONS), 1) * SPELL_DAMAGE(4)
+    # Each missile on a living enemy minion, as Arcane Missiles (a missile
+    # could hit a minion already dead and be lost, WP-196)
+    play = Hit(RANDOM_ENEMY_MINION, 1) * SPELL_DAMAGE(4)
 
 
 class BAR_314:

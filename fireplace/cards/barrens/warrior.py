@@ -126,7 +126,9 @@ class BAR_842t:
     # [x]Give minions in your hand +2/+2. <i>(Upgrades when you have 10
     # Mana.)</i>
     class Hand:
-        update = (MANA(CONTROLLER) >= 5) & Morph(SELF, "BAR_842t2")
+        # Rank 3 at 10 Mana Crystals (5 was written: Rank 1 became Rank 3 at
+        # 5, WP-196)
+        update = (MANA(CONTROLLER) >= 10) & Morph(SELF, "BAR_842t2")
 
     play = Buff(FRIENDLY_HAND + MINION, "BAR_842e2")
 

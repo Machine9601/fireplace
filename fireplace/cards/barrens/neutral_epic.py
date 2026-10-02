@@ -40,9 +40,12 @@ class BAR_081:
 
     # <b>Battlecry:</b> <b>Discover</b> a card in your opponent's deck. They
     # draw theirs as well.
+    # The opponent draws the chosen card itself: ForceDraw(OPPONENT, …) made
+    # them draw the top card of their deck (A48, WP-196); Tracking draws the
+    # same way (ForceDraw(Choice.CARD))
     play = Choice(CONTROLLER, RANDOM(DeDuplicate(ENEMY_DECK)) * 3).then(
-        ForceDraw(OPPONENT, Choice.CARD),
         Give(CONTROLLER, Copy(Choice.CARD)),
+        ForceDraw(Choice.CARD),
     )
 
 
