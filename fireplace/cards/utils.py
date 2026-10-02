@@ -373,9 +373,6 @@ JOUST = JoustHelper(RANDOM(FRIENDLY_DECK + MINION), RANDOM(ENEMY_DECK + MINION))
 
 JOUST_SPELL = JoustHelper(RANDOM(FRIENDLY_DECK + SPELL), RANDOM(ENEMY_DECK + SPELL))
 
-RECRUIT = Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + MINION))
-Recruit = lambda selector: Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + MINION + selector))
-
 MAGNETIC = lambda buff: Find(RIGHT_OF(SELF) + MECH) & (
     Buff(RIGHT_OF(SELF), buff, atk=ATK(SELF), max_health=CURRENT_HEALTH(SELF)),
     Remove(SELF),
@@ -417,13 +414,29 @@ class SummonAtTheFarRight(Summon):
     TARGET = ActionArg()
     CARD = ActionArg()
 
+    def get_summon_index(self, source_index):
+        # A living minion's Summon would place it at its right (Recruit, WP-185).
+        return None
+
     def do(self, source, target, cards):
         dead_position = getattr(source, "_dead_position", None)
         source._dead_position = None
+        # A card from the deck may keep a stale place (the mulligan sets one).
+        for card in cards if isinstance(cards, list) else [cards]:
+            if getattr(card, "zone", None) != Zone.PLAY:
+                card._summon_index = None
         try:
             return super().do(source, target, cards)
         finally:
             source._dead_position = dead_position
+
+
+# Recruit: the minion comes to the far right of the board, not to the right of
+# the minion that recruits (hearthstone.wiki.gg, Recruit; WP-185).
+RECRUIT = SummonAtTheFarRight(CONTROLLER, RANDOM(FRIENDLY_DECK + MINION))
+Recruit = lambda selector: SummonAtTheFarRight(
+    CONTROLLER, RANDOM(FRIENDLY_DECK + MINION + selector)
+)
 
 
 # Buff helper

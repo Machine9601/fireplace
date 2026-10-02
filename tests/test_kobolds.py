@@ -505,6 +505,22 @@ def test_windshear_stormcaller_with_wrath_of_air():
         assert game.player1.field[-1].id == "NEW1_010"
 
 
+def test_recruit_summons_at_the_far_right():
+    # The wiki (Recruit): "minions with this effect always summon other minions
+    # on the rightmost side of the board, as opposed to the right of them."
+    game = prepare_empty_game()
+    game.player1.give(YETI).shuffle_into_deck()
+    game.player1.give(WISP).play()
+    game.player1.give("LOOT_375").play(index=0)  # Guild Recruiter, at the left
+    assert [m.id for m in game.player1.field] == ["LOOT_375", WISP, YETI]
+    game = prepare_empty_game()
+    game.player1.give("CS2_120").shuffle_into_deck()  # River Crocolisk, a Beast
+    kathrena = game.player1.summon("LOOT_511")
+    game.player1.give(WISP).play()
+    kathrena.destroy()
+    assert [m.id for m in game.player1.field] == [WISP, "CS2_120"]
+
+
 def test_primal_talismans_only_friendly_minions():
     game = prepare_empty_game()
     enemy = game.player2.summon(WISP)
