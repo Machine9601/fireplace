@@ -10,7 +10,8 @@ class BT_009:
     # <b>Dormant</b> for 2 turns. When this awakens, summon two 1/1 Murlocs.
     tags = {GameTag.DORMANT: True}
     dormant_turns = 2
-    awaken = Summon(CONTROLLER, "BT_009t") * 2
+    # Two minions summoned by a minion in play: one on each side (D-108)
+    awaken = SummonBothSides(CONTROLLER, "BT_009t") * 2
 
 
 class BT_019:

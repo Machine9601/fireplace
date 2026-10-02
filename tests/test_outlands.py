@@ -318,6 +318,47 @@ def test_shadowjeweler_hanar_offers_secrets_of_other_classes_only():
     assert len(seen) > 3
 
 
+def _outcast_game(cid, position, deck_card=WISP):
+    game = prepare_empty_game(CardClass.DEMONHUNTER, CardClass.MAGE)
+    for _ in range(10):
+        game.player1.card(deck_card).zone = Zone.DECK
+    hand = [game.player1.give(WISP) for _ in range(3)]
+    card = game.player1.give(cid)
+    game.player1.hand.remove(card)
+    game.player1.hand.insert(position, card)
+    return game, card
+
+
+def test_spectral_sight_draws_another_card_only_at_an_end_of_the_hand():
+    for position, drawn in ((0, 2), (1, 1), (2, 1), (3, 2)):
+        game, card = _outcast_game("BT_491", position)
+        size = len(game.player1.hand)
+        card.play()
+        assert len(game.player1.hand) == size - 1 + drawn, position
+
+
+def test_skull_of_guldan_reduces_the_cost_only_at_an_end_of_the_hand():
+    game, card = _outcast_game("BT_601", 3, deck_card="CS2_186")
+    card.play()
+    assert [c.cost for c in game.player1.hand[-3:]] == [4, 4, 4]
+    game, card = _outcast_game("BT_601", 2, deck_card="CS2_186")
+    card.play()
+    assert [c.cost for c in game.player1.hand[-3:]] == [7, 7, 7]
+    game, card = _outcast_game("BT_480", 2)
+    size = len(game.player1.hand)
+    card.play()
+    assert len(game.player1.hand) == size - 1  # Crimson Sigil Runner: nothing in the middle
+
+
+def test_imprisoned_sungill_summons_a_murloc_on_each_side():
+    game = prepare_empty_game(CardClass.PALADIN, CardClass.MAGE)
+    sungill = game.player1.give("BT_009").play()
+    game.skip_turn()
+    game.skip_turn()
+    assert not sungill.dormant
+    assert [m.id for m in game.player1.field] == ["BT_009t", "BT_009", "BT_009t"]
+
+
 def test_evocation_discards_at_the_end_of_the_turn():
     game = prepare_empty_game(CardClass.MAGE, CardClass.HUNTER)
     wisp = game.player1.give(WISP)
