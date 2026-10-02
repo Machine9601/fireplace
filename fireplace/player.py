@@ -121,6 +121,7 @@ class Player(Entity, TargetableByAuras):
         self.armor_gained_this_game = 0
         self.healed_this_turn = 0
         self.hero_health_changed_this_turn = 0
+        self.hero_health_changed_on_own_turns = 0
         self.cthun = None
         self.invoke_counter = 0
         self.spells_played_this_game = 0

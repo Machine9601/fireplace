@@ -311,3 +311,151 @@ def test_hydrologist():
     for card in cards:
         assert card.card_class == CardClass.MAGE
     game.player1.choice.choose(cards[0])
+
+
+# WP-183 : les cartes jouées autrement que leur texte (patch 21.8) ou le wiki.
+
+
+def test_golakka_crawler_gains_one_one():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.WARRIOR)
+    game.end_turn()
+    deckhand = game.player2.give("CS2_146").play()
+    game.end_turn()
+    crawler = game.player1.give("UNG_807").play(target=deckhand)
+    assert deckhand.dead
+    assert (crawler.atk, crawler.health) == (2 + 1, 3 + 1)
+
+
+def test_hallucination_discovers_any_card_of_the_opponent_class():
+    types = set()
+    for _ in range(12):
+        game = prepare_empty_game(CardClass.ROGUE, CardClass.WARRIOR)
+        enemy_class = game.player1.opponent.hero.card_class
+        game.player1.give("UNG_856").play()
+        cards = game.player1.choice.cards
+        assert len({card.id for card in cards}) == 3
+        for card in cards:
+            assert enemy_class in card.classes
+            types.add(card.type)
+        game.player1.choice.choose(cards[0])
+        assert game.player1.hand[-1] is cards[0]
+    assert CardType.MINION in types
+
+
+def test_elder_longneck_reads_the_hand():
+    game = prepare_empty_game(CardClass.DRUID, CardClass.WARRIOR)
+    game.player1.give("CS2_200").play()
+    game.player1.give("UNG_109").play()
+    assert not game.player1.choice
+    game.end_turn()
+    game.end_turn()
+    game.player1.give("CS2_200")
+    game.player1.give("UNG_109").play()
+    assert game.player1.choice
+
+
+def test_bloodbloom_only_this_turn():
+    game = prepare_empty_game(CardClass.WARLOCK, CardClass.WARRIOR)
+    game.player1.give("UNG_832").play()
+    game.end_turn()
+    game.end_turn()
+    mana = game.player1.mana
+    game.player1.give(FIREBALL).play(target=game.player2.hero)
+    assert game.player1.hero.health == 30
+    assert game.player1.mana == mana - 4
+
+
+def test_lakkari_felhound_discards_the_two_lowest_cost_cards():
+    for _ in range(8):
+        game = prepare_empty_game(CardClass.WARLOCK, CardClass.WARRIOR)
+        game.player1.give(FIREBALL)
+        game.player1.give(WISP)
+        game.player1.give(MOONFIRE)
+        game.player1.give(PYROBLAST)
+        game.player1.give("UNG_833").play()
+        assert sorted(card.id for card in game.player1.hand) == sorted([FIREBALL, PYROBLAST])
+
+
+def test_primordial_drake_spares_itself():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.WARRIOR)
+    wisp = game.player1.give(WISP).play()
+    drake = game.player1.give("UNG_848").play()
+    assert wisp.dead
+    assert drake.health == 8
+
+
+def test_tidal_surge_heals_once():
+    game = prepare_empty_game(CardClass.SHAMAN, CardClass.WARRIOR)
+    game.player1.hero.set_current_health(20)
+    game.end_turn()
+    yeti = game.player2.give("CS2_182").play()
+    game.end_turn()
+    game.player1.give("UNG_817").play(target=yeti)
+    assert yeti.health == 1
+    assert game.player1.hero.health == 24
+
+
+def test_gentle_megasaur_one_adaptation_for_every_murloc():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.WARRIOR)
+    murlocs = [game.player1.give("CS2_168").play() for _ in range(3)]
+    game.player1.give("UNG_089").play()
+    choice = game.player1.choice
+    assert choice
+    choice.choose(choice.cards[0])
+    assert game.player1.choice is None
+    for murloc in murlocs:
+        assert [buff.id for buff in murloc.buffs] == [f"{choice.cards[0].id}e"]
+
+
+def test_evolving_spores_one_adaptation_for_every_minion():
+    game = prepare_empty_game(CardClass.DRUID, CardClass.WARRIOR)
+    minions = [game.player1.give(WISP).play() for _ in range(3)]
+    game.player1.give("UNG_103").play()
+    choice = game.player1.choice
+    choice.choose(choice.cards[0])
+    assert game.player1.choice is None
+    assert all(len(minion.buffs) == 1 for minion in minions)
+    assert len({minion.buffs[0].id for minion in minions}) == 1
+
+
+def test_lightfused_stegodon_one_adaptation_for_every_recruit():
+    game = prepare_empty_game(CardClass.PALADIN, CardClass.WARRIOR)
+    game.player1.give("UNG_960").play()
+    stegodon = game.player1.give("UNG_962").play()
+    choice = game.player1.choice
+    choice.choose(choice.cards[0])
+    assert game.player1.choice is None
+    recruits = [m for m in game.player1.field if m.id == "CS2_101t"]
+    assert len(recruits) == 2
+    assert all(len(recruit.buffs) == 1 for recruit in recruits)
+    assert not stegodon.buffs
+
+
+def test_lakkari_sacrifice_counts_discards():
+    game = prepare_empty_game(CardClass.WARLOCK, CardClass.WARRIOR)
+    quest = game.player1.give("UNG_829").play()
+    game.player1.give(WISP)
+    game.player1.give(SOULFIRE).play(target=game.player2.hero)
+    assert quest.progress == 1
+    game.player1.give(WISP)
+    game.player1.give(WISP)
+    game.player1.give("UNG_833").play()
+    assert quest.progress == 3
+
+
+def test_giant_anaconda_never_equips_a_weapon():
+    game = prepare_empty_game(CardClass.DRUID, CardClass.WARRIOR)
+    anaconda = game.player1.give("UNG_086").play()
+    reaper = game.player1.give("CS2_112")
+    anaconda.destroy()
+    assert game.player1.weapon is None
+    assert reaper.zone == Zone.HAND
+    assert len(game.player1.field) == 0
+
+
+def test_living_spores_deathrattle():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.WARRIOR)
+    wisp = game.player1.give(WISP).play()
+    game.player1.give("UNG_999t2").play(target=wisp)
+    wisp.destroy()
+    assert [m.id for m in game.player1.field] == ["UNG_999t2t1"] * 2

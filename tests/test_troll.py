@@ -647,3 +647,40 @@ def test_zuljin_does_not_cast_an_active_secret_again():
     game.player1.give("TRL_065").play()
     assert sorted(s.id for s in game.player1.secrets) == ["EX1_554", "EX1_610"]
     assert game.player1.hero.armor == 5
+
+
+def test_pyromaniac_draws_for_each_minion_the_hero_power_kills():
+    # Spirit of the Dragonhawk: the neighbours of the target die too, and each
+    # of their deaths counts for Pyromaniac (A125).
+    game = prepare_game(CardClass.MAGE, CardClass.MAGE)
+    game.player1.give("TRL_315").play()
+    game.player1.give("TRL_319").play()
+    game.end_turn()
+    game.player2.give(WISP).play()
+    yeti = game.player2.give("CS2_182").play()
+    game.player2.give(WISP).play()
+    game.end_turn()
+    assert game.player2.field.index(yeti) == 1
+    hand = len(game.player1.hand)
+    game.player1.hero.power.use(target=yeti)
+    assert len(game.player2.field) == 1
+    assert yeti.damage == 1
+    assert len(game.player1.hand) == hand + 2
+
+
+def test_zuljin_does_not_cast_a_countered_spell():
+    game = prepare_empty_game(CardClass.HUNTER, CardClass.MAGE)
+    yeti = game.player2.summon("CS2_182")
+    game.end_turn()
+    game.player2.give("EX1_287").play()  # Counterspell
+    game.end_turn()
+    game.player1.give(MOONFIRE).play(target=yeti)
+    assert yeti.damage == 0
+    assert not game.player2.secrets
+    game.end_turn()
+    game.end_turn()
+    game.player1.give("TRL_065").play()
+    # The countered Moonfire is not cast again, on whatever target it picks.
+    assert yeti.damage == 0
+    assert game.player1.hero.damage == 0
+    assert game.player2.hero.damage == 0

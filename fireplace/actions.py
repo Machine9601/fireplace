@@ -625,9 +625,30 @@ class Play(GameAction):
                 player.elemental_played_this_turn += 1
         elif card.type == CardType.SPELL:
             player.spells_played_this_game += 1
-            for entity in player.field[:]:
-                if entity.has_spellburst:
-                    source.game.queue_actions(card, [Spellburst(entity, card)])
+            # Spellburst is an "after you cast a spell" trigger: a countered
+            # spell does not set it off (Counterspell beats "after" triggers),
+            # and a weapon with Spellburst (Ceremonial Maul, Reaper's Scythe)
+            # answers it as a minion does.
+            if not card.cant_play:
+                spellbursters = player.field[:]
+                if player.weapon:
+                    spellbursters.append(player.weapon)
+                spellbursts = [
+                    Spellburst(entity, card)
+                    for entity in spellbursters
+                    if getattr(entity, "has_spellburst", False)
+                ]
+                if spellbursts and player.choice:
+                    # The spell opened a choice (a Discover): the Spellbursts
+                    # come once it is made. Queued now, they would be parked on
+                    # their own callbacks and never resumed (annex A47).
+                    player.choice.choice_callback.append(
+                        functools.partial(
+                            source.game.queue_actions, card, spellbursts
+                        )
+                    )
+                elif spellbursts:
+                    source.game.queue_actions(card, spellbursts)
         player.cards_played_this_turn += 1
         player.cards_played_this_game.append(card)
         card.turn_played = source.game.turn
@@ -1140,6 +1161,10 @@ class Damage(TargetedAction):
                 target.damaged_on_opponent_turn += amount
             if target.type == CardType.HERO:
                 target.controller.hero_health_changed_this_turn += 1
+                # Flesh Giant: "each time your hero's Health changed during
+                # your turns", for the whole game
+                if target.controller.current_player:
+                    target.controller.hero_health_changed_on_own_turns += 1
             if source.type == CardType.HERO_POWER:
                 source.controller.hero_power_damage_this_game += amount
             self.broadcast(source, EventListener.AFTER, target, amount, source)
@@ -1677,7 +1702,10 @@ class Heal(TargetedAction):
             target.healed_this_turn += amount
             source.controller.healed_this_game += amount
             if target.type == CardType.HERO:
-                source.controller.hero_health_changed_this_turn += 1
+                # The healed hero's player, not the healer's
+                target.controller.hero_health_changed_this_turn += 1
+                if target.controller.current_player:
+                    target.controller.hero_health_changed_on_own_turns += 1
 
 
 class LifestealHeal(Heal):
@@ -2199,8 +2227,19 @@ class Steal(TargetedAction):
         return [controller]
 
     def do(self, source, target, controller):
-        log.info("%s takes control of %r", controller, target)
         zone = target.zone
+        if (
+            zone == Zone.PLAY
+            and target.type == CardType.MINION
+            and target.controller is not controller
+            and controller.minion_slots <= 0
+        ):
+            # A full board: the minion has nowhere to move to and is destroyed
+            # instead (hearthstone.wiki.gg, "Take control"; Cabal Acolyte)
+            log.info("%s's board is full: %r is destroyed", controller, target)
+            target.destroy()
+            return
+        log.info("%s takes control of %r", controller, target)
         target.zone = Zone.SETASIDE
         target.controller = controller
         target.turns_in_play = 0  # To ensure summoning sickness
@@ -2505,6 +2544,21 @@ class Adapt(TargetedAction):
         cards = [source.controller.card(card, source=source) for card in cards]
         return [cards]
 
+    def _trigger(self, i, source):
+        # "Adapt your minions" (Gentle Megasaur, Evolving Spores, Lightfused
+        # Stegodon): one choice, the same adaptation for every target. Each
+        # target used to open its own choice over the last one, and only the
+        # last target was adapted.
+        if source.controller.choice:
+            return super()._trigger(i, source)
+        targets = [target for target in self.get_targets(source) if target is not None]
+        if len(targets) <= 1:
+            return super()._trigger(i, source)
+        self.trigger_index = i
+        log.info("%r triggering %r targeting %r", source, self, targets)
+        (cards,) = self.get_target_args(source, targets[0])
+        return [self.do(source, targets, cards)]
+
     def do(self, source, target, cards):
         log.info("%r adapts %r for %s", source, cards, target)
         self.cards = cards
@@ -2516,7 +2570,8 @@ class Adapt(TargetedAction):
         self.cards = cards
         self.min_count = 1
         self.max_count = 1
-        source.game.manager.targeted_action(self, source, target, cards)
+        first = target[0] if isinstance(target, list) else target
+        source.game.manager.targeted_action(self, source, first, cards)
 
     def choose(self, card):
         if card not in self.cards:
@@ -2524,7 +2579,9 @@ class Adapt(TargetedAction):
                 "%r is not a valid choice (one of %r)" % (card, self.cards)
             )
         self.player.choice = None
-        self.source.game.trigger(self.source, (Battlecry(card, self.target),), None)
+        targets = self.target if isinstance(self.target, list) else [self.target]
+        for target in targets:
+            self.source.game.trigger(self.source, (Battlecry(card, target),), None)
         self.trigger_choice_callback()
 
 

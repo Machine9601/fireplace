@@ -22,7 +22,7 @@ from .entity import BaseEntity, Entity, boolean_property, int_property, slot_pro
 from .enums import PlayReq
 from .exceptions import InvalidAction
 from .managers import CardManager
-from .targeting import TARGETING_PREREQUISITES, is_valid_target
+from .targeting import SOUL_FRAGMENT, TARGETING_PREREQUISITES, is_valid_target
 from .utils import CardList
 
 if TYPE_CHECKING:
@@ -797,13 +797,26 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
             PlayReq.REQ_TARGET_IF_AVAILABLE_AND_COST_5_OR_MORE_SPELL_IN_HAND
         )
         if req is not None:
-            # A spell that costs 5 or more: `filter(cost=range(...))` compared a
-            # cost to a range, never true, and did not ask for a spell
-            # (Sunreaver Warmage, Groundskeeper) (WP-189).
+            # "If you're holding a spell that costs (5) or more" (Groundskeeper,
+            # Sunreaver Warmage): a spell, and filter(cost=range) never matched.
             if any(
                 card.type == CardType.SPELL and card.cost >= 5
                 for card in self.controller.hand
             ):
+                return bool(self.play_targets)
+        req = self.requirements.get(
+            PlayReq.REQ_TARGET_IF_AVAILABLE_AND_PLAYER_HEALTH_CHANGED_THIS_TURN
+        )
+        if req is not None:
+            # Brittlebone Destroyer
+            if self.controller.hero_health_changed_this_turn:
+                return bool(self.play_targets)
+        req = self.requirements.get(
+            PlayReq.REQ_TARGET_IF_AVAILABLE_AND_SOUL_FRAGMENT_IN_DECK
+        )
+        if req is not None:
+            # Shadowlight Scholar
+            if self.controller.deck.filter(id=SOUL_FRAGMENT):
                 return bool(self.play_targets)
         req = self.requirements.get(
             PlayReq.REQ_TARGET_IF_AVAILABLE_AND_MIN_MANA_CRYSTAL

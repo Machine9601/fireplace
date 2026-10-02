@@ -1,5 +1,15 @@
 from ..utils import *
 
+
+def _two_lowest_cost_in_hand(entities, source):
+    hand = list(source.controller.hand)
+    source.game.random.shuffle(hand)
+    return sorted(hand, key=lambda card: card.cost)[:2]
+
+
+TWO_LOWEST_COST_IN_HAND = FuncSelector(_two_lowest_cost_in_hand)
+
+
 ##
 # Minions
 
@@ -30,7 +40,9 @@ class UNG_830:
 class UNG_833:
     """Lakkari Felhound"""
 
-    play = Discard(RANDOM(FRIENDLY_HAND) * 2)
+    # "Discard your two lowest-Cost cards" (patch 20.0; before: two random cards),
+    # both chosen at once, a tie broken at random.
+    play = Discard(TWO_LOWEST_COST_IN_HAND)
 
 
 class UNG_835:
@@ -58,7 +70,8 @@ class UNG_829(QuestRewardProtect):
     """Lakkari Sacrifice"""
 
     progress_total = 6
-    quest = Discard(FRIENDLY).after(AddProgress(SELF, Discard.TARGET))
+    # Discard broadcasts ON only (actions.py): an AFTER listener never heard a discard.
+    quest = Discard(FRIENDLY).on(AddProgress(SELF, Discard.TARGET))
     reward = Give(CONTROLLER, "UNG_829t1")
 
 
@@ -91,6 +104,8 @@ class UNG_832:
 
 
 class UNG_832e:
+    # "The next spell you cast this turn": gone at the end of the turn.
+    tags = {GameTag.TAG_ONE_TURN_EFFECT: True}
     events = OWN_SPELL_PLAY.on(Destroy(SELF))
     update = Refresh(CONTROLLER, {GameTag.SPELLS_COST_HEALTH: True})
 
