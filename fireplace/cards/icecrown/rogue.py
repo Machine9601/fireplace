@@ -62,7 +62,8 @@ class ICC_221:
     requirements = {
         PlayReq.REQ_WEAPON_EQUIPPED: 0,
     }
-    play = GiveLifesteal(FRIENDLY_WEAPON)
+    # "Lifesteal this turn" (ICC_221e is a one-turn effect; WP-184: it stayed).
+    play = Buff(FRIENDLY_WEAPON, "ICC_221e")
 
 
 class ICC_233:
@@ -73,7 +74,18 @@ class ICC_233:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_WEAPON_EQUIPPED: 0,
     }
-    play = Hit(TARGET, ATK(FRIENDLY_WEAPON)), Bounce(FRIENDLY_WEAPON)
+
+    def play(self):
+        # The weapon deals the damage (the wiki: Lifesteal, Poisonous and the
+        # like apply, Spell Damage does not; WP-184: the spell dealt it). As in
+        # an attack, fireplace has the hero deal a weapon's damage (`Damage`
+        # reads Lifesteal and Poisonous on the hero, which has the weapon's).
+        weapon = self.controller.weapon
+        if weapon is not None and self.target is not None:
+            self.game.queue_actions(
+                self.controller.hero, [Hit(self.target, weapon.atk)]
+            )
+        yield Bounce(FRIENDLY_WEAPON)
 
 
 ##
@@ -128,13 +140,16 @@ class ICC_827t:
 
 
 class ICC_827e:
+    # The reflection itself (OWNER) leaves the hand at the end of the turn, or
+    # when Death's Shadow is gone (the wiki; WP-184: only this enchantment
+    # was destroyed, and the copy stayed).
     class Hand:
         events = (
             Play(CONTROLLER).on(
                 Morph(OWNER, ExactCopy(Play.CARD)).then(Buff(Morph.CARD, "ICC_827e"))
             ),
-            OWN_TURN_END.on(Destroy(SELF)),
+            OWN_TURN_END.on(Destroy(OWNER)),
         )
-        update = Find(FRIENDLY_HERO_POWER - EXHAUSTED + ID("ICC_827p")) | Destroy(SELF)
+        update = Find(FRIENDLY_HERO_POWER - EXHAUSTED + ID("ICC_827p")) | Destroy(OWNER)
 
     events = REMOVED_IN_PLAY

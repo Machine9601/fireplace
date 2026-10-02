@@ -63,7 +63,8 @@ class ICC_314t6:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_TARGET_TO_PLAY: 0,
     }
-    play = Destroy(TARGET).then(Hit(FRIENDLY_HERO, ATK(TARGET)))
+    # "Your hero takes damage equal to its Health" (WP-184: its Attack).
+    play = Destroy(TARGET).then(Hit(FRIENDLY_HERO, CURRENT_HEALTH(TARGET)))
 
 
 class ICC_314t7:
@@ -113,7 +114,8 @@ class ICC_852e:
 class ICC_853:
     """Prince Valanar"""
 
-    play = Find(FRIENDLY_DECK + (COST == 2)) | (Taunt(SELF), GiveLifesteal(SELF))
+    # "If your deck has no 4-Cost cards" (WP-184: it read 2-Cost cards).
+    play = Find(FRIENDLY_DECK + (COST == 4)) | (Taunt(SELF), GiveLifesteal(SELF))
 
 
 class ICC_854:

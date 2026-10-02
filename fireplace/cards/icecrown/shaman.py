@@ -58,7 +58,9 @@ class ICC_078:
         PlayReq.REQ_TARGET_TO_PLAY: 0,
         PlayReq.REQ_MINION_TARGET: 0,
     }
-    play = Hit(TARGET, 3), Freeze(TARGET_ADJACENT)
+    # "Freeze a minion and deal $3 damage to adjacent ones" (WP-184: the
+    # target was hit and its neighbours frozen).
+    play = Freeze(TARGET), Hit(TARGET_ADJACENT, 3)
 
 
 class ICC_089:

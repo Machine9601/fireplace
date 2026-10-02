@@ -53,7 +53,8 @@ class ICC_235:
     requirements = {
         PlayReq.REQ_NUM_MINION_SLOTS: 1,
     }
-    play = Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + MINION)).then(
+    # "a 5/5 copy": the card stays in the deck (WP-184: it left it).
+    play = Summon(CONTROLLER, Copy(RANDOM(FRIENDLY_DECK + MINION))).then(
         Buff(Summon.CARD, "ICC_235e")
     )
 

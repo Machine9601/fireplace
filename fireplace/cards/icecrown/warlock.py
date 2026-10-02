@@ -63,7 +63,8 @@ class ICC_055:
     """Drain Soul"""
 
     requirements = {PlayReq.REQ_MINION_TARGET: 0, PlayReq.REQ_TARGET_TO_PLAY: 0}
-    play = Hit(TARGET, 2)
+    # $3 at patch 21.8 (WP-184: 2, the text of 2017).
+    play = Hit(TARGET, 3)
 
 
 class ICC_206:

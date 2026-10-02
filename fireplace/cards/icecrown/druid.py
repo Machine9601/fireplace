@@ -32,13 +32,15 @@ ICC_047e = buff(+2, +2)
 
 class ICC_047t2:
     deathrattle = Buff(ALL_MINIONS, "ICC_047e"), Hit(ALL_MINIONS, 3)
-    play = ChooseBoth(CONTROLLER) & Morph(SELF, "ICC_051t3")
 
 
 class ICC_051:
     """Druid of the Swarm"""
 
     choose = ("ICC_051a", "ICC_051b")
+    # Under Fandral Staghelm, the 1/5 with Taunt and Poisonous (WP-184: this
+    # line was on ICC_047t2, where it never ran).
+    play = ChooseBoth(CONTROLLER) & Morph(SELF, "ICC_051t3")
 
 
 class ICC_051a:
@@ -61,7 +63,8 @@ ICC_807e = buff(+2, +2)
 class ICC_808:
     """Crypt Lord"""
 
-    events = Summon(CONTROLLER, TAUNT).after(Buff(SELF, "ICC_808e"))
+    # "After you summon a minion", any minion (WP-184: only Taunt ones).
+    events = Summon(CONTROLLER, MINION - SELF).after(Buff(SELF, "ICC_808e"))
 
 
 ICC_808e = buff(health=1)

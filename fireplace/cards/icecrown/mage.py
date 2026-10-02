@@ -66,7 +66,8 @@ class ICC_086:
 class ICC_823:
     """Simulacrum"""
 
-    play = Give(CONTROLLER, ExactCopy(LOWEST_COST(FRIENDLY_HAND)))
+    # "the lowest Cost minion", never a spell or a weapon (WP-184).
+    play = Give(CONTROLLER, ExactCopy(LOWEST_COST(FRIENDLY_HAND + MINION)))
 
 
 class ICC_836:

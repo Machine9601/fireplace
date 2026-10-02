@@ -43,7 +43,8 @@ class ICC_415:
 class ICC_825:
     """Abominable Bowman"""
 
-    deathrattle = Summon(CONTROLLER, Copy(FRIENDLY + KILLED + BEAST))
+    # "a random friendly Beast that died", one (WP-184: every one).
+    deathrattle = Summon(CONTROLLER, Copy(RANDOM(FRIENDLY + KILLED + BEAST)))
 
 
 ##
