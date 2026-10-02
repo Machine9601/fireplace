@@ -31,7 +31,11 @@ class DAL_434:
     """Arcane Watcher"""
 
     # Can't attack unless you have <b>Spell Damage</b>.
-    update = Find(FRIENDLY + SPELLPOWER) | Refresh(SELF, {GameTag.CANT_ATTACK: True})
+    # The player's Spell Damage, not a Spell Damage card in the hand or the deck,
+    # as Spellbook Binder (WP-189).
+    update = Find(CONTROLLER + (AttrValue("spellpower") > 0)) | Refresh(
+        SELF, {GameTag.CANT_ATTACK: True}
+    )
 
 
 class DAL_539:

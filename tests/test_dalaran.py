@@ -556,6 +556,29 @@ def test_unseen_saboteur_twinspell_copy_goes_to_the_caster():
     assert "DAL_351ts" not in game.player1.hand
 
 
+def test_spellbook_binder_spell_damage_in_play_only():
+    game = prepare_empty_game()
+    game.player1.give(KOBOLD_GEOMANCER)
+    game.player1.give(WISP).shuffle_into_deck()
+    game.player1.give("DAL_089").play()
+    assert game.player1.hand == [KOBOLD_GEOMANCER]
+    game.player1.give(KOBOLD_GEOMANCER).play()
+    game.player1.give("DAL_089").play()
+    assert game.player1.hand == [KOBOLD_GEOMANCER, WISP]
+
+
+def test_arcane_watcher_spell_damage_in_play_only():
+    game = prepare_empty_game()
+    watcher = game.player1.summon("DAL_434")
+    game.player1.give(KOBOLD_GEOMANCER)
+    game.player1.give(KOBOLD_GEOMANCER).shuffle_into_deck()
+    game.end_turn()
+    game.end_turn()
+    assert not watcher.can_attack()
+    game.player1.summon(KOBOLD_GEOMANCER)
+    assert watcher.can_attack()
+
+
 def _swampqueen(game, first, second):
     game.player1.give("DAL_431").play()
     choice = game.player1.choice

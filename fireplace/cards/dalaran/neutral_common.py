@@ -49,7 +49,9 @@ class DAL_089:
     """Spellbook Binder"""
 
     # <b>Battlecry:</b> If you have <b>Spell Damage</b>, draw a card.
-    powered_up = Find(FRIENDLY + SPELLPOWER)
+    # FRIENDLY + SPELLPOWER found a Spell Damage card in the hand or the deck:
+    # the player's Spell Damage, as Karazhan's HAVE_SPELL_DAMAGE (WP-189).
+    powered_up = Find(CONTROLLER + (AttrValue("spellpower") > 0))
     play = powered_up & Draw(CONTROLLER)
 
 
