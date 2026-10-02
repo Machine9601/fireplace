@@ -634,3 +634,17 @@ def test_mayor_noggenfogger_redirects_the_hero_attack():
         hero.attack(game.player2.hero)
     assert not wisp2.dead
     assert game.player2.hero.damage == 3
+
+
+def test_lotus_assassin_has_stealth():
+    # WP-189c, the sweep of Skyvateer's defect: CardDefs.xml only carries a
+    # ReferencedTag STEALTH for Lotus Assassin, so the script gives the tag.
+    game = prepare_empty_game()
+    assassin = game.player1.give("CFM_634").play()
+    assert assassin.stealthed
+    game.end_turn()
+    game.end_turn()
+    wisp = game.player2.summon(WISP)
+    assassin.attack(wisp)
+    assert wisp.dead
+    assert assassin.stealthed

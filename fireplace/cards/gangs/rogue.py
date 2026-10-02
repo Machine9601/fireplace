@@ -17,6 +17,9 @@ CFM_342e = buff(+4, +4)
 class CFM_634:
     """Lotus Assassin"""
 
+    # CardDefs.xml only carries a ReferencedTag STEALTH, never the tag (the
+    # defect of Skyvateer, WP-189c)
+    tags = {GameTag.STEALTH: True}
     events = Attack(SELF, ALL_MINIONS).after(
         Dead(ALL_MINIONS + Attack.DEFENDER) & Stealth(SELF)
     )
