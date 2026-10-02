@@ -35,15 +35,24 @@ class TRL_309:
 
     # [x]<b>Stealth</b> for 1 turn. After you cast a spell, summon a Tiger with stats equal
     # to its Cost.
+    # The Cost is the one the spell was played for, read when it is cast: once in
+    # the graveyard, a spell no longer has its reductions (as Atiesh, A60). A
+    # spell that cost 0 summons nothing (hearthstone.wiki.gg) (WP-188).
     events = (
         OWN_TURN_BEGIN.on(Unstealth(SELF)),
+        Play(CONTROLLER, SPELL).on(
+            SetTags(
+                SELF,
+                {GameTag.TAG_SCRIPT_DATA_NUM_1: Attr(Play.CARD, GameTag.COST)},
+            )
+        ),
         Play(CONTROLLER, SPELL).after(
             SummonCustomMinion(
                 CONTROLLER,
                 "TRL_309t",
-                Min(COST(Play.CARD), 10),
-                COST(Play.CARD),
-                COST(Play.CARD),
+                Min(Attr(SELF, GameTag.TAG_SCRIPT_DATA_NUM_1), 10),
+                Attr(SELF, GameTag.TAG_SCRIPT_DATA_NUM_1),
+                Attr(SELF, GameTag.TAG_SCRIPT_DATA_NUM_1),
             )
         ),
     )
@@ -57,7 +66,8 @@ class TRL_545(metaclass=ThresholdUtils):
     play = Buff(SELF, "TRL_545e")
 
 
-TRL_545e = buff(+4, +4)
+# "+4/+4 and Taunt" (WP-188).
+TRL_545e = buff(+4, +4, taunt=True)
 
 
 ##
@@ -71,7 +81,8 @@ class TRL_302:
     requirements = {
         PlayReq.REQ_MINION_TARGET: 0,
     }
-    play = Buff(SELF, "TRL_302e")
+    # The hero, not the spell (WP-188).
+    play = Buff(FRIENDLY_HERO, "TRL_302e")
 
 
 class TRL_302e:
@@ -117,7 +128,8 @@ class TRL_304:
     """Farraki Battleaxe"""
 
     # <b>Overkill:</b> Give a minion in your hand +2/+2.
-    overkill = Buff(FRIENDLY_HAND + MINION, "TRL_304e")
+    # One minion, at random, not all of them (WP-188).
+    overkill = Buff(RANDOM(FRIENDLY_HAND + MINION), "TRL_304e")
 
 
 TRL_304e = buff(+2, +2)

@@ -18,7 +18,9 @@ class TRL_251:
     # +1/+1.
     events = (
         OWN_TURN_BEGIN.on(Unstealth(SELF)),
-        Death(FRIENDLY_MINIONS).on(Buff(RANDOM(FRIENDLY_HAND + MINION), "TRL_251e")),
+        # FRIENDLY_MINIONS is the minions in play: a dying one is no longer
+        # there (as Usher of Souls, A63) (WP-188).
+        Death(FRIENDLY + MINION).on(Buff(RANDOM(FRIENDLY_HAND + MINION), "TRL_251e")),
     )
 
 
@@ -44,7 +46,9 @@ class TRL_257:
     """Blood Troll Sapper"""
 
     # After a friendly minion dies, deal 2 damage to the enemy hero.
-    events = Death(FRIENDLY_MINIONS).on(Hit(FRIENDLY_HERO, 2))
+    # The enemy hero, at each friendly minion's death (a dying minion is no
+    # longer in FRIENDLY_MINIONS, as Usher of Souls, A63) (WP-188).
+    events = Death(FRIENDLY + MINION).on(Hit(ENEMY_HERO, 2))
 
 
 class TRL_551:
@@ -69,10 +73,14 @@ class TRL_246:
     """Void Contract"""
 
     # Destroy half of each player's deck.
-    play = (
-        Destroy(RANDOM(FRIENDLY_DECK)) * (Count(FRIENDLY_DECK) // 2),
-        Destroy(RANDOM(ENEMY_DECK)) * (Count(ENEMY_DECK) // 2),
-    )
+    # `Count(...) // 2` was always 0 (LazyNum.__floordiv__ divides its base, 1 // 2);
+    # an odd deck loses the larger half (hearthstone.wiki.gg) (WP-188).
+    def play(self):
+        for player in (self.controller, self.controller.opponent):
+            deck = list(player.deck)
+            count = (len(deck) + 1) // 2
+            if count:
+                yield Destroy(self.game.random.sample(deck, count))
 
 
 class TRL_249:

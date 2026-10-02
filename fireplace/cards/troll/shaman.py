@@ -36,8 +36,11 @@ class TRL_085:
     """Zentimo"""
 
     # [x]Whenever you target a minion with a spell, cast it again on its neighbors.
+    # A copy of the spell, one per neighbour: casting the played card itself
+    # moved its own target to the last neighbour (WP-188).
     events = Play(CONTROLLER, SPELL, MINION).on(
-        CastSpell(Play.CARD, ADJACENT(Play.TARGET))
+        CastSpell(Copy(Play.CARD), LEFT_OF(Play.TARGET)),
+        CastSpell(Copy(Play.CARD), RIGHT_OF(Play.TARGET)),
     )
 
 
@@ -122,4 +125,8 @@ class TRL_352:
     """Likkim"""
 
     # Has +2 Attack while you have <b>Overloaded</b> Mana Crystals.
-    update = OVERLOADED(CONTROLLER) & Refresh(SELF, {GameTag.ATK: 2})
+    # Locked crystals and those owed for next turn both count: OVERLOADED (utils)
+    # joins its two halves with `or`, which only ever reads the locked ones (WP-188).
+    update = (OVERLOAD_LOCKED(CONTROLLER) + OVERLOAD_OWED(CONTROLLER) > 0) & Refresh(
+        SELF, {GameTag.ATK: 2}
+    )
