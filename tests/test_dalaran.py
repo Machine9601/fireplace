@@ -579,6 +579,33 @@ def test_arcane_watcher_spell_damage_in_play_only():
     assert watcher.can_attack()
 
 
+def test_duel_no_fight_when_the_enemy_board_is_full():
+    game = prepare_empty_game()
+    game.player1.give("CS2_182").shuffle_into_deck()
+    game.player2.give("CS2_172").shuffle_into_deck()
+    for _ in range(7):
+        game.player2.summon(WISP)
+    game.player1.give("DAL_731").play()
+    yeti = game.player1.field[0]
+    assert yeti.id == "CS2_182"
+    assert yeti.damage == 0
+    raptor = game.player2.deck[0]
+    assert raptor.zone == Zone.DECK
+    assert raptor.damage == 0
+
+
+def test_duel_no_fight_when_your_board_is_full():
+    game = prepare_empty_game()
+    game.player1.give("CS2_182").shuffle_into_deck()
+    game.player2.give("CS2_172").shuffle_into_deck()
+    for _ in range(7):
+        game.player1.summon(WISP)
+    game.player1.give("DAL_731").play()
+    assert game.player2.field == ["CS2_172"]
+    assert game.player2.field[0].damage == 0
+    assert game.player1.deck[0].damage == 0
+
+
 def _swampqueen(game, first, second):
     game.player1.give("DAL_431").play()
     choice = game.player1.choice

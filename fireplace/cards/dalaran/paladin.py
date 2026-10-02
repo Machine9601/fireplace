@@ -123,10 +123,29 @@ class DAL_731:
     requirements = {
         PlayReq.REQ_BOARD_NOT_COMPLETELY_FULL: 0,
     }
-    play = Attack(
-        Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + MINION)),
-        Summon(OPPONENT, RANDOM(ENEMY_DECK + MINION)),
-    )
+
+    def play(self):
+        # "Your minion attacks your opponent's summoned minion"
+        # (hearthstone.wiki.gg): only two minions both summoned fight. A board
+        # full on one side summoned nothing there, and the other minion fought
+        # the card left in the deck (WP-189).
+        fighters = []
+        for player in (self.controller, self.controller.opponent):
+            minions = player.deck.filter(type=CardType.MINION)
+            if not minions:
+                fighters.append(None)
+                continue
+            minion = self.game.random.choice(minions)
+            yield Summon(player, minion)
+            fighters.append(minion)
+        mine, theirs = fighters
+        if (
+            mine is not None
+            and theirs is not None
+            and mine.zone == Zone.PLAY
+            and theirs.zone == Zone.PLAY
+        ):
+            yield Attack(mine, theirs)
 
 
 ##
