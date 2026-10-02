@@ -116,6 +116,18 @@ def test_spellburst_not_triggered_by_a_countered_spell():
     assert initiate.atk == 3
 
 
+def test_spellburst_after_a_spell_that_discovers():
+    game = _game(CardClass.DRUID)
+    gidra = game.player1.give("SCH_182").play()
+    initiate = game.player1.give("SCH_231").play()
+    game.player1.give("SCH_333").play()  # Nature Studies, 1
+    assert game.player1.choice is not None
+    assert initiate.atk == 1
+    game.player1.choice.choose(game.player1.choice.cards[0])
+    assert initiate.atk == 3
+    assert gidra.atk == 2 and gidra.max_health == 5
+
+
 def test_spellburst_lost_to_silence():
     game = _game()
     initiate = game.player1.give("SCH_231").play()
@@ -479,6 +491,18 @@ def test_enchanted_cauldron_casts_a_spell_of_the_same_cost():
     # the Moonfire cast hits a character drawn at random
     lost = 60 - game.player1.hero.health - game.player2.hero.health
     assert lost + cauldron.damage == 2
+
+
+def test_cabal_acolyte_on_a_full_board_destroys_the_minion():
+    game = _game(CardClass.PRIEST)
+    game.player1.give("SCH_120").play()
+    for _ in range(6):
+        game.player1.summon(WISP)
+    enemy = game.player2.summon(WISP)
+    game.player1.give(MOONFIRE).play(target=game.player2.hero)
+    assert len(game.player1.field) == 7
+    assert enemy.dead
+    assert enemy.controller is game.player2
 
 
 def test_robes_of_protection_stops_hero_powers():

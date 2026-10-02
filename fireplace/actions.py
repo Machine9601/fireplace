@@ -629,9 +629,22 @@ class Play(GameAction):
                 spellbursters = player.field[:]
                 if player.weapon:
                     spellbursters.append(player.weapon)
-                for entity in spellbursters:
-                    if getattr(entity, "has_spellburst", False):
-                        source.game.queue_actions(card, [Spellburst(entity, card)])
+                spellbursts = [
+                    Spellburst(entity, card)
+                    for entity in spellbursters
+                    if getattr(entity, "has_spellburst", False)
+                ]
+                if spellbursts and player.choice:
+                    # The spell opened a choice (a Discover): the Spellbursts
+                    # come once it is made. Queued now, they would be parked on
+                    # their own callbacks and never resumed (annex A47).
+                    player.choice.choice_callback.append(
+                        functools.partial(
+                            source.game.queue_actions, card, spellbursts
+                        )
+                    )
+                elif spellbursts:
+                    source.game.queue_actions(card, spellbursts)
         player.cards_played_this_turn += 1
         player.cards_played_this_game.append(card)
         card.turn_played = source.game.turn
@@ -2204,8 +2217,19 @@ class Steal(TargetedAction):
         return [controller]
 
     def do(self, source, target, controller):
-        log.info("%s takes control of %r", controller, target)
         zone = target.zone
+        if (
+            zone == Zone.PLAY
+            and target.type == CardType.MINION
+            and target.controller is not controller
+            and controller.minion_slots <= 0
+        ):
+            # A full board: the minion has nowhere to move to and is destroyed
+            # instead (hearthstone.wiki.gg, "Take control"; Cabal Acolyte)
+            log.info("%s's board is full: %r is destroyed", controller, target)
+            target.destroy()
+            return
+        log.info("%s takes control of %r", controller, target)
         target.zone = Zone.SETASIDE
         target.controller = controller
         target.turns_in_play = 0  # To ensure summoning sickness
