@@ -67,6 +67,18 @@ class CFM_667:
     deathrattle = Hit(FRIENDLY_HERO, 5)
 
 
+class SummonLeftThenRight(SummonBothSides):
+    """WP-182, Doppelgangster : « The two copies are summoned in sequence, first directly
+    on the left of the original Doppelgangster, then secondly directly on the right »
+    (hearthstone.wiki.gg)."""
+
+    TARGET = ActionArg()
+    CARD = ActionArg()
+
+    def get_summon_index(self, source_index):
+        return source_index + (self.trigger_index % 2)
+
+
 class CFM_668:
     """Doppelgangster"""
 
@@ -81,7 +93,7 @@ class CFM_668:
     # Whichever Doppelgangster is played (either the original card or one of the
     # uncollectible cards), its Battlecry will summon copies of the two other versions,
     # meaning all three versions will always be summoned.[1]
-    play = SummonBothSides(CONTROLLER, ExactCopy(SELF)) * 2
+    play = SummonLeftThenRight(CONTROLLER, ExactCopy(SELF)) * 2
 
 
 class CFM_688:

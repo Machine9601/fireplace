@@ -46,11 +46,27 @@ class CFM_313:
     play = DISCOVER(RandomCollectible(card_class=CardClass.SHAMAN, overload=True))
 
 
+class DevolveOne(TargetedAction):
+    """Devolve : un serviteur qui coûte (1) de moins ; sans serviteur à ce coût, le coût le
+    plus proche, le plus bas d'abord à égalité ; un serviteur à 0 en devient un à 0
+    (hearthstone.wiki.gg : « 0-mana minions will transform into other 0-mana minions »)."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        wanted = max(0, target.cost - 1)
+        for cost in sorted(range(0, 31), key=lambda c: (abs(c - wanted), c)):
+            card_set = RandomMinion(cost=cost).find_cards(source)
+            if card_set:
+                card = source.game.random.choice(card_set)
+                return source.game.queue_actions(source, [Morph(target, card)])[0]
+
+
 class CFM_696:
     """Devolve"""
 
     requirements = {PlayReq.REQ_HERO_TARGET: 0}
-    play = Evolve(ENEMY_MINIONS, -1)
+    play = DevolveOne(ENEMY_MINIONS)
 
 
 class CFM_707(JadeGolemUtils):

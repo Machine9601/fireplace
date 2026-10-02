@@ -13,7 +13,7 @@ class CFM_315:
 class CFM_316:
     """Rat Pack"""
 
-    deathrattle = Summon(CONTROLLER, "CFM_316") * ATK(SELF)
+    deathrattle = Summon(CONTROLLER, "CFM_316t") * ATK(SELF)
 
 
 class CFM_333:
@@ -54,8 +54,10 @@ CFM_338e = buff(+1, +1)
 class CFM_026:
     """Hidden Cache"""
 
+    # Sans serviteur en main, il ne se déclenche pas (hearthstone.wiki.gg).
     secret = Play(OPPONENT, MINION).after(
-        Reveal(SELF), Buff(RANDOM(FRIENDLY_HAND + MINION), "CFM_026e")
+        Find(FRIENDLY_HAND + MINION)
+        & (Reveal(SELF), Buff(RANDOM(FRIENDLY_HAND + MINION), "CFM_026e"))
     )
 
 
@@ -78,4 +80,4 @@ CFM_334e = buff(+2, +2)
 class CFM_337:
     """Piranha Launcher"""
 
-    events = Attack(FRIENDLY_HERO, MINION).after(Summon(CONTROLLER, "CFM_337t"))
+    events = Attack(FRIENDLY_HERO).after(Summon(CONTROLLER, "CFM_337t"))

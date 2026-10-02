@@ -160,11 +160,15 @@ class Action(metaclass=ActionMeta):
         ret.times = self.times
         return ret
 
+    def _event_class(self):
+        """The class whose listeners hear this action (Summon: every summon, WP-182)."""
+        return self.__class__
+
     def _broadcast(self, entity, source, at, *args):
         for event in entity.events:
             if event.at != at:
                 continue
-            if isinstance(event.trigger, self.__class__) and event.trigger.matches(
+            if isinstance(event.trigger, self._event_class()) and event.trigger.matches(
                 entity, source, args
             ):
                 log.info("%r triggers off %r from %r", entity, self, source)
@@ -2016,6 +2020,12 @@ class Summon(TargetedAction):
 
     TARGET = ActionArg()
     CARD = ActionArg()
+
+    def _event_class(self):
+        # A summon by a subclass (SummonBothSides: Doppelgangster, Onyxia, Cenarius...;
+        # SummonAtTheFarRight...) is a summon: "whenever you summon" hears it (WP-182,
+        # Blubber Baron and Doppelgangster's copies, hearthstone.wiki.gg).
+        return Summon
 
     def _broadcast(self, entity, source, at, *args):
         # Prevent cards from triggering off their own summon

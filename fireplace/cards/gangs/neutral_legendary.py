@@ -7,7 +7,7 @@ from ..utils import *
 class CFM_341:
     """Sergeant Sally"""
 
-    deathrattle = Hit(ALL_MINIONS, ATK(SELF))
+    deathrattle = Hit(ENEMY_MINIONS, ATK(SELF))
 
 
 class CFM_344:
@@ -158,8 +158,10 @@ CFM_685e = buff(+5, +5)
 class CFM_806:
     """Wrathion"""
 
+    # Il ne s'arrête que sur une carte brûlée, dragon ou non (hearthstone.wiki.gg) :
+    # un dragon arrivé en main relance la pioche, même main pleine.
     play = Draw(CONTROLLER).then(
-        Find(Draw.CARD + DRAGON) & (FULL_HAND | ExtraBattlecry(SELF, None))
+        Find(Draw.CARD + DRAGON + IN_HAND) & ExtraBattlecry(SELF, None)
     )
 
 

@@ -13,8 +13,10 @@ class CFM_025:
 class CFM_064:
     """Blubber Baron"""
 
+    # « Whenever you summon a Battlecry minion » : joué ou invoqué (les copies de
+    # Doppelgangster comptent, hearthstone.wiki.gg).
     class Hand:
-        events = Play(CONTROLLER, BATTLECRY + MINION).on(Buff(SELF, "CFM_064e"))
+        events = Summon(CONTROLLER, BATTLECRY + MINION).on(Buff(SELF, "CFM_064e"))
 
 
 CFM_064e = buff(+1, +1)
