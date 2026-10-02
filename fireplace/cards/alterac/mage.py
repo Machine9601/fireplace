@@ -89,7 +89,7 @@ class ONY_007:
     """Haleh, Matron Protectorate"""
 
     # After you cast a spell, deal 4 damage randomly split among all enemies.
-    events = OWN_SPELL_PLAY.after(Hit(RANDOM_ENEMY_MINION, 1) * 4)
+    events = OWN_SPELL_PLAY.after(Hit(RANDOM_ENEMY_CHARACTER, 1) * 4)
 
 
 ##
@@ -109,7 +109,7 @@ class AV_212:
 
 
 class AV_212e:
-    tags = {GameTag.COST: SET(1)}
+    tags = {GameTag.COST: -1}
     events = REMOVED_IN_PLAY
 
 

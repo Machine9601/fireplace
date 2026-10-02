@@ -55,7 +55,8 @@ TIMES_SECRETS_PLAYED_THIS_GAME = Count(CARDS_PLAYED_THIS_GAME + SECRET)
 DISCOVER = lambda *args: Discover(CONTROLLER, *args).then(
     Give(CONTROLLER, Discover.CARD)
 )
-FORCE_DRAW = lambda args: ForceDraw(CONTROLLER, RANDOM(FRIENDLY_DECK + args))
+# ForceDraw takes the card to draw: ForceDraw(CONTROLLER, ...) drew the top card.
+FORCE_DRAW = lambda args: ForceDraw(RANDOM(FRIENDLY_DECK + args))
 
 BASIC_HERO_POWERS = [
     "HERO_01bp",

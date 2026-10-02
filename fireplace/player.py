@@ -105,6 +105,7 @@ class Player(Entity, TargetableByAuras):
         self.jade_golem = 1
         self.times_totem_summoned_this_game = 0
         self.times_beast_summoned_this_game = 0
+        self.cards_added_from_another_class_this_game = 0
         self.elemental_played_this_turn = 0
         self.elemental_played_last_turn = 0
         self.cards_drawn_this_turn = 0

@@ -9,7 +9,7 @@ class AV_100:
 
     # [x]<b>Battlecry</b>: If this costs more than every minion in your deck,
     # summon 2 of them.
-    powered_up = -Find(FRIENDLY_DECK + MINION + (COST <= COST(SELF)))
+    powered_up = -Find(FRIENDLY_DECK + MINION + (COST >= COST(SELF)))
     play = powered_up & Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + MINION, 2))
 
 
@@ -18,7 +18,7 @@ class AV_223:
 
     # [x]<b>Battlecry</b>: If this costs less than every minion in your deck,
     # reduce their Cost by (3).
-    powered_up = -Find(FRIENDLY_DECK + MINION + (COST >= COST(SELF)))
+    powered_up = -Find(FRIENDLY_DECK + MINION + (COST <= COST(SELF)))
     play = powered_up & Buff(FRIENDLY_DECK + MINION, "AV_223e")
 
 
@@ -32,7 +32,7 @@ class AV_141t:
 
     # <b>Rush</b>, <b>Windfury</b> Costs (5) less if you have 15 Health or
     # less.
-    cost_mod = (CURRENT_HEALTH(FRIENDLY_HERO) <= 15) & -3
+    cost_mod = (CURRENT_HEALTH(FRIENDLY_HERO) <= 15) & -5
 
 
 class AV_142t:
@@ -71,7 +71,12 @@ class AV_143:
 
     # [x]<b>Deathrattle:</b> If this wasn't <b>Honorably Killed</b>, resummon
     # Korrak.
-    deathrattle = (CURRENT_HEALTH(SELF) < 0) & Summon(CONTROLLER, "AV_143")
+    # `Damage.do` marks the target `honorably_killed` when a source with
+    # Honorable Kill deals it exactly lethal damage on its controller's turn.
+    def deathrattle(self):
+        if getattr(self, "honorably_killed", False):
+            return []
+        return [Summon(CONTROLLER, "AV_143")]
 
 
 class ONY_004:
