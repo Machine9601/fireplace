@@ -129,9 +129,8 @@ class UNG_823:
 class UNG_856:
     """Hallucination"""
 
-    play = Find(ENEMY_HERO - NEUTRAL) & (
-        GenericChoice(CONTROLLER, RandomSpell(card_class=ENEMY_CLASS) * 3)
-    ) | (GenericChoice(CONTROLLER, RandomSpell(card_class=CardClass.ROGUE) * 3))
+    # "Discover a card from your opponent's class": any card type, not only spells.
+    play = DISCOVER(RandomCollectible(card_class=ENEMY_CLASS))
 
 
 ##

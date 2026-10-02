@@ -13,7 +13,8 @@ class UNG_078:
 class UNG_086:
     """Giant Anaconda"""
 
-    deathrattle = Summon(CONTROLLER, RANDOM(FRIENDLY_HAND + (ATK >= 5)))
+    # A minion: a weapon of 5 or more Attack in hand is not summoned.
+    deathrattle = Summon(CONTROLLER, RANDOM(FRIENDLY_HAND + MINION + (ATK >= 5)))
 
 
 class UNG_100:
@@ -40,7 +41,8 @@ class UNG_101b:
 class UNG_109:
     """Elder Longneck"""
 
-    play = Find(FRIENDLY_MINIONS + (ATK >= 5)) & Adapt(SELF)
+    # "If you're holding a minion with 5 or more Attack": the hand, not the board.
+    play = Find(FRIENDLY_HAND + MINION + (ATK >= 5)) & Adapt(SELF)
 
 
 ##
