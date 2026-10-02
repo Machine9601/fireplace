@@ -81,6 +81,31 @@ class DMF_002:
     play = Summon(CONTROLLER, UniqueRace(FRIENDLY + KILLED + MINION))
 
 
+class WheelOfYogg(LazyValue):
+    """
+    The Wheel of Yogg-Saron: "Only Rod of Roasting has 5% chance to be cast,
+    while all other spells have 19% chance" (hearthstone.wiki.gg; WP-195: the
+    six were drawn evenly).
+    """
+
+    WEIGHTS = (
+        ("DMF_004t1", 19),
+        ("DMF_004t2", 19),
+        ("DMF_004t3", 19),
+        ("DMF_004t4", 19),
+        ("DMF_004t5", 19),
+        ("DMF_004t6", 5),
+    )
+
+    def evaluate(self, source):
+        roll = source.game.random.randint(1, 100)
+        for card_id, weight in self.WEIGHTS:
+            if roll <= weight:
+                return [card_id]
+            roll -= weight
+        return [self.WEIGHTS[-1][0]]
+
+
 class DMF_004(metaclass=ThresholdUtils):
     """Yogg-Saron, Master of Fate"""
 
@@ -94,7 +119,7 @@ class DMF_004(metaclass=ThresholdUtils):
         "DMF_004t5",
         "DMF_004t6",
     ]
-    play = Battlecry(RandomEntourage(), None)
+    play = Battlecry(WheelOfYogg(), None)
 
 
 class DMF_004t1:
@@ -158,10 +183,14 @@ class DMF_004t6:
     """Rod of Roasting"""
 
     # Cast 'Pyroblast' randomly until a hero dies.
+    # At most 60 Pyroblasts (hearthstone.wiki.gg; WP-195: no bound, two
+    # heroes that cannot die looped for ever).
     def play(self):
         hero1 = self.controller.hero
         hero2 = self.controller.opponent.hero
-        while not hero1.dead and not hero2.dead:
+        for _ in range(60):
+            if hero1.dead or hero2.dead:
+                break
             yield CastSpell("EX1_279")
 
 

@@ -1,5 +1,7 @@
 from utils import *
 
+from fireplace.cards.darkmoon_faire.neutral_legendary import WheelOfYogg
+
 
 def test_guess_the_weight():
     # Guess More! Right
@@ -363,7 +365,7 @@ def test_silas_darkmoon_that_way():
 
 def test_yogg_saron_master_of_fate_needs_ten_spells():
     game = prepare_empty_game()
-    with mock(RandomEntourage, "DMF_004t4"):
+    with mock(WheelOfYogg, "DMF_004t4"):
         game.end_turn()
         game.player2.give(WISP).play()
         game.end_turn()
@@ -376,11 +378,25 @@ def test_yogg_saron_master_of_fate_needs_ten_spells():
         assert len(game.player2.field) == 0
 
 
+def test_wheel_of_yogg_saron_odds():
+    # "Only Rod of Roasting has 5% chance to be cast, while all other spells
+    # have 19% chance" (the wiki).
+    game = prepare_empty_game()
+    counts = {}
+    for _ in range(4000):
+        card = WheelOfYogg().evaluate(game.player1)[0]
+        counts[card] = counts.get(card, 0) + 1
+    assert set(counts) == {"DMF_004t%d" % i for i in range(1, 7)}
+    assert 100 < counts["DMF_004t6"] < 300
+    for i in range(1, 6):
+        assert 600 < counts["DMF_004t%d" % i] < 920
+
+
 def test_yogg_saron_curse_of_flesh_fills_both_boards():
     game = prepare_empty_game()
     for _ in range(10):
         game.player1.give(MOONFIRE).play(target=game.player2.hero)
-    with mock(RandomEntourage, "DMF_004t3"), mock(RandomCardPicker, [WISP]):
+    with mock(WheelOfYogg, "DMF_004t3"), mock(RandomCardPicker, [WISP]):
         game.player1.give("DMF_004").play()
     assert len(game.player1.field) == 7
     assert len(game.player2.field) == 7
@@ -400,7 +416,7 @@ def test_yogg_saron_devouring_hunger_feeds_yogg():
     game.player1.give(WISP).play()
     for _ in range(10):
         game.player1.give(MOONFIRE).play(target=game.player2.hero)
-    with mock(RandomEntourage, "DMF_004t5"):
+    with mock(WheelOfYogg, "DMF_004t5"):
         yogg = game.player1.give("DMF_004").play()
     assert len(game.player1.field) == 1
     assert len(game.player2.field) == 0
@@ -412,7 +428,7 @@ def test_yogg_saron_hand_of_fate_spells_cost_zero_this_turn_only():
     game = prepare_empty_game()
     for _ in range(10):
         game.player1.give(MOONFIRE).play(target=game.player2.hero)
-    with mock(RandomEntourage, "DMF_004t2"), mock(RandomCardPicker, [FIREBALL]):
+    with mock(WheelOfYogg, "DMF_004t2"), mock(RandomCardPicker, [FIREBALL]):
         game.player1.give("DMF_004").play()
     assert len(game.player1.hand) == 10
     assert all(card.cost == 0 for card in game.player1.hand)
