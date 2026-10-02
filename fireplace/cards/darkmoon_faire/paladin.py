@@ -8,6 +8,8 @@ class DMF_064:
     """Carousel Gryphon"""
 
     # <b>Divine Shield</b> <b>Corrupt:</b> Gain +3/+3 and_<b>Taunt</b>.
+    # The data has no DIVINE_SHIELD tag (WP-195).
+    tags = {GameTag.DIVINE_SHIELD: True}
     corrupt_card = "DMF_064t"
 
 

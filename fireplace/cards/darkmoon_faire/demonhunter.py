@@ -27,6 +27,8 @@ class DMF_223:
 
     # [x]<b>Rush</b> <b>Deathrattle:</b> Summon two __1/1 Assistants with
     # <b>Taunt</b>.__
+    # The data has no RUSH tag (WP-195).
+    tags = {GameTag.RUSH: True}
     deathrattle = Summon(CONTROLLER, "DMF_223t") * 2
 
 
@@ -60,6 +62,8 @@ class DMF_230:
 
     # [x]<b>Lifesteal</b> Your <b>Lifesteal</b> damages the enemy hero instead
     # of healing you.
+    # The data has no LIFESTEAL tag: Il'gynoth itself had none (WP-195).
+    tags = {GameTag.LIFESTEAL: True}
     update = Refresh(
         CONTROLLER,
         {

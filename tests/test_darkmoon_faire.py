@@ -1456,6 +1456,26 @@ def test_snack_run_heals_by_the_cost():
     assert game.player1.hero.health == min(30, 10 + cost)
 
 
+def test_keywords_the_data_forgot():
+    game = prepare_empty_game()
+    gryphon = game.player1.give("DMF_064").play()
+    performer = game.player1.give("DMF_223").play()
+    assert gryphon.divine_shield
+    assert performer.rush
+    game.end_turn()
+    yeti = game.player2.give(YETI).play()
+    game.end_turn()
+    _refill(game)
+    ilgynoth = game.player1.give("DMF_230").play()
+    game.player1.hero.set_current_health(20)
+    game.end_turn()
+    game.end_turn()
+    ilgynoth.attack(yeti)
+    # Its own Lifesteal damages the enemy hero instead of healing.
+    assert game.player1.hero.health == 20
+    assert game.player2.hero.damage == 4
+
+
 def test_mistrunner_gives_three_three():
     game = prepare_empty_game()
     wisp = game.player1.give(WISP).play()
