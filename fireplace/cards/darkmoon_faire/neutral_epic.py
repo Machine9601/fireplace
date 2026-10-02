@@ -9,7 +9,9 @@ class DMF_070:
 
     # <b>Rush</b>, <b>Poisonous</b> Also damages the minions next to whomever
     # this attacks.
-    events = Attack(SELF).on(CLEAVE)
+    # CLEAVE reads TARGET, which an attack does not set: the neighbours of the
+    # defender, as Lake Thresher (WP-194, WP-195).
+    events = Attack(SELF).after(Hit(ADJACENT(Attack.DEFENDER), ATK(SELF)))
 
 
 class DMF_124:

@@ -8,36 +8,70 @@ class DMF_074:
     """Silas Darkmoon"""
 
     # <b>Battlecry:</b> Choose a direction to rotate all minions.
-    # TODO: need to be tested
     play = Choice(CONTROLLER, ["DMF_074a", "DMF_074b"]).then(
         Battlecry(Choice.CARD, None)
     )
 
 
-class DMF_074e:
+def _silas_rotate(source, friendly_side, enemy_side):
+    """
+    Silas Darkmoon (WP-195): the outermost minions change sides at once, so a
+    full board never destroys one (Steal would, one move at a time). A dormant
+    minion is passed over (the wiki). The minion changes control as when taken:
+    it cannot attack this turn without Rush or Charge.
+    friendly_side, enemy_side: "left" or "right", the end each one leaves.
+    """
+    player = source.controller
+    opponent = player.opponent
+
+    def outermost(field, side):
+        minions = [m for m in field if not m.dormant]
+        if not minions:
+            return None
+        return minions[0] if side == "left" else minions[-1]
+
+    mine = outermost(player.field, friendly_side)
+    theirs = outermost(opponent.field, enemy_side)
+    moving = [m for m in (mine, theirs) if m is not None]
+    for minion in moving:
+        minion.zone = Zone.SETASIDE
+    # Your minions move left (this way): yours goes to the far left of the
+    # opponent's board, theirs to the far right of yours; and the reverse.
+    for minion, controller, side in (
+        (mine, opponent, friendly_side),
+        (theirs, player, enemy_side),
+    ):
+        if minion is None:
+            continue
+        minion.controller = controller
+        minion.turns_in_play = 0
+        minion._summon_index = 0 if side == "left" else len(controller.field)
+        minion.zone = Zone.PLAY
+        minion._summon_index = None
+        # Told to the observers as a change of control (the same as Steal).
+        source.game.manager.targeted_action(
+            Steal(minion, controller), source, minion, controller
+        )
+    return ()
+
+
+class DMF_074a:
+    """This Way"""
+
+    # "This Way" rotates clockwise: your minions move left, your opponent's
+    # minions move right. (Absent until WP-195: the choice did nothing.)
     def play(self):
-        # "This Way" rotates clockwise (your minions move left, your opponent's minions move right).
-        left_my_minion = LEFTMOST(FRIENDLY_MINIONS).eval(self.game, self)
-        right_op_minion = RIGHTMOST(ENEMY_MINIONS).eval(self.game, self)
-        for minion in left_my_minion:
-            minion._summon_index = 0
-        for minion in right_op_minion:
-            minion._summon_index = -1
-        yield Steal(left_my_minion, self.controller.opponent)
-        yield Steal(right_op_minion, self.controller)
+        return _silas_rotate(self, "left", "right")
 
 
 class DMF_074b:
+    """That Way"""
+
+    # "That Way" rotates counter-clockwise: your minions move right, your
+    # opponent's minions move left. (WP-195: inserted at -1, the right-most
+    # landed second from the end.)
     def play(self):
-        # "That Way" rotates counter-clockwise (your minions move right, your opponent's minions move left).
-        right_my_minion = RIGHTMOST(FRIENDLY_MINIONS).eval(self.game, self)
-        left_op_minion = LEFTMOST(ENEMY_MINIONS).eval(self.game, self)
-        for minion in right_my_minion:
-            minion._summon_index = -1
-        for minion in left_op_minion:
-            minion._summon_index = 0
-        yield Steal(right_my_minion, self.controller.opponent)
-        yield Steal(left_op_minion, self.controller)
+        return _silas_rotate(self, "right", "left")
 
 
 class DMF_002:
@@ -89,9 +123,13 @@ class DMF_004t3:
     """Curse of Flesh"""
 
     # Fill the board with random minions, then give yours <b>Rush</b>.
-    play = Summon(CONTROLLER, RandomMinion()).then(
-        GiveRush(Summon.CARD)
-    ) * MINION_SLOTS(CONTROLLER)
+    # The board is both sides: the opponent's is filled too, without Rush
+    # (WP-195: only the caster's was).
+    play = (
+        Summon(CONTROLLER, RandomMinion()).then(GiveRush(Summon.CARD))
+        * MINION_SLOTS(CONTROLLER),
+        Summon(OPPONENT, RandomMinion()) * MINION_SLOTS(OPPONENT),
+    )
 
 
 class DMF_004t4:
@@ -138,6 +176,9 @@ class DMF_188:
 
 
 class DMF_188e:
+    # "They cost (0) this turn" (WP-195: the data has no one-turn tag, and
+    # the copies stayed at 0).
+    tags = {GameTag.TAG_ONE_TURN_EFFECT: True}
     cost = SET(0)
     events = REMOVED_IN_PLAY
 

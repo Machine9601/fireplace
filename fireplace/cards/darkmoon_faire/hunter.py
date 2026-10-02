@@ -72,7 +72,8 @@ class DMF_084:
         PlayReq.REQ_NUM_MINION_SLOTS: 1,
         PlayReq.REQ_FRIENDLY_DEATHRATTLE_MINION_DIED_THIS_GAME: 0,
     }
-    play = Summon(CONTROLLER, RANDOM(FRIENDLY + KILLED + MINION) * 3)
+    # Deathrattle minions only (WP-195: any friendly minion that died).
+    play = Summon(CONTROLLER, RANDOM(FRIENDLY + KILLED + MINION + DEATHRATTLE) * 3)
 
 
 class DMF_086:
@@ -109,8 +110,13 @@ class DMF_123:
     # [x]<b>Secret:</b> When your turn starts, if you control two minions,
     # summon an Animal Companion.
     entourage = ["NEW1_032", "NEW1_033", "NEW1_034"]
-    secret = OWN_TURN_BEGIN.on(
-        FULL_BOARD | (Reveal(SELF), Summon(CONTROLLER, RandomEntourage()))
+    # A Secret that answers at the start of its own player's turn (as
+    # Competitive Spirit): in `events`, since `secret` is silent during that
+    # player's turn (WP-195: it never triggered). Two minions or more, and
+    # not a full board (the wiki: "will not trigger if there are 7 minions").
+    events = OWN_TURN_BEGIN.on(
+        (Count(FRIENDLY_MINIONS) >= 2)
+        & (FULL_BOARD | (Reveal(SELF), Summon(CONTROLLER, RandomEntourage())))
     )
 
 
@@ -120,6 +126,7 @@ class YOP_027:
     # Deal $1 damage to a minion and $2 damage to its neighbors.
     requirements = {
         PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
     }
     play = Hit(TARGET, 1), Hit(TARGET_ADJACENT, 2)
 

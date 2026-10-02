@@ -121,12 +121,14 @@ class DMF_118:
 
     # [x]<b>Battlecry:</b> Remove the top 5 cards from your deck.
     # <b>Corrupt:</b> Your opponent's deck instead.
-    play = Mill(CONTROLLER, 5)
+    # Mill takes no count (its second argument is the card): Mill(…, 5)
+    # removed a single card (WP-195).
+    play = Mill(CONTROLLER) * 5
     corrupt_card = "DMF_118t"
 
 
 class DMF_118t:
-    play = Mill(OPPONENT, 5)
+    play = Mill(OPPONENT) * 5
 
 
 class DMF_119:

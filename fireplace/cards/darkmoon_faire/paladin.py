@@ -40,7 +40,7 @@ class DMF_237:
     )
 
 
-DMF_237e = buff(+2, +2)
+DMF_237e = buff(+1, +2)  # +1/+2, the text and the data (WP-195: +2/+2)
 
 
 class DMF_240:
@@ -102,9 +102,17 @@ class DMF_236:
 
     # [x]<b>Secret:</b> When your opponent casts a spell, they instead cast a
     # random one of the same Cost.
-    secret = Play(OPPONENT, SPELL).on(
-        Reveal(SELF), CastSpell(RandomSpell(cost=COST(Play.CARD)))
-    )
+    # "Instead": the spell is countered, and the opponent casts the random one
+    # (WP-195: the spell was not countered, and the random one was the
+    # Secret owner's). Its targets are chosen at random (CastSpell).
+    def _instead(self, player, card, *args):
+        ids = RandomSpell(cost=card.cost).evaluate(self)
+        if not ids:
+            return [Reveal(SELF), Counter(card)]
+        spell = player.card(ids[0], source=self)
+        return [Reveal(SELF), Counter(card), CastSpell(spell)]
+
+    secret = Play(OPPONENT, SPELL).on(_instead)
 
 
 class DMF_244:

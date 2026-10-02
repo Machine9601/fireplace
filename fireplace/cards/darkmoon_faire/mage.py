@@ -16,8 +16,11 @@ class DMF_101:
 
     # [x]<b>Battlecry:</b> Deal 3 damage to a minion. <b>Corrupt:</b> Deal 12
     # instead.
+    # A minion if there is one (WP-195: no target was ever asked, and the
+    # Battlecry hit nothing).
     requirements = {
         PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
     }
     play = Hit(TARGET, 3)
     corrupt_card = "DMF_101t"
@@ -26,6 +29,7 @@ class DMF_101:
 class DMF_101t:
     requirements = {
         PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
     }
     play = Hit(TARGET, 12)
 
@@ -137,6 +141,8 @@ class DMF_105:
     # <b>Discover</b> a <b>Secret</b> and cast it. <b>Corrupt:</b>
     # <b>Discover</b> 2 instead.
     play = Discover(CONTROLLER, RandomSpell(secret=True)).then(CastSpell(Discover.CARD))
+    # WP-195: the corrupted card was never named, it never corrupted.
+    corrupt_card = "DMF_105t"
 
 
 class DMF_105t:
@@ -151,7 +157,11 @@ class DMF_107:
 
     # <b>Secret:</b> If you didn't take any damage during your opponent's turn,
     # draw 3 cards.
-    secret = OWN_TURN_BEGIN.on(
+    # At the end of the opponent's turn: a Secret only answers during the
+    # opponent's turn (the wiki names Competitive Spirit and Open the Cages as
+    # the only ones at the start of their player's turn). WP-195: listened at
+    # the start of its player's turn, it never triggered.
+    secret = EndTurn(OPPONENT).on(
         (DAMAGED_THIS_TURN(FRIENDLY_HERO) == 0) & (Reveal(SELF), Draw(CONTROLLER) * 3)
     )
 

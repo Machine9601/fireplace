@@ -324,6 +324,10 @@ class UniqueRace(Selector):
         races = set()
         for entity in entities:
             # 双种族暂不考虑
+            if entity.race == Race.INVALID:
+                # A minion without a type is of no "minion type" (N'Zoth, God
+                # of the Deep; Tent Trasher; WP-195).
+                continue
             if entity.race not in races:
                 races.add(entity.race)
                 ret.append(entity)
