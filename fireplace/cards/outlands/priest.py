@@ -103,6 +103,10 @@ class BT_253:
     play = Buff(TARGET, "BT_253e"), Summon(CONTROLLER, ExactCopy(TARGET))
 
 
+# CardDefs.xml gives Twin Vision no stats
+BT_253e = buff(+1, +2)
+
+
 class BT_257:
     """Apotheosis"""
 
@@ -111,4 +115,4 @@ class BT_257:
     play = Buff(TARGET, "BT_257e")
 
 
-BT_257e = buff(+2, +3, lifesteal=True)
+BT_257e = buff(+1, +2, lifesteal=True)
