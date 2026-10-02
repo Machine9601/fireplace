@@ -320,6 +320,32 @@ def test_mad_scientist():
     assert counterspell in game.player1.hand
 
 
+def test_mad_scientist_skips_a_secret_already_active():
+    # A secret already in play is never the one chosen, even with another one
+    # in the deck (hearthstone.wiki.gg, Mad Scientist) (A129).
+    for _ in range(10):
+        game = prepare_empty_game()
+        game.player1.give("EX1_289").play()  # Ice Barrier, active
+        game.player1.give("EX1_289").shuffle_into_deck()
+        game.player1.give("EX1_294").shuffle_into_deck()  # Mirror Entity
+        scientist = game.player1.give("FP1_004")
+        scientist.play()
+        scientist.destroy()
+        assert sorted(s.id for s in game.player1.secrets) == ["EX1_289", "EX1_294"]
+        assert len(game.player1.deck) == 1
+
+
+def test_mad_scientist_with_only_active_secrets_in_the_deck_does_nothing():
+    game = prepare_empty_game()
+    game.player1.give("EX1_289").play()
+    game.player1.give("EX1_289").shuffle_into_deck()
+    scientist = game.player1.give("FP1_004")
+    scientist.play()
+    scientist.destroy()
+    assert [s.id for s in game.player1.secrets] == ["EX1_289"]
+    assert len(game.player1.deck) == 1
+
+
 def test_nerubar_weblord():
     game = prepare_game()
     game.player1.discard_hand()

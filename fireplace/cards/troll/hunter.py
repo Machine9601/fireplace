@@ -135,7 +135,18 @@ class TRL_065:
     # randomly)</i>.
     # A Secret already active (or a sixth one) is not cast again: a player never
     # has two copies of the same Secret (hearthstone.wiki.gg, "Secret") (WP-188).
-    play = CastSpellUnlessActiveSecret(Copy(CARDS_PLAYED_THIS_GAME + SPELL))
+    # A countered spell was played but never cast: it is skipped (A126, WP-188c).
+    play = CastSpellUnlessActiveSecret(
+        Copy(
+            CARDS_PLAYED_THIS_GAME
+            + SPELL
+            + FuncSelector(
+                lambda entities, source: [
+                    e for e in entities if not getattr(e, "cant_play", False)
+                ]
+            )
+        )
+    )
 
 
 class TRL_065h:
