@@ -18,6 +18,9 @@ class DMF_071:
 
 
 class DMF_071e:
+    # "It costs (1) this turn" (WP-195: the data has no one-turn tag, and it
+    # stayed at 1).
+    tags = {GameTag.TAG_ONE_TURN_EFFECT: True}
     cost = SET(1)
     events = REMOVED_IN_PLAY
 
@@ -56,9 +59,38 @@ class DMF_516:
 
     # <b>Battlecry:</b> <b>Discover</b> a card in your deck and draw all copies
     # of it.
-    play = Choice(CONTROLLER, RANDOM(FRIENDLY_DECK, 3)).then(
-        ForceDraw(CONTROLLER, FRIENDLY_DECK + SameId(Choice.CARD))
-    )
+    # Three different cards of the deck (one of each name, as a Discover),
+    # then every copy of the chosen one is drawn (WP-195: the same card could
+    # be offered twice, and ForceDraw(CONTROLLER, …) drew another card).
+    def play(self):
+        deck = self.controller.deck
+        one_of_each = []
+        for card in deck:
+            if all(card.id != other.id for other in one_of_each):
+                one_of_each.append(card)
+        if not one_of_each:
+            return
+        options = self.game.random.sample(one_of_each, min(3, len(one_of_each)))
+        yield Choice(CONTROLLER, options).then(DrawAllCopies(Choice.CARD))
+
+
+class DrawAllCopies(TargetedAction):
+    """
+    Grand Empress Shek'zara: draw the chosen card of the deck, then every
+    other copy of it (the same card id) still in that deck.
+    """
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        deck = target.controller.deck
+        copies = [target] + [c for c in deck if c is not target and c.id == target.id]
+        drawn = []
+        for card in copies:
+            if card.zone == Zone.DECK:
+                card.draw()
+                drawn.append(card)
+        return drawn
 
 
 class DMF_517:
@@ -170,7 +202,9 @@ class YOP_017:
 
     # <b>Secret:</b> When your opponent draws their second card in a turn,
     # transform it into a Banana.
-    secret = Draw(OPPONENT).after(
+    # Draw is only heard "on" (it broadcasts no "after"): WP-195, it never
+    # triggered.
+    secret = Draw(OPPONENT).on(
         (Attr(OPPONENT, GameTag.NUM_CARDS_DRAWN_THIS_TURN) == 2)
         & (Reveal(SELF), Morph(Draw.CARD, "EX1_014t"))
     )

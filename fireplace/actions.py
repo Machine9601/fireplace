@@ -539,7 +539,11 @@ class Play(GameAction):
         player = source
         log.info("%s plays %r (target=%r, index=%r)", player, card, target, index)
 
-        player.pay_cost(card, card.cost)
+        # The cost as paid: Corrupt compares it, not the cost the card has
+        # once out of the hand ("Corrupt triggers on the current cost of both
+        # cards", hearthstone.wiki.gg; WP-195, Lunar Eclipse).
+        paid_cost = card.cost
+        player.pay_cost(card, paid_cost)
 
         card.target = target
         card._summon_index = index
@@ -586,7 +590,7 @@ class Play(GameAction):
             source.game.trigger(card, actions, event_args=None)
 
         for hand in player.hand[:]:
-            if hand.corrupt and hand.cost < card.cost:
+            if hand.corrupt and hand.cost < paid_cost:
                 source.game.queue_actions(player, [Corrupt(hand)])
 
         if card.type in (CardType.MINION, CardType.WEAPON):
@@ -633,10 +637,13 @@ class Play(GameAction):
                 spellbursters = player.field[:]
                 if player.weapon:
                     spellbursters.append(player.weapon)
+                # A Dormant minion is not there yet: its Spellburst waits
+                # (Imprisoned Celestial, WP-195).
                 spellbursts = [
                     Spellburst(entity, card)
                     for entity in spellbursters
                     if getattr(entity, "has_spellburst", False)
+                    and not getattr(entity, "dormant", False)
                 ]
                 if spellbursts and player.choice:
                     # The spell opened a choice (a Discover): the Spellbursts

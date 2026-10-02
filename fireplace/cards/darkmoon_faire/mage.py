@@ -16,8 +16,11 @@ class DMF_101:
 
     # [x]<b>Battlecry:</b> Deal 3 damage to a minion. <b>Corrupt:</b> Deal 12
     # instead.
+    # A minion if there is one (WP-195: no target was ever asked, and the
+    # Battlecry hit nothing).
     requirements = {
         PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
     }
     play = Hit(TARGET, 3)
     corrupt_card = "DMF_101t"
@@ -26,6 +29,7 @@ class DMF_101:
 class DMF_101t:
     requirements = {
         PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
     }
     play = Hit(TARGET, 12)
 
@@ -54,39 +58,21 @@ class DMF_109:
     play = Draw(CONTROLLER), Draw(CONTROLLER) * Count(FRIENDLY + TRIGGERED_SECRET)
 
 
+def _dual_class(card):
+    return len(card.classes) == 2
+
+
 class YOP_018:
     """Keywarden Ivory"""
 
     # [x]<b>Battlecry:</b> <b>Discover</b> a dual-class spell from any class.
     # <b><b>Spellburst</b>:</b> Get another copy.
+    # A spell of exactly two classes (WP-195: `multiple_classes` is a bit
+    # mask, which the MultiClassGroup values matched by chance, and the pool
+    # was not limited to spells: one to three cards, minions among them).
     play = GenericChoice(
         CONTROLLER,
-        RandomCollectible(
-            multiple_classes=[
-                MultiClassGroup.PALADIN_PRIEST,
-                MultiClassGroup.PRIEST_WARLOCK,
-                MultiClassGroup.WARLOCK_DEMONHUNTER,
-                MultiClassGroup.HUNTER_DEMONHUNTER,
-                MultiClassGroup.DRUID_HUNTER,
-                MultiClassGroup.DRUID_SHAMAN,
-                MultiClassGroup.MAGE_SHAMAN,
-                MultiClassGroup.MAGE_ROGUE,
-                MultiClassGroup.ROGUE_WARRIOR,
-                MultiClassGroup.PALADIN_WARRIOR,
-                MultiClassGroup.MAGE_HUNTER,
-                MultiClassGroup.HUNTER_DEATHKNIGHT,
-                MultiClassGroup.DEATHKNIGHT_PALADIN,
-                MultiClassGroup.PALADIN_SHAMAN,
-                MultiClassGroup.SHAMAN_WARRIOR,
-                MultiClassGroup.WARRIOR_DEMONHUNTER,
-                MultiClassGroup.DEMONHUNTER_ROGUE,
-                MultiClassGroup.ROGUE_PRIEST,
-                MultiClassGroup.PRIEST_DRUID,
-                MultiClassGroup.DRUID_WARLOCK,
-                MultiClassGroup.WARLOCK_MAGE,
-            ]
-        )
-        * 3,
+        RandomSpell(custom_filter=_dual_class) * 3,
     ).then(StoringBuff(SELF, "YOP_018e", GenericChoice.CARD))
 
 
@@ -137,6 +123,8 @@ class DMF_105:
     # <b>Discover</b> a <b>Secret</b> and cast it. <b>Corrupt:</b>
     # <b>Discover</b> 2 instead.
     play = Discover(CONTROLLER, RandomSpell(secret=True)).then(CastSpell(Discover.CARD))
+    # WP-195: the corrupted card was never named, it never corrupted.
+    corrupt_card = "DMF_105t"
 
 
 class DMF_105t:
@@ -151,7 +139,11 @@ class DMF_107:
 
     # <b>Secret:</b> If you didn't take any damage during your opponent's turn,
     # draw 3 cards.
-    secret = OWN_TURN_BEGIN.on(
+    # At the end of the opponent's turn: a Secret only answers during the
+    # opponent's turn (the wiki names Competitive Spirit and Open the Cages as
+    # the only ones at the start of their player's turn). WP-195: listened at
+    # the start of its player's turn, it never triggered.
+    secret = EndTurn(OPPONENT).on(
         (DAMAGED_THIS_TURN(FRIENDLY_HERO) == 0) & (Reveal(SELF), Draw(CONTROLLER) * 3)
     )
 

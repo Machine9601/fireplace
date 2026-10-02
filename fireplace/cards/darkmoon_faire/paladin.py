@@ -8,6 +8,8 @@ class DMF_064:
     """Carousel Gryphon"""
 
     # <b>Divine Shield</b> <b>Corrupt:</b> Gain +3/+3 and_<b>Taunt</b>.
+    # The data has no DIVINE_SHIELD tag (WP-195).
+    tags = {GameTag.DIVINE_SHIELD: True}
     corrupt_card = "DMF_064t"
 
 
@@ -40,7 +42,7 @@ class DMF_237:
     )
 
 
-DMF_237e = buff(+2, +2)
+DMF_237e = buff(+1, +2)  # +1/+2, the text and the data (WP-195: +2/+2)
 
 
 class DMF_240:
@@ -55,12 +57,19 @@ class DMF_240e:
     events = Summon(CONTROLLER, ID("CS2_101t")).after(GiveDivineShield(Summon.CARD))
 
 
+MULTI_CLASS_CARDS = FuncSelector(
+    lambda entities, source: [e for e in entities if len(getattr(e, "classes", ())) > 1]
+)
+
+
 class DMF_241:
     """High Exarch Yrel"""
 
     # [x]<b>Battlecry:</b> If your deck has no Neutral cards, gain <b>Rush</b>,
     # <b>Lifesteal</b>, <b>Taunt</b>, and <b>Divine Shield</b>.
-    powered_up = -Find(FRIENDLY_DECK + NEUTRAL)
+    # A dual-class card has the class NEUTRAL in fireplace, but it is not a
+    # Neutral card (WP-195: one in the deck turned Yrel off).
+    powered_up = -Find(FRIENDLY_DECK + NEUTRAL - MULTI_CLASS_CARDS)
     play = powered_up & (
         SetTags(
             SELF,
@@ -102,9 +111,17 @@ class DMF_236:
 
     # [x]<b>Secret:</b> When your opponent casts a spell, they instead cast a
     # random one of the same Cost.
-    secret = Play(OPPONENT, SPELL).on(
-        Reveal(SELF), CastSpell(RandomSpell(cost=COST(Play.CARD)))
-    )
+    # "Instead": the spell is countered, and the opponent casts the random one
+    # (WP-195: the spell was not countered, and the random one was the
+    # Secret owner's). Its targets are chosen at random (CastSpell).
+    def _instead(self, player, card, *args):
+        ids = RandomSpell(cost=card.cost).evaluate(self)
+        if not ids:
+            return [Reveal(SELF), Counter(card)]
+        spell = player.card(ids[0], source=self)
+        return [Reveal(SELF), Counter(card), CastSpell(spell)]
+
+    secret = Play(OPPONENT, SPELL).on(_instead)
 
 
 class DMF_244:

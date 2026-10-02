@@ -23,6 +23,11 @@ class DMF_065:
 
 
 class DMF_065t:
+    # Bananas: give a minion +1/+1 (WP-195: it had no target, and did nothing).
+    requirements = {
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+    }
     play = Buff(TARGET, "DMF_065e")
 
 
@@ -94,12 +99,13 @@ class DMF_082:
     """Darkmoon Statue"""
 
     # Your other minions have +1 Attack. <b>Corrupt:</b> This gains +4 Attack.
-    update = Refresh(FRIENDLY_MINIONS, buff="DMF_082e")
+    # "Other": not the Statue itself (WP-195).
+    update = Refresh(FRIENDLY_MINIONS - SELF, buff="DMF_082e")
     corrupt_card = "DMF_082t"
 
 
 class DMF_082t:
-    update = Refresh(FRIENDLY_MINIONS, buff="DMF_082e")
+    update = Refresh(FRIENDLY_MINIONS - SELF, buff="DMF_082e")
 
 
 DMF_082e = buff(atk=1)

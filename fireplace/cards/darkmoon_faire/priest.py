@@ -88,7 +88,13 @@ class YOP_007:
 
     # [x]<b>Battlecry:</b> Reduce the Cost of all <b>Corrupt</b> cards in your
     # hand and deck by (2).
-    play = Buff(FRIENDLY_HAND + FRIENDLY_DECK + CORRUPTED, "YOP_007e")
+    # Hand and deck, Corrupt cards and their Corrupted versions (WP-195: the
+    # hand "+" the deck selected nothing, and CORRUPTED is no card's tag).
+    play = Buff(
+        (FRIENDLY_HAND | FRIENDLY_DECK)
+        + (EnumSelector(GameTag.CORRUPT) | CORRUPTED_CARD),
+        "YOP_007e",
+    )
 
 
 class YOP_007e:
@@ -100,7 +106,9 @@ class YOP_008:
     """Lightsteed"""
 
     # Your healing effects also give affected minions +2_Health.
-    events = Heal(CONTROLLER, MINION).on(Buff(Heal.TARGET, "YOP_008e"))
+    # A minion healed by a source of its player (WP-195: Heal(CONTROLLER,
+    # MINION) never matched, the heal's target is its first argument).
+    events = Heal(ALL_MINIONS, source=FRIENDLY).on(Buff(Heal.TARGET, "YOP_008e"))
 
 
 YOP_008e = buff(health=2)
@@ -160,7 +168,12 @@ class DMF_187:
     """Palm Reading"""
 
     # <b>Discover</b> a spell. Reduce the Cost of spells in your hand by (1).
-    play = (DISCOVER(RandomSpell()), Buff(FRIENDLY_HAND + SPELL, "DMF_187e"))
+    # The reduction after the choice, in the Discover's own callback: queued
+    # after it in the same tuple, it was lost (annex A47, WP-195); the
+    # discovered spell is in hand by then, and is reduced too.
+    play = Discover(CONTROLLER, RandomSpell()).then(
+        Give(CONTROLLER, Discover.CARD), Buff(FRIENDLY_HAND + SPELL, "DMF_187e")
+    )
 
 
 class DMF_187e:

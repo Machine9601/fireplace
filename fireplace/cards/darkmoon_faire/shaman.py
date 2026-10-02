@@ -45,7 +45,10 @@ class DMF_709:
 
     # At the end of your turn, give +1/+1 to all other Totems in your hand,
     # deck and battlefield.
-    events = OWN_TURN_END.on(Buff((FRIENDLY_HAND | FRIENDLY_DECK) + TOTEM, "DMF_709e"))
+    # The battlefield too, Eys'or excepted (WP-195: hand and deck only).
+    events = OWN_TURN_END.on(
+        Buff((FRIENDLY_HAND | FRIENDLY_DECK | FRIENDLY_MINIONS) + TOTEM - SELF, "DMF_709e")
+    )
 
 
 DMF_709e = buff(+1, +1)
@@ -61,6 +64,10 @@ class YOP_022:
         PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
     }
     play = Buff(TARGET, "YOP_022e")
+
+
+# The data's enchantment has no stats: +0/+0 (WP-195).
+YOP_022e = buff(+3, +3)
 
 
 ##
@@ -98,6 +105,7 @@ class DMF_702:
     # Deal $3 damage to a minion. Give your hero +3 Attack this turn.
     requirements = {
         PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
     }
     play = Hit(TARGET, 3), Buff(FRIENDLY_HERO, "DMF_702e")
 
@@ -123,7 +131,10 @@ class YOP_023:
 
     # [x]Deal $1 damage to all enemy minions. If you're <b>Overloaded</b>, deal
     # $1 damage again.
-    powered_up = OVERLOADED(CONTROLLER)
+    # Locked crystals and those owed for next turn both count: OVERLOADED
+    # (utils) joins its two halves with `or`, which only ever reads the locked
+    # ones (WP-188, WP-195).
+    powered_up = OVERLOAD_LOCKED(CONTROLLER) + OVERLOAD_OWED(CONTROLLER) > 0
     play = powered_up & (Hit(ENEMY_MINIONS, 1) * 2) | (Hit(ENEMY_MINIONS, 1))
 
 

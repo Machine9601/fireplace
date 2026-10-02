@@ -64,6 +64,10 @@ class YOP_014:
     play = powered_up & Buff(SELF, "YOP_014e")
 
 
+# The data's enchantment has no stats: +0/+0 (WP-195).
+YOP_014e = buff(+2, +2)
+
+
 ##
 # Spells
 
