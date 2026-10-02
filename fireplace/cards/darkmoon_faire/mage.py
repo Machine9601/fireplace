@@ -58,39 +58,21 @@ class DMF_109:
     play = Draw(CONTROLLER), Draw(CONTROLLER) * Count(FRIENDLY + TRIGGERED_SECRET)
 
 
+def _dual_class(card):
+    return len(card.classes) == 2
+
+
 class YOP_018:
     """Keywarden Ivory"""
 
     # [x]<b>Battlecry:</b> <b>Discover</b> a dual-class spell from any class.
     # <b><b>Spellburst</b>:</b> Get another copy.
+    # A spell of exactly two classes (WP-195: `multiple_classes` is a bit
+    # mask, which the MultiClassGroup values matched by chance, and the pool
+    # was not limited to spells: one to three cards, minions among them).
     play = GenericChoice(
         CONTROLLER,
-        RandomCollectible(
-            multiple_classes=[
-                MultiClassGroup.PALADIN_PRIEST,
-                MultiClassGroup.PRIEST_WARLOCK,
-                MultiClassGroup.WARLOCK_DEMONHUNTER,
-                MultiClassGroup.HUNTER_DEMONHUNTER,
-                MultiClassGroup.DRUID_HUNTER,
-                MultiClassGroup.DRUID_SHAMAN,
-                MultiClassGroup.MAGE_SHAMAN,
-                MultiClassGroup.MAGE_ROGUE,
-                MultiClassGroup.ROGUE_WARRIOR,
-                MultiClassGroup.PALADIN_WARRIOR,
-                MultiClassGroup.MAGE_HUNTER,
-                MultiClassGroup.HUNTER_DEATHKNIGHT,
-                MultiClassGroup.DEATHKNIGHT_PALADIN,
-                MultiClassGroup.PALADIN_SHAMAN,
-                MultiClassGroup.SHAMAN_WARRIOR,
-                MultiClassGroup.WARRIOR_DEMONHUNTER,
-                MultiClassGroup.DEMONHUNTER_ROGUE,
-                MultiClassGroup.ROGUE_PRIEST,
-                MultiClassGroup.PRIEST_DRUID,
-                MultiClassGroup.DRUID_WARLOCK,
-                MultiClassGroup.WARLOCK_MAGE,
-            ]
-        )
-        * 3,
+        RandomSpell(custom_filter=_dual_class) * 3,
     ).then(StoringBuff(SELF, "YOP_018e", GenericChoice.CARD))
 
 

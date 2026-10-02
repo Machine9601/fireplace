@@ -1059,7 +1059,9 @@ def test_keywarden_ivory_spellburst_gives_another_copy():
     game.player1.give("YOP_018").play()
     choice = game.player1.choice
     picked = choice.cards[0]
+    assert len(choice.cards) == 3
     assert all(len(c.classes) == 2 for c in choice.cards)
+    assert all(c.type == CardType.SPELL for c in choice.cards)
     choice.choose(picked)
     assert [c.id for c in game.player1.hand] == [picked.id]
     game.player1.give(MOONFIRE).play(target=game.player2.hero)
