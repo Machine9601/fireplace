@@ -25,7 +25,14 @@ class BOT_433:
     """Dr. Morrigan"""
 
     # <b>Deathrattle:</b> Swap this with a minion from your deck.
-    deathrattle = Swap(SELF, RANDOM(FRIENDLY_DECK + MINION))
+    # Morrigan est déjà au cimetière quand son râle d'agonie parle : un Swap y
+    # enverrait le serviteur du deck. Le serviteur entre en jeu, Morrigan
+    # retourne au deck.
+    deathrattle = Find(FRIENDLY_DECK + MINION) & (
+        Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + MINION)).then(
+            Shuffle(CONTROLLER, "BOT_433")
+        )
+    )
 
 
 class BOT_443:

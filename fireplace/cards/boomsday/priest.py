@@ -29,7 +29,7 @@ class BOT_509:
     """Dead Ringer"""
 
     # <b>Deathrattle:</b> Draw a <b>Deathrattle</b> minion from your deck.
-    deathrattle = ForceDraw(RANDOM(FRIENDLY_DECK + DEATHRATTLE))
+    deathrattle = ForceDraw(RANDOM(FRIENDLY_DECK + MINION + DEATHRATTLE))
 
 
 class BOT_558:

@@ -59,10 +59,25 @@ class BOT_434:
 
 
 class BOT_434e:
+    # Une copie 3/4 qui coûte toujours 4 (le wiki : Floop ne copie pas le coût).
+    atk = SET(3)
+    max_health = SET(4)
+    cost = SET(4)
+
     class Hand:
-        events = Play(CONTROLLER).after(
+        events = Play(CONTROLLER, MINION).after(
             Morph(OWNER, Copy(Play.CARD)).then(Buff(Morph.CARD, "BOT_434e"))
         )
+
+
+class SummonLeftOfSource(Summon):
+    """Invoque à la gauche de la source (le serviteur en jeu qui invoque)."""
+
+    TARGET = ActionArg()
+    CARD = ActionArg()
+
+    def get_summon_index(self, source_index):
+        return source_index
 
 
 class BOT_507:
@@ -73,7 +88,13 @@ class BOT_507:
         PlayReq.REQ_FRIENDLY_TARGET: 0,
         PlayReq.REQ_MINION_TARGET: 0,
     }
-    play = Summon(CONTROLLER, ExactCopy(SELF_ADJACENT))
+    # Deux serviteurs invoqués à la fois par un serviteur en jeu se posent un de
+    # chaque côté de lui (D-108) : la copie du voisin de gauche à sa gauche, celle
+    # du voisin de droite à sa droite.
+    play = (
+        Summon(CONTROLLER, ExactCopy(RIGHT_OF(SELF))),
+        SummonLeftOfSource(CONTROLLER, ExactCopy(LEFT_OF(SELF))),
+    )
 
 
 class BOT_523:
