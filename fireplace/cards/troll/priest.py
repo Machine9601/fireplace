@@ -31,7 +31,16 @@ class TRL_408:
     """Grave Horror"""
 
     # [x]<b>Taunt</b> Costs (1) less for each spell you've cast this game.
-    cost_mod = -Count(CARDS_PLAYED_THIS_GAME + SPELL)
+    # A countered spell is not cast (as Arcane Giant, A60) (WP-188).
+    cost_mod = -Count(
+        FuncSelector(
+            lambda entities, source: [
+                card
+                for card in source.controller.cards_played_this_game
+                if card.type == CardType.SPELL and not card.cant_play
+            ]
+        )
+    )
 
 
 class TRL_501:
@@ -51,7 +60,9 @@ class TRL_502:
     # it into your deck.
     events = (
         OWN_TURN_BEGIN.on(Unstealth(SELF)),
-        Death(FRIENDLY_MINIONS).on(
+        # FRIENDLY_MINIONS is the minions in play: a dying one is no longer
+        # there (as Usher of Souls, A63) (WP-188).
+        Death(FRIENDLY + MINION).on(
             Shuffle(CONTROLLER, Buff(Copy(Death.ENTITY), "TRL_502e"))
         ),
     )

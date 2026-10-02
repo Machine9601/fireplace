@@ -95,7 +95,10 @@ class TRL_313:
         PlayReq.REQ_TARGET_TO_PLAY: 0,
         PlayReq.REQ_MINION_TARGET: 0,
     }
-    cost_mod = ELEMENTAL_PLAYED_LAST_TURN & -1
+    # "Costs (1)": set to 1, not reduced by 1 (WP-188).
+    class Hand:
+        update = ELEMENTAL_PLAYED_LAST_TURN & Refresh(SELF, {GameTag.COST: SET(1)})
+
     play = Hit(TARGET, 4)
 
 

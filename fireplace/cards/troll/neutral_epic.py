@@ -26,9 +26,10 @@ class TRL_527:
 
     # [x]<b>Battlecry:</b> Give each player a copy of a random card from their opponent's
     # deck.
+    # Each player gets a card of the OTHER player's deck (WP-188).
     play = (
-        Give(CONTROLLER, ExactCopy(RANDOM(FRIENDLY_DECK))),
-        Give(OPPONENT, ExactCopy(RANDOM(ENEMY_DECK))),
+        Give(CONTROLLER, ExactCopy(RANDOM(ENEMY_DECK))),
+        Give(OPPONENT, ExactCopy(RANDOM(FRIENDLY_DECK))),
     )
 
 
@@ -48,7 +49,22 @@ class TRL_530:
 
     # <b>Battlecry:</b> If you control a_<b>Secret</b>, play a <b>Secret</b> from_your
     # deck.
-    play = Find(FRIENDLY_SECRETS) & Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + SECRET))
+    # A Secret already active is never the one drawn: picking it did nothing,
+    # even with another Secret in the deck (as Mad Scientist on the wiki) (WP-188).
+    play = Find(FRIENDLY_SECRETS) & Summon(
+        CONTROLLER,
+        RANDOM(
+            FRIENDLY_DECK
+            + SECRET
+            + FuncSelector(
+                lambda entities, source: [
+                    e
+                    for e in entities
+                    if hasattr(e, "id") and not source.controller.secrets.contains(e.id)
+                ]
+            )
+        ),
+    )
 
 
 class TRL_532:
