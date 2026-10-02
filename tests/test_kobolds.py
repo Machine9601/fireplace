@@ -476,14 +476,18 @@ def test_leyline_manipulator_ignores_cards_that_transformed_themselves():
         )
     )
     game.start()
-    game.player1.give("LOOT_051")  # given: did not start in the deck
+    # The coin decides who starts: play the Shifting Scrolls' player.
+    me = next(p for p in game.players if p.name == "Player1")
+    if game.current_player is not me:
+        game.end_turn()
+    me.give("LOOT_051")  # given: did not start in the deck
     game.end_turn()
     game.end_turn()
-    spells = [c for c in game.player1.hand if c.type == CardType.SPELL and c.id != "LOOT_104"]
+    spells = [c for c in me.hand if c.type == CardType.SPELL and c.id != "LOOT_104"]
     spells = [c for c in spells if not c.id.startswith("LOOT_051")]
     assert spells
     costs = [c.cost for c in spells]
-    game.player1.give("LOOT_537").play()
+    me.give("LOOT_537").play()
     assert [c.cost for c in spells] == costs
 
 
