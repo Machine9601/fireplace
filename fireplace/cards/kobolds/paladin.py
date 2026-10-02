@@ -8,7 +8,8 @@ class LOOT_216:
     """Lynessa Sunsorrow"""
 
     # [x]<b>Battlecry:</b> Cast each spell you cast on your minions this game on this one.
-    play = CastSpell(CARDS_PLAYED_THIS_GAME + CAST_ON_FRIENDLY_MINIONS, SELF)
+    # The wiki: "limited to 30 cards and casts the buffs in a random order" (WP-185).
+    play = CastSpell(RANDOM(CARDS_PLAYED_THIS_GAME + CAST_ON_FRIENDLY_MINIONS) * 30, SELF)
 
 
 class LOOT_313:

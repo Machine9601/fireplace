@@ -521,6 +521,18 @@ def test_recruit_summons_at_the_far_right():
     assert [m.id for m in game.player1.field] == [WISP, "CS2_120"]
 
 
+def test_lynessa_sunsorrow_casts_thirty_at_most():
+    # The wiki: "Lynessa's Battlecry is limited to 30 cards and casts the buffs
+    # in a random order."
+    game = prepare_empty_game()
+    wisp = game.player1.give(WISP).play()
+    for _ in range(31):
+        game.player1.give("CS2_087").play(target=wisp)  # Blessing of Might, +3
+        game.player1.used_mana = 0
+    lynessa = game.player1.give("LOOT_216").play()
+    assert lynessa.atk == 1 + 3 * 30
+
+
 def test_primal_talismans_only_friendly_minions():
     game = prepare_empty_game()
     enemy = game.player2.summon(WISP)
