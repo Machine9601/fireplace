@@ -4,10 +4,27 @@ from ..utils import *
 # Minions
 
 
+class LotharAttack(TargetedAction):
+    """Lothar attacks a random enemy minion; if it dies, he gains +3/+3."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        enemies = [m for m in target.controller.opponent.field if not m.dead]
+        if target.dead or not enemies:
+            return
+        defender = source.game.random.choice(enemies)
+        source.game.queue_actions(target, [Attack(target, defender)])
+        if defender.dead:
+            source.game.queue_actions(target, [Buff(target, "SW_024e")])
+
+
 class SW_021:
     """Cowardly Grunt"""
 
     # <b>Deathrattle:</b> Summon a minion from your deck.
+    # WP-197: the data forgot the Deathrattle tag: the script never ran.
+    tags = {GameTag.DEATHRATTLE: True}
     deathrattle = Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + MINION))
 
 
@@ -16,12 +33,10 @@ class SW_024:
 
     # At the end of your turn, attack a random enemy minion. If it dies, gain
     # +3/+3.
-    events = OWN_TURN_END.on(
-        Find(ENEMY_MINIONS)
-        & Attack(SELF, RANDOM(ENEMY_MINIONS)).then(
-            Dead(Attack.DEFENDER) & Buff(SELF, "SW_024e")
-        )
-    )
+    # WP-197: the target was drawn a second time by the `.then` (the dead
+    # minion was never the one checked): the attack is now one action that
+    # keeps its defender.
+    events = OWN_TURN_END.on(LotharAttack(SELF))
 
 
 SW_024e = buff(+3, +3)
@@ -31,6 +46,8 @@ class SW_029:
     """Harbor Scamp"""
 
     # <b>Battlecry:</b> Draw a Pirate.
+    # WP-197: the data forgot the Battlecry tag (Brilliant Macaw, Bolner...).
+    tags = {GameTag.BATTLECRY: True}
     play = ForceDraw(RANDOM(FRIENDLY_DECK + PIRATE + MINION))
 
 
@@ -45,6 +62,7 @@ class SW_093:
     """Stormwind Freebooter"""
 
     # <b>Battlecry:</b> Give your hero +2 Attack this turn.
+    tags = {GameTag.BATTLECRY: True}
     play = Buff(FRIENDLY_HERO, "SW_093e")
 
 
@@ -177,7 +195,7 @@ class DED_518:
         PlayReq.REQ_TARGET_TO_PLAY: 0,
         PlayReq.REQ_MINION_TARGET: 0,
     }
-    play = Hit(TARGET, 3), Hit(ENEMY_MINIONS - TARGET, 1)
+    play = Hit(TARGET, 3), Hit(ALL_MINIONS - TARGET, 1)
 
 
 ##

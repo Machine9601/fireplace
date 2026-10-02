@@ -26,15 +26,14 @@ class SW_323:
 
     # [x]<b>Rush</b>. <b>Deathrattle:</b> Go <b>Dormant</b>. Revive after 5
     # friendly minions die.
+    # WP-197: the count lived on an enchantment whose `dormant_events` nobody
+    # reads (the dormant minion reads its own): the Rat King never woke up.
     deathrattle = Summon(CONTROLLER, "SW_323").then(
-        SetTag(Buff(Summon.CARD, "SW_323e"), GameTag.DORMANT)
+        SetTag(Summon.CARD, GameTag.DORMANT)
     )
-
-
-class SW_323e:
     progress_total = 5
-    dormant_events = Death(FRIENDLY_MINIONS).after(AddProgress(SELF, Death.ENTITY))
-    reward = Awaken(OWNER), Destroy(SELF)
+    dormant_events = Death(FRIENDLY + MINION).on(AddProgress(SELF, Death.ENTITY))
+    reward = Awaken(SELF)
 
 
 class SW_463:
@@ -90,7 +89,9 @@ class SW_321:
 
 
 class SW_321e:
-    tags = {GameTag.HEROPOWER_DAMAGE: 2}
+    # WP-197: an aura on the player (the tag on the enchantment was never
+    # read: the Hero Power dealt its 2 and no more), as Wildfire (A204).
+    update = Refresh(CONTROLLER, {GameTag.HEROPOWER_DAMAGE: 2})
     events = Activate(FRIENDLY_HERO_POWER).after(Destroy(SELF))
 
 
@@ -99,8 +100,8 @@ class SW_322:
 
     # <b>Questline:</b> Deal damage with 2 spells. <b>Reward:</b> Your Hero
     # Power can target minions.
-    events = Damage(FRIENDLY + SPELL).after(AddProgress(SELF))
-    reward = Buff(CONTROLLER, "SW_322e3")
+    events = Damage(CHARACTER, None, FRIENDLY + SPELL).after(AddProgress(SELF))
+    reward = Buff(CONTROLLER, "SW_322e3"), Summon(CONTROLLER, "SW_322t")
 
 
 class SW_322e3:
@@ -115,8 +116,8 @@ class SW_322t:
 
     # [x]<b>Questline:</b> Deal damage with 2 spells. <b>Reward:</b> Set the
     # Cost of your Hero Power to (0).
-    events = Damage(FRIENDLY + SPELL).after(AddProgress(SELF))
-    reward = Buff(CONTROLLER, "SW_322e")
+    events = Damage(CHARACTER, None, FRIENDLY + SPELL).after(AddProgress(SELF))
+    reward = Buff(CONTROLLER, "SW_322e"), Summon(CONTROLLER, "SW_322t2")
 
 
 class SW_322e:
@@ -128,7 +129,7 @@ class SW_322t2(QuestRewardProtect):
 
     # [x]<b>Questline:</b> Deal damage with 2 spells. <b>Reward:</b> Tavish,
     # Master Marksman.
-    events = Damage(FRIENDLY + SPELL).after(AddProgress(SELF))
+    events = Damage(CHARACTER, None, FRIENDLY + SPELL).after(AddProgress(SELF))
     reward = Give(CONTROLLER, "SW_322t4")
 
 
@@ -212,7 +213,7 @@ class SW_457:
     # [x]After three friendly Beasts die, draw a Beast and give it +1/+1. Lose
     # 1 Durability.
     progress_total = 3
-    events = Death(FRIENDLY_MINIONS + BEAST).after(AddProgress(SELF))
+    events = Death(FRIENDLY + MINION + BEAST).on(AddProgress(SELF))
     reward = ForceDraw(RANDOM(FRIENDLY_DECK + BEAST)).then(
         Buff(ForceDraw.TARGET, "SW_457e"), Hit(SELF, 1)
     )

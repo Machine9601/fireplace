@@ -71,8 +71,13 @@ class SW_045:
 
     # [x]Whenever you <b>Trade</b>, <b>Discover</b> a card from your _deck to
     # draw instead.
+    # WP-197: `Choice` takes its player (the script crashed on every Trade), and
+    # the Discover replaces the draw of the Trade (the card chosen is drawn).
     events = Trade(FRIENDLY).on(
-        Choice(RANDOM(FRIENDLY_DECK, 3)).then(PutOnTop(Choice.CARD))
+        Find(FRIENDLY_DECK)
+        & Choice(CONTROLLER, RANDOM(FRIENDLY_DECK, 3)).then(
+            ForceDraw(Choice.CARD)
+        )
     )
 
 

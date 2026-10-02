@@ -325,6 +325,8 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
     has_choose_one = boolean_property("has_choose_one")
     playable_zone = Zone.HAND
     lifesteal = boolean_property("lifesteal")
+    tradeable = boolean_property("tradeable")
+    si_7 = boolean_property("si_7")
     keep_buff = boolean_property("keep_buff")
     echo = boolean_property("echo")
     has_overkill = boolean_property("has_overkill")
@@ -689,7 +691,10 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
         if self.zone != Zone.HAND:
             return False
 
-        if not self.controller.mana < 1:
+        if not self.tradeable:
+            return False
+
+        if self.controller.mana < 1:
             return False
 
         if len(self.controller.deck) == 0:
@@ -892,7 +897,7 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
                 return bool(self.play_targets)
         req = self.requirements.get(PlayReq.REQ_TARGET_IF_AVAILABLE_AND_SHADOW_IN_HAND)
         if req is not None:
-            if self.controller.hand.filter(spell_scholl=SpellSchool.SHADOW):
+            if self.controller.hand.filter(spell_school=SpellSchool.SHADOW):
                 return bool(self.play_targets)
         req = self.requirements.get(
             PlayReq.REQ_TARGET_IF_AVAILABLE_AND_HERO_DAMAGED_THIS_TURN

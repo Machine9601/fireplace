@@ -66,11 +66,20 @@ class DED_510:
 
     # [x]<b>Battlecry:</b> Draw a card. If you play it this turn, gain +2/+2
     # and repeat this effect.
-    play = Draw(CONTROLLER).then(Buff(Draw.CARD, "DED_510e"))
+    # WP-197: the effect did not repeat (no second draw), the buff went to
+    # nobody once the first enchantment was gone, and it outlived the turn.
+    play = Draw(CONTROLLER).then(StoringBuff(Draw.CARD, "DED_510e", SELF))
 
 
 class DED_510e:
-    events = Play(CONTROLLER, OWNER).on(Buff(CREATOR, "DED_510e2"), Destroy(SELF))
+    events = (
+        Play(CONTROLLER, OWNER).on(
+            Buff(STORE_CARD, "DED_510e2"),
+            Draw(CONTROLLER).then(StoringBuff(Draw.CARD, "DED_510e", STORE_CARD)),
+            Destroy(SELF),
+        ),
+        OWN_TURN_END.on(Destroy(SELF)),
+    )
 
 
 DED_510e2 = buff(+2, +2)
@@ -106,8 +115,8 @@ class SW_412:
     """SI:7 Extortion"""
 
     # <b>Tradeable</b> Deal $3 damage to an undamaged character.
+    # WP-197: any undamaged character, not only minions.
     requirements = {
-        PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_TARGET_TO_PLAY: 0,
         PlayReq.REQ_UNDAMAGED_TARGET: 0,
     }
@@ -120,7 +129,7 @@ class SW_052:
     # <b>Questline:</b> Play 2 SI:7 cards. <b>Reward:</b> Add a Spy Gizmo to
     # your hand.
     quest = Play(CONTROLLER, SI_7).on(AddProgress(SELF, Play.CARD))
-    reward = Give(CONTROLLER, RandomID(SPY_GIZMO)), Summon(CONTROLLER, "SW_052t")
+    reward = Give(CONTROLLER, RandomID(*SPY_GIZMO)), Summon(CONTROLLER, "SW_052t")
 
 
 class SW_052t:
@@ -129,7 +138,7 @@ class SW_052t:
     # <b>Questline:</b> Play 2 SI:7 cards. <b>Reward:</b> Add a Spy Gizmo to
     # your hand.
     quest = Play(CONTROLLER, SI_7).on(AddProgress(SELF, Play.CARD))
-    reward = Give(CONTROLLER, RandomID(SPY_GIZMO)), Summon(CONTROLLER, "SW_052t2")
+    reward = Give(CONTROLLER, RandomID(*SPY_GIZMO)), Summon(CONTROLLER, "SW_052t2")
 
 
 class SW_052t2(QuestRewardProtect):
@@ -211,7 +220,18 @@ class DED_005:
     """Parrrley"""
 
     # Swap this for a card in your opponent's deck.
-    play = Swap(SELF, RANDOM(ENEMY_DECK + MINION))
+    # WP-197: `Swap` sent the card of the opponent to the graveyard (where
+    # the spell stood) instead of to the hand, and only minions were drawn:
+    # the card is given to the hand, taken from the deck, and Parrrley goes
+    # in its place.
+    def play(self):
+        deck = list(self.controller.opponent.deck)
+        if not deck:
+            return
+        card = self.game.random.choice(deck)
+        yield Give(CONTROLLER, card.id)
+        yield Remove(card)
+        yield Shuffle(OPPONENT, "DED_005")
 
 
 ##

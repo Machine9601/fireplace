@@ -121,6 +121,7 @@ class SW_039t3_t:
     """Demonslayer Kurtrus"""
 
     # <b>Battlecry:</b> For the rest of the game, cards you draw cost (2) less.
+    tags = {GameTag.BATTLECRY: True}
     play = Buff(CONTROLLER, "SW_039t2e")
 
 
@@ -128,7 +129,8 @@ class SW_039t2e:
     """Faster Moves"""
 
     # Costs (2) less.
-    events = Draw(CONTROLLER).on(Buff(Draw.TARGET, "SW_039t3_te"))
+    # WP-197: the card drawn (`Draw.TARGET` is the player).
+    events = Draw(CONTROLLER).on(Buff(Draw.CARD, "SW_039t3_te"))
 
 
 class SW_039t3_te:
@@ -143,7 +145,18 @@ class SW_040:
     """Fel Barrage"""
 
     # [x]Deal $2 damage to the lowest Health enemy, twice.
-    play = Hit(RANDOM(LOWEST_HEALTH(ENEMY_MINIONS)), 2) * 2
+    # WP-197: the lowest Health enemy is looked for again for the second hit
+    # (a dead minion is not the lowest): `* 2` hit the same minion twice.
+    # Enemy minions only: the heroes are an open question (annexe A215).
+    def play(self):
+        for _ in range(2):
+            minions = [m for m in self.controller.opponent.field if not m.dead]
+            if not minions:
+                return
+            lowest = min(m.health for m in minions)
+            yield Hit(
+                self.game.random.choice([m for m in minions if m.health == lowest]), 2
+            )
 
 
 class SW_041:
@@ -151,7 +164,8 @@ class SW_041:
 
     # [x]At the start of your next turn, draw a card and _reduce its Cost by
     # (1).
-    events = OWN_TURN_BEGIN.on(Draw(CONTROLLER).then(Buff(Draw.TARGET, "SW_041e2")))
+    # WP-197: the card drawn (`Draw.TARGET` is the player): it cost the same.
+    events = OWN_TURN_BEGIN.on(Draw(CONTROLLER).then(Buff(Draw.CARD, "SW_041e2")))
 
 
 class SW_041e2:
@@ -176,7 +190,10 @@ class DED_506:
     """Need for Greed"""
 
     # <b>Tradeable</b> Draw 3 cards. If drawn this turn, this costs (3).
-    update = Find(DRAWN_THIS_TURN + SELF) & Refresh(SELF, {GameTag.COST: 3})
+    # WP-197: a card in hand only reads the `Hand` block: it always cost 5.
+    class Hand:
+        update = Find(DRAWN_THIS_TURN + SELF) & Refresh(SELF, {GameTag.COST: SET(3)})
+
     play = Draw(CONTROLLER) * 3
 
 
