@@ -8,7 +8,8 @@ class TRL_405:
     """Untamed Beastmaster"""
 
     # Whenever you draw a Beast, give it +2/+2.
-    events = Draw(CONTROLLER, BEAST).on(Buff(Draw.TARGET, "TRL_405e"))
+    # Draw.TARGET is the player who draws; the card is Draw.CARD (WP-188).
+    events = Draw(CONTROLLER, BEAST).on(Buff(Draw.CARD, "TRL_405e"))
 
 
 TRL_405e = buff(+2, +2)
@@ -26,9 +27,10 @@ class TRL_527:
 
     # [x]<b>Battlecry:</b> Give each player a copy of a random card from their opponent's
     # deck.
+    # Each player gets a card of the OTHER player's deck (WP-188).
     play = (
-        Give(CONTROLLER, ExactCopy(RANDOM(FRIENDLY_DECK))),
-        Give(OPPONENT, ExactCopy(RANDOM(ENEMY_DECK))),
+        Give(CONTROLLER, ExactCopy(RANDOM(ENEMY_DECK))),
+        Give(OPPONENT, ExactCopy(RANDOM(FRIENDLY_DECK))),
     )
 
 
@@ -48,7 +50,22 @@ class TRL_530:
 
     # <b>Battlecry:</b> If you control a_<b>Secret</b>, play a <b>Secret</b> from_your
     # deck.
-    play = Find(FRIENDLY_SECRETS) & Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + SECRET))
+    # A Secret already active is never the one drawn: picking it did nothing,
+    # even with another Secret in the deck (as Mad Scientist on the wiki) (WP-188).
+    play = Find(FRIENDLY_SECRETS) & Summon(
+        CONTROLLER,
+        RANDOM(
+            FRIENDLY_DECK
+            + SECRET
+            + FuncSelector(
+                lambda entities, source: [
+                    e
+                    for e in entities
+                    if hasattr(e, "id") and not source.controller.secrets.contains(e.id)
+                ]
+            )
+        ),
+    )
 
 
 class TRL_532:
@@ -71,8 +88,15 @@ class TRL_535:
     """Snapjaw Shellfighter"""
 
     # [x]Whenever an adjacent minion takes damage, this _minion takes it instead.
+    # The damage still pending on the neighbour, not the amount announced: with a
+    # Shellfighter on each side, only the one played first takes it, not both
+    # (hearthstone.wiki.gg) (WP-188).
     events = Predamage(SELF_ADJACENT).on(
-        Predamage(Predamage.TARGET, 0), Damage(SELF, Predamage.AMOUNT)
+        (Attr(Predamage.TARGET, "predamage") > 0)
+        & (
+            Damage(SELF, Attr(Predamage.TARGET, "predamage")),
+            Predamage(Predamage.TARGET, 0),
+        )
     )
 
 

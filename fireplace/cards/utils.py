@@ -585,9 +585,12 @@ class ThresholdUtils(type):
             return splited[0] + splited[1]
 
         def cardtext_entity_0(self):
-            return self.player_tag_threshold_value - getattr(
-                self.controller, self.map[self.player_tag_threshold_tag_id], 0
+            # The threshold and its tag are the locals below, not attributes of
+            # the card (which has no `map`): the "({0} left!)" text raised (WP-188).
+            left = player_tag_threshold_value - (
+                Attr(CONTROLLER, player_tag_threshold_tag_id).evaluate(self)
             )
+            return max(left, 0)
 
         tags = {
             enums.CUSTOM_CARDTEXT: custom_cardtext,

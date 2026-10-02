@@ -68,10 +68,12 @@ class TRL_339:
         entities = (RANDOM(DeDuplicate(FRIENDLY_DECK + MINION)) * 3).eval(
             self.game, self
         )
+        # The chosen card is drawn and the two others stay in the deck, as
+        # Tracking (rule 90): GenericChoice took the three out of it (WP-188).
         if all(Race.BEAST in entity.races for entity in entities):
-            yield Give(CONTROLLER, entities)
+            yield ForceDraw(entities)
         else:
-            yield GenericChoice(CONTROLLER, entities)
+            yield Choice(CONTROLLER, entities).then(ForceDraw(Choice.CARD))
 
 
 class TRL_347:
@@ -114,12 +116,26 @@ TRL_111e1 = buff(health=1)
 # Heros
 
 
+class CastSpellUnlessActiveSecret(CastSpell):
+    def do(self, source, card, targets):
+        if card.tags.get(GameTag.SECRET) and not card.is_summonable():
+            return
+        # A "Choose One" copy never was in a hand, where its options are made
+        # (PlayableCard._set_zone): without them it did nothing (WP-188).
+        if card.data.choose_cards and not card.choose_cards:
+            for id in card.data.choose_cards:
+                card.choose_cards.append(card.controller.card(id, source=card, parent=card))
+        return super().do(source, card, targets)
+
+
 class TRL_065:
     """Zul'jin"""
 
     # [x]<b>Battlecry:</b> Cast all spells you've played this game <i>(targets chosen
     # randomly)</i>.
-    play = CastSpell(Copy(CARDS_PLAYED_THIS_GAME + SPELL))
+    # A Secret already active (or a sixth one) is not cast again: a player never
+    # has two copies of the same Secret (hearthstone.wiki.gg, "Secret") (WP-188).
+    play = CastSpellUnlessActiveSecret(Copy(CARDS_PLAYED_THIS_GAME + SPELL))
 
 
 class TRL_065h:

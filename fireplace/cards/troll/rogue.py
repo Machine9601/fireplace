@@ -8,7 +8,8 @@ class TRL_071:
     """Bloodsail Howler"""
 
     # [x]<b>Rush</b> <b>Battlecry:</b> Gain +1/+1 for each other Pirate you control.
-    play = Buff(SELF, "TRL_071e") * Count(FRIENDLY_MINIONS + PIRATE)
+    # "each other Pirate": the Howler, a Pirate itself, does not count (WP-188).
+    play = Buff(SELF, "TRL_071e") * Count(FRIENDLY_MINIONS + PIRATE - SELF)
 
 
 TRL_071e = buff(+1, +1)
@@ -93,7 +94,11 @@ class TRL_156:
     """Stolen Steel"""
 
     # <b>Discover</b> a weapon <i>(from another class)</i>.
-    play = GenericChoice(CONTROLLER, RandomWeapon(card_class=ANOTHER_CLASS) * 3)
+    # ANOTHER_CLASS keeps the neutral weapons (Sphere of Sapience): "from another
+    # class" excludes them, as Pilfer (A62) (WP-188).
+    play = GenericChoice(
+        CONTROLLER, RandomWeapon(custom_filter=AnotherHeroClass()) * 3
+    )
 
 
 class TRL_157:
