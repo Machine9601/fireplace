@@ -31,8 +31,10 @@ class LOOT_998j:
     requirements = {
         PlayReq.REQ_NUM_MINION_SLOTS: 1,
     }
+    # Two copies: summoning the discovered card twice summoned it once (WP-185).
     play = Discover(CONTROLLER, RandomLegendaryMinion()).then(
-        Summon(CONTROLLER, Discover.CARD) * 2
+        Summon(CONTROLLER, Discover.CARD),
+        Summon(CONTROLLER, Copy(Discover.CARD)),
     )
 
 

@@ -450,6 +450,20 @@ def test_shifting_scroll_transforms_at_the_end_of_its_turn():
     assert second.type == CardType.SPELL
 
 
+def test_zarogs_crown_summons_two_copies():
+    # Marin the Fox's treasure: "Discover a Legendary minion. Summon two
+    # copies of it." Two on the board, none in the hand.
+    game = prepare_empty_game()
+    game.player1.give("LOOT_998j").play()
+    choice = game.player1.choice
+    assert len(choice.cards) == 3
+    assert all(c.rarity == Rarity.LEGENDARY for c in choice.cards)
+    chosen = choice.cards[0].id
+    choice.choose(choice.cards[0])
+    assert [m.id for m in game.player1.field] == [chosen, chosen]
+    assert len(game.player1.hand) == 0
+
+
 def test_primal_talismans_only_friendly_minions():
     game = prepare_empty_game()
     enemy = game.player2.summon(WISP)
