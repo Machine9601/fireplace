@@ -39,13 +39,34 @@ class ULD_439:
     play = Give(CONTROLLER, "ULD_439t") * 2
 
 
+# The eleven upgraded Hero Powers, the one of your class comprised
+# (hearthstone.wiki.gg, Sir Finley of the Sands). UPGRADED_HERO_POWERS
+# (cards/utils.py) lists the basic ones: Sir Finley offered Lesser Heal and
+# Shapeshift (WP-190).
+SIR_FINLEY_HERO_POWERS = [
+    "HERO_01bp2",  # Tank Up!
+    "HERO_02bp2",  # Totemic Slam
+    "HERO_03bp2",  # Poisoned Daggers
+    "HERO_04bp2",  # The Silver Hand
+    "HERO_05bp2",  # Ballista Shot
+    "HERO_06bp2",  # Dire Shapeshift
+    "HERO_07bp2",  # Soul Tap
+    "HERO_08bp2",  # Fireblast Rank 2
+    "HERO_09bp2",  # Heal
+    "HERO_10bp2",  # Demon's Bite
+    "HERO_11bp2",  # Ghoul Frenzy
+]
+
+
 class ULD_500:
     """Sir Finley of the Sands"""
 
     # [x]<b>Battlecry:</b> If your deck has no duplicates, <b>Discover</b> an upgraded Hero
     # Power.
     powered_up = -FindDuplicates(FRIENDLY_DECK)
-    play = powered_up & GenericChoice(CONTROLLER, RandomUpgradedHeroPower() * 3)
+    play = powered_up & GenericChoice(
+        CONTROLLER, RandomID(*SIR_FINLEY_HERO_POWERS) * 3
+    )
 
 
 ##

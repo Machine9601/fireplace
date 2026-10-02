@@ -1,5 +1,17 @@
 from ..utils import *
 
+
+# "From another class" is the hero's: a class card none of whose classes is
+# the hero's, never a neutral one. ANOTHER_CLASS is the list of the classes
+# that are not the *card's* (rogue), neutral comprised (WP-190, as WP-189 for
+# Underbelly Fence and Vendetta).
+def _from_another_class(entities, source):
+    keep = AnotherHeroClass().evaluate(source)
+    return [e for e in entities if hasattr(e, "data") and keep(e.data)]
+
+
+FROM_ANOTHER_CLASS = FuncSelector(_from_another_class)
+
 ##
 # Minions
 
@@ -42,7 +54,7 @@ class ULD_327:
     """Bazaar Mugger"""
 
     # <b>Rush</b> <b>Battlecry:</b> Add a random minion from another class to your hand.
-    play = Give(CONTROLLER, RandomMinion(card_class=ANOTHER_CLASS))
+    play = Give(CONTROLLER, RandomMinion(custom_filter=AnotherHeroClass()))
 
 
 ##
@@ -57,7 +69,7 @@ class ULD_286:
         PlayReq.REQ_TARGET_TO_PLAY: 0,
         PlayReq.REQ_MINION_TARGET: 0,
     }
-    play = Shuffle(CONTROLLER, "ULD_286t")
+    play = Shuffle(CONTROLLER, "ULD_286t") * 3
 
 
 class ULD_286t:
@@ -70,7 +82,7 @@ class ULD_326:
     # [x]<b>Quest:</b> Add 4 cards from other classes to your hand. <b>Reward: </b>Ancient
     # Blades.
     progress_total = 4
-    quest = Give(CONTROLLER, ANOTHER_CLASS).after(AddProgress(SELF, Give.CARD))
+    quest = Give(CONTROLLER, FROM_ANOTHER_CLASS).after(AddProgress(SELF, Give.CARD))
     reward = Summon(CONTROLLER, "ULD_326p")
 
 
@@ -89,7 +101,7 @@ class ULD_328:
     """Clever Disguise"""
 
     # Add 2 random spells from another class to_your hand.
-    play = Give(CONTROLLER, RandomSpell(card_class=ANOTHER_CLASS))
+    play = Give(CONTROLLER, RandomSpell(custom_filter=AnotherHeroClass())) * 2
 
 
 class ULD_715:

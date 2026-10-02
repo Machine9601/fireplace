@@ -15,8 +15,10 @@ class ULD_180:
     """Sunstruck Henchman"""
 
     # At the start of your turn, this has a 50% chance to_fall asleep.
+    # Asleep is "no turn in play yet": -1 counted as a turn, it never fell
+    # asleep (WP-190).
     events = OWN_TURN_BEGIN.on(
-        COINFLIP & SetTags(SELF, {GameTag.NUM_TURNS_IN_PLAY: -1})
+        COINFLIP & SetTags(SELF, {GameTag.NUM_TURNS_IN_PLAY: 0})
     )
 
 

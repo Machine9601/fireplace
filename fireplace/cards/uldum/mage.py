@@ -20,7 +20,8 @@ class ULD_238:
     # <b>Battlecry:</b> If your deck has no duplicates, deal 10 damage randomly split among
     # all enemy minions.
     powered_up = -FindDuplicates(FRIENDLY_DECK)
-    play = powered_up & Hit(RANDOM_ENEMY_CHARACTER, 1) * 10
+    # "among all enemy minions": never the enemy hero (WP-190).
+    play = powered_up & Hit(RANDOM_ENEMY_MINION, 1) * 10
 
 
 class ULD_240:

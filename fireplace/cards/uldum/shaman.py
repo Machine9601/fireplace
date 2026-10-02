@@ -32,7 +32,13 @@ class ULD_173:
     """Vessina"""
 
     # While you're <b>Overloaded</b>, your other minions have +2 Attack.
-    update = OVERLOADED(CONTROLLER) & Refresh(FRIENDLY_MINIONS - SELF, {GameTag.ATK: 2})
+    # Overloaded = locked crystals or Overload owed (hearthstone.wiki.gg, Overload:
+    # "will work with both Overloaded crystals and pending Overloaded crystals").
+    # OVERLOADED (cards/utils.py) is a Python `or` that sees the locked ones only:
+    # repaired here, as Likkim (WP-188), the common tool left as it is.
+    update = (OVERLOAD_LOCKED(CONTROLLER) + OVERLOAD_OWED(CONTROLLER) > 0) & Refresh(
+        FRIENDLY_MINIONS - SELF, {GameTag.ATK: 2}
+    )
 
 
 class ULD_276:
@@ -67,7 +73,9 @@ class ULD_181:
     """Earthquake"""
 
     # Deal $5 damage to all minions, then deal $2 damage to all minions.
-    play = Hit(ALL_MINIONS, 5), Hit(ALL_MINIONS, 2)
+    # hearthstone.wiki.gg: "All damage and death triggers caused by the initial
+    # damage will resolve before the second round" (WP-190).
+    play = Hit(ALL_MINIONS, 5), Deaths(), Hit(ALL_MINIONS, 2)
 
 
 class ULD_291:
@@ -87,7 +95,10 @@ class ULD_291p:
 
 
 class ULD_291pe:
-    tags = {enums.EXTRA_BATTLECRIES: True}
+    # A player reads EXTRA_BATTLECRIES from its slots (an aura, as Brann
+    # Bronzebeard), not from a buff's tags: it never doubled (WP-190). The
+    # enchantment is one-turn (CardDefs).
+    update = Refresh(CONTROLLER, {enums.EXTRA_BATTLECRIES: True})
 
 
 ##

@@ -80,8 +80,11 @@ class ULD_705:
 
     # <b>Battlecry:</b> If your board is full of Mogu Cultists, sacrifice them all and
     # summon Highkeeper Ra.
+    # The seven Cultists die before Ra comes: without the death phase, the dead
+    # Cultists still filled the board and Ra was never summoned (WP-190).
     play = (Count(FRIENDLY_MINIONS + ID("ULD_705")) == 7) & (
         Destroy(FRIENDLY_MINIONS),
+        Deaths(),
         Summon(CONTROLLER, "ULD_705t"),
     )
 
@@ -94,9 +97,10 @@ class ULD_706:
     """Blatant Decoy"""
 
     # [x]<b>Deathrattle:</b> Each player summons the lowest Cost minion from their hand.
+    # The lowest Cost, not the lowest Attack (WP-190); a tie is drawn at random.
     deathrattle = (
-        Summon(CONTROLLER, LOWEST_ATK(FRIENDLY_HAND + MINION)),
-        Summon(OPPONENT, LOWEST_ATK(ENEMY_HAND + MINION)),
+        Summon(CONTROLLER, LOWEST_COST(FRIENDLY_HAND + MINION)),
+        Summon(OPPONENT, LOWEST_COST(ENEMY_HAND + MINION)),
     )
 
 
