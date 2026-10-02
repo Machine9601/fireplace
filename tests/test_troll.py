@@ -625,6 +625,19 @@ def test_stolen_steel_never_offers_a_neutral_weapon():
         game.player1.choice.choose(cards[0])
 
 
+def test_zuljin_casts_a_choose_one_spell():
+    game = prepare_empty_game(CardClass.HUNTER, CardClass.MAGE)
+    yeti = game.player2.summon("CS2_182")
+    game.player1.give("EX1_154").play(choose="EX1_154a", target=yeti)  # Wrath, 3
+    assert yeti.health == 2
+    game.end_turn()
+    game.end_turn()
+    game.player1.give("TRL_065").play()
+    # Either option: 3 damage, or 1 damage and a card; the only target is the
+    # Yeti for 3 (heroes can not be its target), so it is dead or at 1.
+    assert yeti.dead or yeti.health == 1
+
+
 def test_zuljin_does_not_cast_an_active_secret_again():
     game = prepare_empty_game(CardClass.HUNTER, CardClass.MAGE)
     game.player1.give("EX1_554").play()  # Snake Trap

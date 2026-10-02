@@ -120,6 +120,11 @@ class CastSpellUnlessActiveSecret(CastSpell):
     def do(self, source, card, targets):
         if card.tags.get(GameTag.SECRET) and not card.is_summonable():
             return
+        # A "Choose One" copy never was in a hand, where its options are made
+        # (PlayableCard._set_zone): without them it did nothing (WP-188).
+        if card.data.choose_cards and not card.choose_cards:
+            for id in card.data.choose_cards:
+                card.choose_cards.append(card.controller.card(id, source=card, parent=card))
         return super().do(source, card, targets)
 
 
