@@ -421,3 +421,31 @@ def test_bandersmosh_becomes_a_5_5_each_turn():
         card = game.player1.hand[0]
         assert card.id != "DRG_096"
         assert (card.atk, card.health) == (5, 5)
+
+
+def test_kronx_dragonhoof_draws_galakrond_and_unleashes_a_devastation():
+    game = prepare_empty_game(CardClass.WARRIOR, CardClass.WARRIOR)
+    game.player1.give("DRG_650").play()
+    game.player1.used_mana = 0
+    game.player1.give("DRG_660").shuffle_into_deck()
+    game.player2.give("DRG_610").shuffle_into_deck()
+    game.player1.give("DRG_099").play()
+    assert game.player1.hand == ["DRG_660"]
+    assert game.player2.deck == ["DRG_610"]
+    assert game.player1.choice
+    assert len(game.player1.choice.cards) == 4
+
+
+def test_murozond_replays_the_cards_in_reverse_order_without_battlecries():
+    game = prepare_empty_game(CardClass.PRIEST, CardClass.PRIEST)
+    game.end_turn()
+    game.player2.max_mana = 10
+    game.player2.used_mana = 0
+    game.player2.give(WISP).play()
+    game.player2.give("CS2_120").play()
+    game.player2.give("CS2_122").play()
+    game.end_turn()
+    game.player1.max_mana = 10
+    game.player1.used_mana = 0
+    game.player1.give("DRG_090").play()
+    assert game.player1.field == ["DRG_090", "CS2_122", "CS2_120", WISP]

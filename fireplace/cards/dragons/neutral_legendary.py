@@ -34,11 +34,16 @@ class DRG_099:
 
     # [x]<b>Battlecry:</b> Draw Galakrond. If you're already Galakrond, unleash a
     # Devastation.
-    play = Find(GALAKROND + FRIENDLY_HERO) & (
-        Choice(CONTROLLER, ["DRG_099t1", "DRG_099t2", "DRG_099t3", "DRG_099t4"]).then(
+    # Both effects when both apply (WP-191, the wiki: "Kronx will activate both"); the
+    # draw was an "else" of the Devastation.
+    play = (
+        Find(GALAKROND + FRIENDLY_DECK)
+        & ForceDraw(RANDOM(GALAKROND + FRIENDLY_DECK)),
+        Find(GALAKROND + FRIENDLY_HERO)
+        & Choice(CONTROLLER, ["DRG_099t1", "DRG_099t2", "DRG_099t3", "DRG_099t4"]).then(
             Battlecry(Choice.CARD, None)
-        )
-    ) | (Find(GALAKROND + FRIENDLY_DECK) & ForceDraw(GALAKROND))
+        ),
+    )
 
 
 class DRG_099t1:
