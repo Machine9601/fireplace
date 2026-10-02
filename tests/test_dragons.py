@@ -449,3 +449,100 @@ def test_murozond_replays_the_cards_in_reverse_order_without_battlecries():
     game.player1.used_mana = 0
     game.player1.give("DRG_090").play()
     assert game.player1.field == ["DRG_090", "CS2_122", "CS2_120", WISP]
+
+
+# WP-192: the cards of Galakrond's Awakening (YEAR_OF_THE_DRAGON) the fork played otherwise
+# than their text.
+
+
+def test_arcane_amplifier_adds_two_to_the_hero_power():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    amplifier = game.player1.give("YOD_008").play()
+    game.player1.hero.power.use(target=game.player2.hero)
+    assert game.player2.hero.damage == 3
+    amplifier.destroy()
+    game.end_turn()
+    game.end_turn()
+    game.player1.hero.power.use(target=game.player2.hero)
+    assert game.player2.hero.damage == 4
+
+
+def test_skyvateer_draws_a_card_when_it_dies():
+    game = prepare_empty_game(CardClass.ROGUE, CardClass.ROGUE)
+    game.player1.give(WISP).shuffle_into_deck()
+    skyvateer = game.player1.give("YOD_016").play()
+    assert skyvateer.has_deathrattle
+    skyvateer.destroy()
+    assert game.player1.hand == [WISP]
+    assert len(game.player1.deck) == 0
+
+
+def test_aeon_reaver_deals_the_targets_attack():
+    game = prepare_empty_game(CardClass.PRIEST, CardClass.PRIEST)
+    game.end_turn()
+    golem = game.player2.give("CS2_186").play()  # War Golem 7/7
+    game.end_turn()
+    reaver = game.player1.give("YOD_014")
+    reaver.play(target=golem)
+    assert golem.dead
+    assert reaver.damage == 0
+
+
+def test_hailbringer_puts_an_ice_shard_on_each_side():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    game.player1.give(WISP).play()
+    game.player1.give("YOD_029").play()
+    assert game.player1.field == [WISP, "YOD_029t", "YOD_029", "YOD_029t"]
+
+
+def test_chaos_gazer_card_is_destroyed_at_the_end_of_the_opponents_turn():
+    game = prepare_empty_game(CardClass.WARLOCK, CardClass.WARLOCK)
+    for card in list(game.player2.hand):
+        card.discard()
+    wisp = game.player2.give(WISP)
+    game.player1.give("YOD_027").play()
+    assert len(wisp.buffs) == 1
+    game.end_turn()  # the end of the Gazer's own turn: the card is still there
+    assert wisp.zone == Zone.HAND
+    assert game.current_player is game.player2
+    game.end_turn()  # the end of the opponent's turn
+    assert wisp.zone == Zone.GRAVEYARD
+
+
+def test_rotnest_drake_needs_a_dragon_in_hand():
+    game = prepare_empty_game(CardClass.HUNTER, CardClass.HUNTER)
+    game.end_turn()
+    target = game.player2.give(WISP).play()
+    game.end_turn()
+    game.player1.give("YOD_036").play()
+    assert target.zone == Zone.PLAY
+    game.player1.used_mana = 0
+    game.player1.give("EX1_043")
+    game.player1.give("YOD_036").play()
+    assert target.zone == Zone.GRAVEYARD
+
+
+def test_winged_guardian_cannot_be_targeted_by_spells_and_hero_powers_and_comes_back():
+    game = prepare_empty_game(CardClass.DRUID, CardClass.DRUID)
+    guardian = game.player1.give("YOD_003").play()
+    game.end_turn()
+    fireball = game.player2.give(FIREBALL)
+    assert guardian not in fireball.targets
+    assert guardian not in game.player2.hero.power.targets
+    game.end_turn()
+    guardian.destroy()
+    assert [c.id for c in game.player1.field] == ["YOD_003"]
+    assert game.player1.field[0].health == 1
+
+
+def test_chaos_gazer_card_can_be_played_in_the_opponents_turn():
+    game = prepare_empty_game(CardClass.WARLOCK, CardClass.WARLOCK)
+    for card in list(game.player2.hand):
+        card.discard()
+    game.player2.max_mana = 3
+    yeti = game.player2.give("CS2_182")  # costs 4, playable next turn at 4 crystals
+    game.player1.give("YOD_027").play()
+    game.end_turn()
+    assert yeti.is_playable()
+    yeti.play()
+    assert yeti.zone == Zone.PLAY
