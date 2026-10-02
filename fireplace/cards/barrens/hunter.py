@@ -8,21 +8,27 @@ class BAR_030:
     """Pack Kodo"""
 
     # <b>Battlecry:</b> <b>Discover</b> a Beast, <b>Secret</b>, or weapon.
-    # One of each, from its class and the neutrals as a Discover ("Hunter or
-    # Neutral", hearthstone.wiki.gg, Pack Kodo): the three came from any
-    # class (WP-196)
-    play = GenericChoice(
-        CONTROLLER,
-        [
+    # One of each, Hunter or Neutral ("Hunter or Neutral Beast minions",
+    # "Hunter Secret spells", "Hunter or Neutral weapons", hearthstone.wiki.gg,
+    # Pack Kodo): the three came from any class (WP-196). A pool left empty
+    # (a bounded one) offers one card less.
+    def play(self):
+        pickers = (
             RandomBeast()
             .copy_with_weighting(1, card_class=CardClass.NEUTRAL)
-            .copy_with_weighting(1, card_class=FRIENDLY_CLASS),
-            RandomSpell(secret=True, card_class=FRIENDLY_CLASS),
+            .copy_with_weighting(1, card_class=CardClass.HUNTER),
+            RandomSpell(secret=True, card_class=CardClass.HUNTER),
             RandomWeapon()
             .copy_with_weighting(1, card_class=CardClass.NEUTRAL)
-            .copy_with_weighting(1, card_class=FRIENDLY_CLASS),
-        ],
-    )
+            .copy_with_weighting(1, card_class=CardClass.HUNTER),
+        )
+        options = []
+        for picker in pickers:
+            cards = picker.evaluate(self)
+            if cards:
+                options.append(cards[0])
+        if options:
+            yield GenericChoice(CONTROLLER, options)
 
 
 class BAR_031:

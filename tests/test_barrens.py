@@ -240,10 +240,11 @@ def test_prospectors_caravan_gives_plus_one_plus_one():
 
 
 def test_pack_kodo_offers_a_beast_a_secret_and_a_weapon_of_its_class():
-    # The three came from any class ("Hunter or Neutral", the wiki)
+    # The three came from any class ("Hunter or Neutral", the wiki), whatever
+    # the class of its player
     for _ in range(15):
-        game = prepare_empty_game(CardClass.HUNTER, CardClass.MAGE)
-        hero_class = game.player1.hero.card_class
+        game = prepare_empty_game(CardClass.SHAMAN, CardClass.SHAMAN)
+        hero_class = CardClass.HUNTER
         game.player1.give("BAR_030").play()
         beast, secret, weapon = game.player1.choice.cards
         assert beast.type == CardType.MINION and Race.BEAST in beast.races
