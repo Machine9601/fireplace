@@ -1,5 +1,13 @@
 from ..utils import *
 
+
+# Instructor Fireheart: discover a spell that costs (1) or more; if it is
+# played this turn, discover again.
+FIREHEART_DISCOVER = Discover(CONTROLLER, RandomSpell(cost=range(1, 100))).then(
+    Give(CONTROLLER, Discover.CARD),
+    StoringBuff(CONTROLLER, "SCH_507e", Discover.CARD),
+)
+
 ##
 # Minions
 
@@ -8,7 +16,8 @@ class SCH_236:
     """Diligent Notetaker"""
 
     # <b>Spellburst:</b> Return the spell to your hand.
-    spellburst = Give(CONTROLLER, SELF)
+    # The spell itself, from its player's graveyard, not the Notetaker
+    spellburst = Give(CONTROLLER, Spellburst.SPELL)
 
 
 class SCH_507:
@@ -16,17 +25,14 @@ class SCH_507:
 
     # [x]<b>Battlecry:</b> <b>Discover</b> a spell that costs (1) or more. If
     # you play it this turn, repeat this effect.
-    play = Discover(CONTROLLER, RandomSpell(cost=range(1, 100))).then(
-        Give(CONTROLLER, Discover.CARD), Buff(Discover.CARD, "SCH_507e")
-    )
+    # The enchantment that waits for the spell is its player's (an enchantment
+    # on the spell is gone once the spell is played, and never heard it); it
+    # remembers the spell, and lasts this turn (TAG_ONE_TURN_EFFECT).
+    play = FIREHEART_DISCOVER
 
 
 class SCH_507e:
-    events = Play(CONTROLLER, OWNER).after(
-        Discover(CONTROLLER, RandomSpell(cost=range(1, 100))).then(
-            Give(CONTROLLER, Discover.CARD), Buff(Discover.CARD, "SCH_507e")
-        )
-    )
+    events = Play(CONTROLLER, STORE_CARD).after(Destroy(SELF), FIREHEART_DISCOVER)
 
 
 class SCH_537:
@@ -40,6 +46,8 @@ class SCH_615:
     """Totem Goliath"""
 
     # <b>Deathrattle:</b> Summon all four basic Totems. <b>Overload: (1)</b>
+    # The Overload (1) of its text, which CardDefs.xml (patch 21.8) lacks
+    tags = {GameTag.OVERLOAD: 1}
     deathrattle = Summon(CONTROLLER, BASIC_TOTEMS)
 
 
@@ -60,7 +68,9 @@ class SCH_270:
 
     # <b>Discover</b> a <b>Spell Damage</b> minion. Your next one costs (1)
     # less.
-    play = DISCOVER(RandomMinion(spell_damage=True)), Buff(CONTROLLER, "SCH_270e")
+    # The reduction first: an action after a choice in the same tuple is lost
+    # (annex A47 of the rules); the minion discovered then gets it.
+    play = Buff(CONTROLLER, "SCH_270e"), DISCOVER(RandomMinion(spell_damage=True))
 
 
 class SCH_270e:
@@ -88,7 +98,8 @@ class SCH_273:
 
     # At the end of your turn, deal $1 damage to all enemies <i>(improved by
     # <b>Spell Damage</b>)</i>.
-    events = OWN_TURN_END.on(Hit(ENEMY_MINIONS, SPELL_DAMAGE(1)))
+    # All enemies: the enemy hero too
+    events = OWN_TURN_END.on(Hit(ENEMY_CHARACTERS, SPELL_DAMAGE(1)))
 
 
 class SCH_535:
@@ -106,8 +117,11 @@ class SCH_301:
     """Rune Dagger"""
 
     # After your hero attacks, gain <b>Spell Damage +1</b> this turn.
-    events = Attack(FRIENDLY_HERO).after(Buff(SELF, "SCH_301e"))
+    # The Spell Damage is its player's (a weapon's own SPELLPOWER is not
+    # counted by Player.spellpower), for this turn (TAG_ONE_TURN_EFFECT)
+    events = Attack(FRIENDLY_HERO).after(Buff(CONTROLLER, "SCH_301e"))
 
 
 class SCH_301e:
-    tags = {GameTag.SPELLPOWER: 1}
+    # A player's Spell Damage is read from auras (as Arcane Power, KARA_00_06e)
+    update = Refresh(CONTROLLER, {GameTag.SPELLPOWER: +1})

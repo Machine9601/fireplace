@@ -1,4 +1,25 @@
+from hearthstone.enums import Zone
+
 from ..utils import *
+
+
+class FriendlyMinionsAttackToo(TargetedAction):
+    """
+    Trueaim Crescent: after the hero attacks a minion, every friendly minion
+    attacks it too, in the order they came into play, until it is destroyed.
+    """
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        player = source.controller
+        for minion in sorted(player.field, key=lambda m: m.play_counter):
+            if target.dead or target.zone != Zone.PLAY:
+                break
+            if minion.dead or minion.zone != Zone.PLAY:
+                continue
+            source.game.queue_actions(source, [Attack(minion, target)])
+
 
 ##
 # Minions
@@ -16,16 +37,11 @@ class SCH_354:
 
     # [x]At the end of your turn, steal 1 Attack and Health from all enemy
     # minions.
+    # Every enemy minion loses 1 Attack and 1 Health (its Attack never below
+    # 0), and the Hound gains +1/+1 for each one affected (hearthstone.wiki.gg):
+    # a 0-Attack minion is drained too.
     events = OWN_TURN_END.on(
-        Buff(ENEMY_MINIONS + (ATK <= 0) + (CURRENT_HEALTH == 0), "SCH_354ea").then(
-            Buff(SELF, "SCH_354e2a")
-        ),
-        Buff(ENEMY_MINIONS + (ATK == 0) + (CURRENT_HEALTH <= 0), "SCH_354e2b").then(
-            Buff(SELF, "SCH_354e2b")
-        ),
-        Buff(ENEMY_MINIONS + (ATK > 0) + (CURRENT_HEALTH > 0), "SCH_354e").then(
-            Buff(SELF, "SCH_354e2")
-        ),
+        Buff(ENEMY_MINIONS, "SCH_354e").then(Buff(SELF, "SCH_354e2"))
     )
 
 
@@ -70,8 +86,9 @@ class SCH_618:
     """Blood Herald"""
 
     # Whenever a friendly minion dies while this is in your hand, gain +1/+1.
-    class Hands:
-        events = Death(FRIENDLY_MINIONS).on(Buff(SELF, "SCH_618e"))
+    # (`Hand`, not `Hands`; Death(FRIENDLY_MINIONS) only reads minions in play.)
+    class Hand:
+        events = Death(FRIENDLY + MINION).on(Buff(SELF, "SCH_618e"))
 
 
 SCH_618e = buff(+1, +1)
@@ -83,7 +100,10 @@ class SCH_704:
     # [x]<b>Battlecry:</b> Destroy a Soul Fragment in your deck to give your
     # hero +5 Attack this turn.
     powered_up = Find(FRIENDLY_DECK + ID(SOUL_FRAGMENT))
-    play = powered_up & Buff(FRIENDLY_HERO, "SCH_704e")
+    play = powered_up & (
+        Destroy(RANDOM(FRIENDLY_DECK + ID(SOUL_FRAGMENT))),
+        Buff(FRIENDLY_HERO, "SCH_704e"),
+    )
 
 
 SCH_704e = buff(atk=5)
@@ -129,9 +149,18 @@ class SCH_357:
 
     # Summon three 1/2 Demons with <b>Taunt</b>. Costs (1) less whenever
     # a_friendly minion dies.
+    # Only the deaths while it is in its player's hand (an in-hand effect), not
+    # every friendly minion killed in the game.
     requirements = {PlayReq.REQ_NUM_MINION_SLOTS: 1}
-    cost_mod = -Count(FRIENDLY + KILLED + MINION)
     play = Summon(CONTROLLER, "SCH_357t") * 3
+
+    class Hand:
+        events = Death(FRIENDLY + MINION).on(Buff(SELF, "SCH_357e"))
+
+
+class SCH_357e:
+    tags = {GameTag.COST: -1}
+    events = REMOVED_IN_PLAY
 
 
 class SCH_422:
@@ -175,6 +204,8 @@ class SCH_279:
     """Trueaim Crescent"""
 
     # After your Hero attacks a minion, your minions attack it too.
+    # Each friendly minion, in the order they came into play, attacks it in
+    # turn, until it is destroyed; these attacks use none of the minions' own.
     events = Attack(FRIENDLY_HERO, ALL_MINIONS).after(
-        Dead(Attack.DEFENDER) | Attack(FRIENDLY_MINIONS, Attack.DEFENDER)
+        FriendlyMinionsAttackToo(Attack.DEFENDER)
     )

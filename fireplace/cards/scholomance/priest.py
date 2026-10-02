@@ -26,19 +26,31 @@ class SCH_140:
 
     # Costs (1) less for each time your hero's Health changed during your
     # turns.
-    cost_mod = -Attr(CONTROLLER, enums.HERO_HEALTH_CHANGED_THIS_TURN)
+    # Every change during its player's turns, for the whole game
+    cost_mod = -Attr(CONTROLLER, "hero_health_changed_on_own_turns")
 
 
 class SCH_159:
     """Mindrender Illucia"""
 
-    # <b>Battlecry:</b> Swap hands and decks with your opponent until your next
-    # turn.
-    play = SwapDecks(), SwapHands(), Buff(CONTROLLER, "SCH_159e")
+    # [x]<b>Battlecry:</b> Replace your hand with a copy of your opponent's
+    # until end of turn.
+    # (Patch 21.3: the decks are no longer swapped, the opponent keeps their
+    # hand.) At the end of the turn, the hand held then is removed and the
+    # original hand comes back.
+    play = (
+        StoringBuff(CONTROLLER, "SCH_159e", FRIENDLY_HAND),
+        Remove(FRIENDLY_HAND),
+        Give(CONTROLLER, Copy(ENEMY_HAND)),
+    )
 
 
 class SCH_159e:
-    events = OWN_TURN_BEGIN.on(SwapDecks(), SwapHands(), Destroy(SELF))
+    events = OWN_TURN_END.on(
+        Remove(FRIENDLY_HAND),
+        Give(CONTROLLER, STORE_CARD),
+        Destroy(SELF),
+    )
 
 
 class SCH_513:
@@ -61,6 +73,10 @@ class SCH_136:
     """Power Word: Feast"""
 
     # Give a minion +2/+2. Restore it to full Health at the end of this turn.
+    requirements = {
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+    }
     play = MultiBuff(TARGET, ["SCH_136e", "SCH_136e2"])
 
 
@@ -75,7 +91,10 @@ class SCH_233:
     """Draconic Studies"""
 
     # [x]<b>Discover</b> a Dragon. Your next one costs (1) less.
-    play = Discover(CONTROLLER, RandomDragon()), Buff(CONTROLLER, "SCH_233e")
+    # The reduction first: an action after a choice in the same tuple is lost
+    # (annex A47 of the rules); the Dragon discovered then gets it. DISCOVER
+    # gives the card chosen; a bare Discover never did.
+    play = Buff(CONTROLLER, "SCH_233e"), DISCOVER(RandomDragon())
 
 
 class SCH_233e:

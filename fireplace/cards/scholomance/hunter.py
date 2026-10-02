@@ -22,7 +22,8 @@ class SCH_244:
     """Teacher's Pet"""
 
     # [x]<b>Taunt</b> <b>Deathrattle:</b> Summon a random 3-Cost Beast.
-    deathrattle = Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + BEAST + (COST == 3)))
+    # A random 3-Cost Beast of the game, not one of the deck
+    deathrattle = Summon(CONTROLLER, RandomBeast(cost=3))
 
 
 class SCH_340:
@@ -36,7 +37,10 @@ class SCH_539:
     """Professor Slate"""
 
     # Your spells are <b>Poisonous</b>.
+    # A spell has no `poisonous` property for Damage to read: a minion that
+    # one of its player's spells damages is destroyed by the Professor.
     update = Refresh(FRIENDLY + SPELL, {GameTag.POISONOUS: True})
+    events = Damage(MINION, None, FRIENDLY + SPELL).on(Destroy(Damage.TARGET))
 
 
 class SCH_607:
@@ -80,7 +84,9 @@ class SCH_300:
 
     # <b>Discover</b> a <b>Deathrattle</b> minion. Your next one costs (1)
     # less.
-    play = DISCOVER(RandomMinion(deathrattle=True)), Buff(CONTROLLER, "SCH_300e")
+    # The reduction first: an action after a choice in the same tuple is lost
+    # (annex A47 of the rules); the minion discovered then gets it.
+    play = Buff(CONTROLLER, "SCH_300e"), DISCOVER(RandomMinion(deathrattle=True))
 
 
 class SCH_300e:

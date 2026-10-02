@@ -28,10 +28,10 @@ class SCH_343:
     # [x]<b>Taunt</b>. <b>Battlecry:</b> Destroy a Soul Fragment in your deck
     # to gain +3/+3.
     powered_up = Find(FRIENDLY_DECK + ID(SOUL_FRAGMENT))
-    play = (
-        powered_up
-        & Destroy(RANDOM(FRIENDLY_DECK + ID(SOUL_FRAGMENT)))
-        & Buff(SELF, "SCH_343e")
+    # `a & b & c` made the Destroy a condition, never done: one tuple
+    play = powered_up & (
+        Destroy(RANDOM(FRIENDLY_DECK + ID(SOUL_FRAGMENT))),
+        Buff(SELF, "SCH_343e"),
     )
 
 
@@ -74,7 +74,9 @@ class SCH_158:
     """Demonic Studies"""
 
     # <b>Discover</b> a Demon. Your next one costs (1) less.
-    play = DISCOVER(RandomDemon()), Buff(CONTROLLER, "SCH_158e")
+    # The reduction first: an action after a choice in the same tuple is lost
+    # (annex A47 of the rules); the Demon discovered then gets it.
+    play = Buff(CONTROLLER, "SCH_158e"), DISCOVER(RandomDemon())
 
 
 class SCH_158e:
