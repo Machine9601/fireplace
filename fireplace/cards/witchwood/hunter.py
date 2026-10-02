@@ -88,8 +88,10 @@ class GIL_577:
     """Rat Trap"""
 
     # [x]<b>Secret:</b> After your opponent plays three cards in a turn, summon a 6/6 Rat.
+    # The counter of cards played this turn is raised after this event is heard: at the
+    # third card, it still reads 2 (WP-186, A105)
     secret = Play(OPPONENT).after(
-        (Attr(OPPONENT, GameTag.NUM_CARDS_PLAYED_THIS_TURN) >= 3)
+        (Attr(OPPONENT, GameTag.NUM_CARDS_PLAYED_THIS_TURN) >= 2)
         & (FULL_BOARD | (Reveal(SELF), Summon(CONTROLLER, "GIL_577t")))
     )
 
@@ -106,4 +108,4 @@ class GIL_828:
     play = Buff(TARGET, "GIL_828e").then(Shuffle(CONTROLLER, ExactCopy(TARGET)) * 3)
 
 
-GLI_828e = buff(+3, +3)
+GIL_828e = buff(+3, +3)

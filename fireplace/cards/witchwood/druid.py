@@ -64,12 +64,20 @@ class GIL_800:
     """Duskfallen Aviana"""
 
     # On each player's turn, the first card played costs (0).
-    events = TURN_BEGIN.on(Buff(CURRENT_PLAYER, "GIL_800e2"))
-
-
-class GIL_800e2:
-    update = Refresh(FRIENDLY_HAND, {GameTag.COST: SET(0)})
-    events = Play(CONTROLLER).on(Destroy(SELF))
+    # An aura, not a buff given at the start of each turn: it reaches the hand of
+    # whoever's turn it is (not only Aviana's controller's), ends if she leaves play,
+    # and stops as soon as that player has played a card this turn (WP-186, A104).
+    update = Refresh(
+        FuncSelector(
+            lambda entities, source: [
+                card
+                for player in source.game.players
+                if player.current_player and not player.cards_played_this_turn
+                for card in player.hand
+            ]
+        ),
+        {GameTag.COST: SET(0)},
+    )
 
 
 class GIL_833:
@@ -115,4 +123,4 @@ class GIL_663:
     """Witchwood Apple"""
 
     # Add three 2/2 Treants to your hand.
-    play = Give(CONTROLLER, "GIL_663t") * 2
+    play = Give(CONTROLLER, "GIL_663t") * 3

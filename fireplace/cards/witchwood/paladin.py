@@ -83,8 +83,10 @@ class GIL_903:
     """Hidden Wisdom"""
 
     # [x]<b>Secret:</b> After your opponent plays three cards in a turn, draw 2 cards.
+    # The opponent's count (not the secret's owner's), and read before it is raised by
+    # the card just played: at the third card it still reads 2 (WP-186, A105)
     secret = Play(OPPONENT).after(
-        (Attr(CONTROLLER, GameTag.NUM_CARDS_PLAYED_THIS_TURN) >= 3)
+        (Attr(OPPONENT, GameTag.NUM_CARDS_PLAYED_THIS_TURN) >= 2)
         & (Reveal(SELF), Draw(CONTROLLER) * 2)
     )
 
