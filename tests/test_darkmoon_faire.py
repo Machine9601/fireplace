@@ -1345,6 +1345,9 @@ def test_revenant_rascal_destroys_a_crystal_for_each_player():
     game.player1.give("DMF_115").play()
     assert game.player1.max_mana == 4
     assert game.player2.max_mana == 4
+    # An empty crystal first: 5 - 3 paid = 2 left, still 2 (the wiki, Mana).
+    assert game.player1.mana == 2
+    assert game.player2.mana == 4
 
 
 def test_free_admission_reduces_two_demons():

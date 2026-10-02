@@ -32,7 +32,10 @@ class DMF_115:
     """Revenant Rascal"""
 
     # <b>Battlecry:</b> Destroy a Mana Crystal for each player.
-    play = GainEmptyMana(ALL_PLAYERS, -1)
+    # One crystal each, an empty one first ("starting from empty ones",
+    # hearthstone.wiki.gg, Mana). WP-195: on ALL_PLAYERS, the SpendMana of
+    # each player's callback ran for both: its player got one mana back.
+    play = GainEmptyMana(CONTROLLER, -1), GainEmptyMana(OPPONENT, -1)
 
 
 class DMF_533:
