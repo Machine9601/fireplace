@@ -611,3 +611,26 @@ def test_devolve_zero_cost_minion_becomes_a_zero_cost_minion():
     assert wisp.zone != Zone.PLAY
     assert len(game.player2.field) == 1
     assert game.player2.field[0].cost == 0
+
+
+def test_mayor_noggenfogger_redirects_the_hero_attack():
+    """A66 (WP-182c, l'utilisateur) : le Mayor détourne aussi l'attaque du héros, à pile ou face."""
+    game = prepare_empty_game()
+    game.player1.summon("CFM_670")
+    game.player1.summon("CS2_106")  # Fiery War Axe : le héros peut attaquer
+    game.end_turn()
+    wisp = game.player2.summon(WISP)
+    game.end_turn()
+    hero = game.player1.hero
+    with mock(RandomNumber, 1):  # pile : l'attaque est détournée
+        with mock(RANDOM, wisp):
+            hero.attack(game.player2.hero)
+    assert wisp.dead
+    assert game.player2.hero.damage == 0
+    game.end_turn()
+    game.end_turn()
+    wisp2 = game.player2.summon(WISP)
+    with mock(RandomNumber, 0):  # face : l'attaque va où on l'a portée
+        hero.attack(game.player2.hero)
+    assert not wisp2.dead
+    assert game.player2.hero.damage == 3

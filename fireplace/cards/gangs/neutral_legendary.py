@@ -125,7 +125,7 @@ class CFM_670:
     """Mayor Noggenfogger"""
 
     update = (Refresh(PLAYER, {GameTag.ALL_TARGETS_RANDOM: True}),)
-    events = Attack(MINION).on(
+    events = Attack(ALL_CHARACTERS).on(  # le héros aussi (WP-182c, A66)
         COINFLIP
         & Retarget(
             Attack.ATTACKER,

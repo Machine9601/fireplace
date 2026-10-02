@@ -696,3 +696,49 @@ def test_vectus_whelps_copy_a_deathrattle():
     _refill(game)
     game.player1.give(MOONFIRE).play(target=whelps[0])
     assert len(game.player1.hand) == 1
+
+
+def _transfer_student_offer(game):
+    game.player1.give("SCH_199").play()
+    offer = list(game.player1.choice.cards)
+    assert len(offer) == 3
+    return offer
+
+
+def test_transfer_student_discovers_from_the_expansion_the_game_names():
+    """D-107 (WP-182c) : « Discover a card from the month's expansions » ; plus de plateau.
+    Le vivier est `game.month_expansions` (CardSet, nom de CardSet, identifiants)."""
+    from hearthstone.enums import CardSet
+
+    game = _game(CardClass.MAGE)
+    game.month_expansions = ["GANGS", CardSet.UNGORO]
+    for _ in range(5):
+        _refill(game)
+        offer = _transfer_student_offer(game)
+        for card in offer:
+            assert card.data.card_set in (CardSet.GANGS, CardSet.UNGORO), card.id
+            assert card.data.collectible
+            assert card.data.classes[0] in (CardClass.NEUTRAL, CardClass.MAGE) or (
+                CardClass.MAGE in card.data.classes
+            ), card.id
+        game.player1.choice.choose(offer[0])
+        assert game.player1.hand[-1].id == offer[0].id
+        assert game.player1.choice is None
+    assert game.player1.field[0].id == "SCH_199"  # une carte 2/2, sans version de plateau
+    assert game.player1.field[0].atk == 2
+
+
+def test_transfer_student_uses_card_ids_and_ignores_the_mode_reservoir():
+    game = _game(CardClass.MAGE)
+    game.month_expansions = [FIREBALL, MOONFIRE, WISP, "CS2_029", "EX1_277"]
+    offer = _transfer_student_offer(game)
+    assert {card.id for card in offer} <= {FIREBALL, "EX1_277", WISP, "CS2_029"}
+
+
+def test_transfer_student_without_a_named_pool_discovers_in_scholomance():
+    from hearthstone.enums import CardSet
+
+    game = _game(CardClass.PRIEST)
+    assert getattr(game, "month_expansions", None) is None
+    for card in _transfer_student_offer(game):
+        assert card.data.card_set == CardSet.SCHOLOMANCE, card.id
