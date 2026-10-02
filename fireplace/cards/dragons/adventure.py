@@ -82,6 +82,14 @@ class YOD_007:
     play = powered_up & Summon(CONTROLLER, ExactCopy(SELF))
 
 
+class YOD_008:
+    """Arcane Amplifier"""
+
+    # Your Hero Power deals 2 extra damage.
+    # CardDefs.xml carries HEROPOWER_DAMAGE = 1, the text says 2 (WP-192, A164).
+    tags = {GameTag.HEROPOWER_DAMAGE: 2}
+
+
 class YOD_009:
     """The Amazing Reno"""
 
@@ -142,7 +150,8 @@ class YOD_014:
         PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
         PlayReq.REQ_MINION_TARGET: 0,
     }
-    play = Hit(TARGET, ATK(SELF))
+    # "its Attack" is the target's, not Aeon Reaver's (WP-192, A164).
+    play = Hit(TARGET, ATK(TARGET))
 
 
 class YOD_015:
@@ -165,6 +174,9 @@ class YOD_016:
     """Skyvateer"""
 
     # <b>Stealth</b> <b>Deathrattle:</b> Draw a card.
+    # CardDefs.xml only carries a ReferencedTag DEATHRATTLE, never the tag: the script
+    # was never called (WP-192, A164).
+    tags = {GameTag.DEATHRATTLE: True}
     deathrattle = Draw(CONTROLLER)
 
 
@@ -257,7 +269,9 @@ class YOD_027e:
     events = REMOVED_IN_PLAY
 
     class Hand:
-        events = OWN_TURN_END.on(Destroy(OWNER))
+        # The end of the turn of the card's owner (the opponent of the Gazer's player),
+        # not of the enchantment's controller, who is the Gazer's player (WP-192, A164).
+        events = TURN_END.on(CurrentPlayer(OWNER) & Destroy(OWNER))
 
 
 class YOD_025:
@@ -307,7 +321,8 @@ class YOD_029:
     """Hailbringer"""
 
     # [x]<b>Battlecry:</b> Summon two 1/1 Ice Shards that <b>Freeze</b>.
-    play = Summon(CONTROLLER, "YOD_029t") * 2
+    # Two minions summoned at once by a minion in play: one on each side (D-108, A164).
+    play = SummonBothSides(CONTROLLER, "YOD_029t") * 2
 
 
 class YOD_029t:
