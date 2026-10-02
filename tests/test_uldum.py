@@ -443,14 +443,63 @@ def test_pharaoh_cat_adds_a_reborn_minion():
     assert p1.hand[0].reborn
 
 
+def test_flame_ward_is_revealed():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    p1, p2 = game.player1, game.player2
+    p1.give("ULD_239").play()
+    game.end_turn()
+    boar = p2.give("CS2_171").play()  # Stonetusk Boar, Charge
+    yeti = p2.summon(YETI)
+    boar.attack(p1.hero)
+    assert boar.dead
+    assert yeti.damage == 3
+    assert not p1.secrets
+    boar2 = p2.give("CS2_171").play()
+    boar2.attack(p1.hero)
+    assert not boar2.dead
+    assert yeti.damage == 3
+
+
+def test_reborn_comes_back_once_with_one_health():
+    game = prepare_empty_game(CardClass.PRIEST, CardClass.PRIEST)
+    p1 = game.player1
+    p1.summon(WISP)
+    murmy = p1.summon("ULD_723")
+    p1.summon(WISP)
+    p1.give("ULD_143").play(target=murmy)  # +4/+4, Divine Shield, Taunt
+    murmy.destroy()
+    game.process_deaths() if hasattr(game, "process_deaths") else None
+    back = p1.field[1]
+    assert back.id == "ULD_723"
+    assert (back.atk, back.health) == (1, 1)
+    assert not back.reborn and not back.taunt and not back.divine_shield
+    back.destroy()
+    assert p1.field == [WISP, WISP]
+
+
+def test_corrupt_the_waters_reward_replaces_the_hero_power():
+    game = prepare_empty_game(CardClass.SHAMAN, CardClass.SHAMAN)
+    p1, p2 = game.player1, game.player2
+    quest = p1.give("ULD_291").play()
+    for _ in range(5):
+        p1.give(ELVEN_ARCHER).play(target=p2.hero)
+    assert quest.progress == 5
+    assert p1.hero.power.id != "ULD_291p"
+    p1.give(ELVEN_ARCHER).play(target=p2.hero)
+    assert quest.zone == Zone.GRAVEYARD
+    assert p1.hero.power.id == "ULD_291p"
+    assert p1.hero.power.is_usable()
+
+
 def test_tortollan_pilgrim_casts_the_spell():
     game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
     p1, p2 = game.player1, game.player2
     for _ in range(2):
         p1.give(FIREBALL).zone = Zone.DECK
-    p1.give("ULD_236").play()
+    pilgrim = p1.give("ULD_236").play()
     choice = p1.choice
     assert [c.id for c in choice.cards] == [FIREBALL]
     choice.choose(choice.cards[0])
     assert p1.deck == [FIREBALL] * 2
-    assert p1.hero.health + p2.hero.health == 54
+    # a random target among all the Fireball can hit, the Pilgrim comprised
+    assert p1.hero.health + p2.hero.health == 54 or pilgrim.dead

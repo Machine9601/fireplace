@@ -77,7 +77,8 @@ class ULD_239:
     """Flame Ward"""
 
     # <b>Secret:</b> After a minion attacks your hero, deal $3 damage to all enemy minions.
-    secret = Attack(MINION, FRIENDLY_HERO).after(Hit(ENEMY_MINIONS, 3))
+    # Revealed like any Secret: it stayed and went off at every attack (WP-190).
+    secret = Attack(MINION, FRIENDLY_HERO).after(Reveal(SELF), Hit(ENEMY_MINIONS, 3))
 
 
 class ULD_433:
