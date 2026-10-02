@@ -50,7 +50,11 @@ class TRL_501:
     play = Buff(CONTROLLER, "TRL_501e")
 
 
-TRL_501e = buff(embrace_the_shadow=True)
+class TRL_501e:
+    # A buff on the player never reached EMBRACE_THE_SHADOW: as Embrace the Shadow
+    # (OG_104e), the enchantment refreshes the player's tag; it ends with the turn
+    # (TAG_ONE_TURN_EFFECT in the card data) (WP-188).
+    update = Refresh(CONTROLLER, {GameTag.EMBRACE_THE_SHADOW: True})
 
 
 class TRL_502:

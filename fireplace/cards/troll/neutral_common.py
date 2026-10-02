@@ -36,6 +36,9 @@ class TRL_312:
     """Spellzerker"""
 
     # Has <b>Spell Damage +2</b> while damaged.
+    # The card data has no ENRAGED tag (Dozing Marksman has it): without it the
+    # enrage script never ran (WP-188).
+    tags = {GameTag.ENRAGED: True}
     enrage = Refresh(SELF, buff="TRL_312e")
 
 

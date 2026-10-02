@@ -566,6 +566,52 @@ def test_masked_contender_without_secret():
     assert len(game.player1.deck) == 1
 
 
+def test_spellzerker_spell_damage_while_damaged():
+    game = prepare_empty_game()
+    spellzerker = game.player1.give("TRL_312").play()
+    game.player1.give(MOONFIRE).play(target=game.player2.hero)
+    assert game.player2.hero.health == 29
+    game.player1.give(MOONFIRE).play(target=spellzerker)
+    game.player1.give(MOONFIRE).play(target=game.player2.hero)
+    assert game.player2.hero.health == 26
+
+
+def test_untamed_beastmaster_buffs_a_drawn_beast():
+    game = prepare_empty_game()
+    game.player1.give("TRL_405").play()
+    game.player1.give("CS2_172").shuffle_into_deck()  # Bloodfen Raptor, 3/2
+    game.player1.draw()
+    raptor = game.player1.hand[-1]
+    assert raptor.atk == 5
+    assert raptor.health == 4
+    game.player1.give(WISP).shuffle_into_deck()
+    game.player1.draw()
+    assert game.player1.hand[-1].atk == 1
+
+
+def test_auchenai_phantasm_heals_deal_damage_this_turn():
+    game = prepare_empty_game()
+    game.player1.give("TRL_501").play()
+    game.player1.give("TRL_128").play(target=game.player2.hero)
+    assert game.player2.hero.health == 27
+    game.end_turn()
+    game.end_turn()
+    # The next turn, healing heals again.
+    game.player1.give("TRL_128").play(target=game.player2.hero)
+    assert game.player2.hero.health == 30
+
+
+def test_two_shellfighters_only_the_first_takes_it():
+    game = prepare_empty_game()
+    first = game.player1.give("TRL_535").play()
+    wisp = game.player1.give(WISP).play()
+    second = game.player1.give("TRL_535").play()
+    game.player1.give(MOONFIRE).play(target=wisp)
+    assert wisp.damage == 0
+    assert first.damage == 1
+    assert second.damage == 0
+
+
 def test_stolen_steel_never_offers_a_neutral_weapon():
     # Sphere of Sapience (SCH_259) is the one neutral collectible weapon.
     for _ in range(60):

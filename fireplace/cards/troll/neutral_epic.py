@@ -8,7 +8,8 @@ class TRL_405:
     """Untamed Beastmaster"""
 
     # Whenever you draw a Beast, give it +2/+2.
-    events = Draw(CONTROLLER, BEAST).on(Buff(Draw.TARGET, "TRL_405e"))
+    # Draw.TARGET is the player who draws; the card is Draw.CARD (WP-188).
+    events = Draw(CONTROLLER, BEAST).on(Buff(Draw.CARD, "TRL_405e"))
 
 
 TRL_405e = buff(+2, +2)
@@ -87,8 +88,15 @@ class TRL_535:
     """Snapjaw Shellfighter"""
 
     # [x]Whenever an adjacent minion takes damage, this _minion takes it instead.
+    # The damage still pending on the neighbour, not the amount announced: with a
+    # Shellfighter on each side, only the one played first takes it, not both
+    # (hearthstone.wiki.gg) (WP-188).
     events = Predamage(SELF_ADJACENT).on(
-        Predamage(Predamage.TARGET, 0), Damage(SELF, Predamage.AMOUNT)
+        (Attr(Predamage.TARGET, "predamage") > 0)
+        & (
+            Damage(SELF, Attr(Predamage.TARGET, "predamage")),
+            Predamage(Predamage.TARGET, 0),
+        )
     )
 
 
