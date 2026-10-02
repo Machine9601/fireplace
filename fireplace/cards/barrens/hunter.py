@@ -8,8 +8,20 @@ class BAR_030:
     """Pack Kodo"""
 
     # <b>Battlecry:</b> <b>Discover</b> a Beast, <b>Secret</b>, or weapon.
+    # One of each, from its class and the neutrals as a Discover ("Hunter or
+    # Neutral", hearthstone.wiki.gg, Pack Kodo): the three came from any
+    # class (WP-196)
     play = GenericChoice(
-        CONTROLLER, [RandomBeast(), RandomSpell(secret=True), RandomWeapon()]
+        CONTROLLER,
+        [
+            RandomBeast()
+            .copy_with_weighting(1, card_class=CardClass.NEUTRAL)
+            .copy_with_weighting(1, card_class=FRIENDLY_CLASS),
+            RandomSpell(secret=True, card_class=FRIENDLY_CLASS),
+            RandomWeapon()
+            .copy_with_weighting(1, card_class=CardClass.NEUTRAL)
+            .copy_with_weighting(1, card_class=FRIENDLY_CLASS),
+        ],
     )
 
 

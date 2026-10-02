@@ -239,6 +239,21 @@ def test_prospectors_caravan_gives_plus_one_plus_one():
     assert (yeti.atk, yeti.health) == (5, 6)
 
 
+def test_pack_kodo_offers_a_beast_a_secret_and_a_weapon_of_its_class():
+    # The three came from any class ("Hunter or Neutral", the wiki)
+    for _ in range(15):
+        game = prepare_empty_game(CardClass.HUNTER, CardClass.MAGE)
+        hero_class = game.player1.hero.card_class
+        game.player1.give("BAR_030").play()
+        beast, secret, weapon = game.player1.choice.cards
+        assert beast.type == CardType.MINION and Race.BEAST in beast.races
+        assert secret.data.secret
+        assert weapon.type == CardType.WEAPON
+        for card in (beast, secret, weapon):
+            assert hero_class in card.classes or CardClass.NEUTRAL in card.classes
+        assert hero_class in secret.classes
+
+
 def test_warsong_wrangler_draws_the_beast_and_buffs_every_copy():
     game = prepare_empty_game()
     for card in (RAPTOR, RAPTOR, "CS2_120", "CS2_119", WISP):
@@ -313,6 +328,22 @@ def test_talented_arcanist_next_spell_this_turn():
     game.end_turn()
     game.player1.give(MOONFIRE).play(target=game.player2.hero)
     assert game.player2.hero.damage == 1
+
+
+def test_kindling_elemental_next_elemental_costs_one_less():
+    # With "after", the Kindling Elemental that gave it spent it
+    game = prepare_empty_game()
+    game.player1.give("BAR_854").play()
+    kindling = game.player1.give("BAR_854")
+    fireball = game.player1.give(FIREBALL)
+    assert kindling.cost == 0
+    assert fireball.cost == 4
+    game.player1.give(WISP).play()
+    assert kindling.cost == 0
+    kindling.play()
+    # Spent, and the second gives a new one
+    assert game.player1.give("BAR_854").cost == 0
+    assert len([b for b in game.player1.buffs if b.id == "BAR_854e"]) == 1
 
 
 def test_far_watch_post_the_opponents_draw_costs_one_more():
@@ -507,6 +538,25 @@ def test_scabbs_cutterbutter_next_two_cards_this_turn():
     assert yeti.cost == 4
 
 
+def test_silverleaf_and_paralytic_poison_on_the_weapon():
+    # The enchantments of a weapon heard no event and ran no aura
+    game = prepare_empty_game(CardClass.ROGUE, CardClass.MAGE)
+    game.player1.give(WISP).shuffle_into_deck()
+    game.player1.give(FIERY_WAR_AXE).play()
+    game.player1.give("BAR_318").play()
+    hand = len(game.player1.hand)
+    game.player1.hero.attack(game.player2.hero)
+    assert len(game.player1.hand) == hand + 1
+    game = prepare_empty_game(CardClass.ROGUE, CardClass.MAGE)
+    game.player1.give(FIERY_WAR_AXE).play()
+    game.player1.give("BAR_321").play()
+    assert game.player1.weapon.atk == 4
+    yeti = game.player2.summon(YETI)
+    game.player1.hero.attack(yeti)
+    assert yeti.damage == 4
+    assert game.player1.hero.damage == 0
+
+
 def test_shroud_of_concealment_draws_two_minions_stealthed_this_turn():
     game = prepare_empty_game()
     yeti = game.player1.give(YETI)
@@ -533,7 +583,7 @@ def test_yoink_swaps_back_after_two_uses():
     original = game.player1.hero.power.id
     game.player1.give("BAR_323").play()
     choice = game.player1.choice
-    choice.choose(choice.cards[0])
+    choice.choose([c for c in choice.cards if c.id != original][0])
     stolen = game.player1.hero.power
     assert stolen.id != original
     assert stolen.cost == 0
@@ -639,6 +689,17 @@ def test_soul_rend_one_card_per_minion_killed():
     game.player2.summon("CS2_186")  # War Golem, survives
     game.player1.give("BAR_911").play()
     assert len(game.player1.deck) == 2
+
+
+def test_rancor_two_armor_per_minion_destroyed():
+    # 10 Armor for three minions
+    game = prepare_empty_game()
+    game.player1.summon(WISP)
+    game.player2.summon(WISP)
+    game.player2.summon(MURLOC_RAIDER)
+    game.player2.summon(YETI)
+    game.player1.give("BAR_845").play()
+    assert game.player1.hero.armor == 6
 
 
 def test_barrens_scavenger_costs_one():

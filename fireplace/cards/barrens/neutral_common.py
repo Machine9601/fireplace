@@ -169,8 +169,10 @@ class BAR_854:
 
 
 class BAR_854e:
+    # Spent when the next Elemental is played (its cost already paid): with
+    # "after", the Kindling Elemental that gave it spent it (WP-196)
     update = Refresh(FRIENDLY_HAND + ELEMENTAL, {GameTag.COST: -1})
-    events = Play(CONTROLLER, ELEMENTAL).after(Destroy(SELF))
+    events = Play(CONTROLLER, ELEMENTAL).on(Destroy(SELF))
 
 
 class BAR_890:

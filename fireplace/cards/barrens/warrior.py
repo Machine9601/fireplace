@@ -144,9 +144,14 @@ class BAR_845:
     """Rancor"""
 
     # [x]Deal $2 damage to all minions. Gain 2 Armor for each destroyed.
-    play = Hit(ALL_MINIONS, 2).then(
-        GainArmor(FRIENDLY_HERO, Count(ALL_MINIONS + DEAD) * 2)
-    )
+    # 2 Armor per minion the spell destroyed (the count, read after the
+    # deaths, was too high: 10 Armor for three, WP-196, as Soul Rend)
+    def play(self):
+        minions = ALL_MINIONS.eval(self.game, self)
+        yield Hit(ALL_MINIONS, 2)
+        destroyed = len([m for m in minions if m.dead])
+        if destroyed:
+            yield GainArmor(FRIENDLY_HERO, destroyed * 2)
 
 
 ##

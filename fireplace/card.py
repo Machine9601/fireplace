@@ -1172,7 +1172,10 @@ class Hero(Character):
             if self.controller.hero_power:
                 yield self.controller.hero_power
             if self.controller.weapon:
-                yield self.controller.weapon
+                # The weapon's enchantments too: a Poison's "After your hero
+                # attacks, draw a card" and "Immune while attacking" were never
+                # heard (Silverleaf and Paralytic Poison, WP-196)
+                yield from self.controller.weapon.entities
         yield from self.buffs
 
     @property
