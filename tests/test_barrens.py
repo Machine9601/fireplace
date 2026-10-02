@@ -613,6 +613,15 @@ def test_devouring_plague_never_hits_a_dead_minion():
         game.player1.give("BAR_311").play()
         assert (1 if wisp.dead else 0) + yeti.damage == 4
         assert game.player1.hero.health == 24
+    # Void Flayer the same: 1 damage per spell in hand
+    for _ in range(20):
+        game = prepare_empty_game()
+        wisp = game.player2.summon(WISP)
+        yeti = game.player2.summon(YETI)
+        game.player1.give(MOONFIRE)
+        game.player1.give(FIREBALL)
+        game.player1.give("BAR_307").play()
+        assert (1 if wisp.dead else 0) + yeti.damage == 2
 
 
 # Shaman
