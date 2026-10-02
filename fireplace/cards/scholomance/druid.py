@@ -55,12 +55,16 @@ class SCH_333:
     """Nature Studies"""
 
     # <b>Discover</b> a spell. Your next one costs (1) less.
-    play = DISCOVER(RandomSpell()), Buff(CONTROLLER, "SCH_333e")
+    # The reduction first: an action after a choice in the same tuple is lost
+    # (annex A47 of the rules); the spell discovered then gets it.
+    play = Buff(CONTROLLER, "SCH_333e"), DISCOVER(RandomSpell())
 
 
 class SCH_333e:
+    # "on", as Preparation: "after" heard Nature Studies itself, whose play
+    # ends after this enchantment is given, and destroyed it at once.
     update = Refresh(FRIENDLY_HAND + SPELL, buff="SCH_333e2")
-    events = Play(CONTROLLER, SPELL).after(Destroy(SELF))
+    events = Play(CONTROLLER, SPELL).on(Destroy(SELF))
 
 
 class SCH_333e2:

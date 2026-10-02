@@ -15,7 +15,7 @@ class SCH_230:
     """Onyx Magescribe"""
 
     # <b>Spellburst:</b> Add 2 random spells from your class to_your hand.
-    play = Give(CONTROLLER, RandomSpell(card_class=FRIENDLY_CLASS)) * 2
+    spellburst = Give(CONTROLLER, RandomSpell(card_class=FRIENDLY_CLASS)) * 2
 
 
 class SCH_231:
@@ -49,9 +49,13 @@ class SCH_245:
 class SCH_248:
     """Pen Flinger"""
 
-    # <b>Battlecry:</b> Deal 1 damage. <b>Spellburst:</b> Return this to_your
-    # hand.
-    play = Hit(SELF, 1)
+    # [x]<b>Battlecry:</b> Deal 1 damage to a minion. <b>Spellburst:</b>
+    # Return this to_your hand.
+    requirements = {
+        PlayReq.REQ_MINION_TARGET: 0,
+        PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
+    }
+    play = Hit(TARGET, 1)
     spellburst = Bounce(SELF)
 
 
@@ -101,7 +105,9 @@ class SCH_605:
     """Lake Thresher"""
 
     # Also damages the minions next to whomever this attacks.
-    events = Attack(SELF).on(CLEAVE)
+    # CLEAVE reads TARGET, which an attack does not set: the neighbours of
+    # the defender, once the combat damage is dealt (as Foe Reaper 4000).
+    events = Attack(SELF).after(Hit(ADJACENT(Attack.DEFENDER), ATK(SELF)))
 
 
 class SCH_707:

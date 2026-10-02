@@ -1,4 +1,58 @@
+from hearthstone.enums import Zone
+
 from ..utils import *
+
+
+def _flatten(result):
+    """The cards in what queue_actions returns (lists of lists)."""
+    if isinstance(result, (list, tuple)):
+        return [card for item in result for card in _flatten(item)]
+    return [] if result is None else [result]
+
+
+class JandiceBarovSummon(TargetedAction):
+    """
+    Jandice Barov: summon two random 5-Cost minions, then its player secretly
+    picks one of them, which dies when it takes damage (SCH_351e).
+    """
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        summoned = []
+        for _ in range(2):
+            card_set = RandomMinion(cost=5).find_cards(source)
+            if not card_set:
+                continue
+            card = source.game.random.choice(card_set)
+            result = source.game.queue_actions(source, [Summon(target, card)])
+            summoned += [c for c in _flatten(result) if c.zone == Zone.PLAY]
+        if summoned:
+            source.game.queue_actions(
+                source,
+                [Choice(target, summoned).then(Buff(Choice.CARD, "SCH_351e"))],
+            )
+
+
+class CombustionHit(TargetedAction):
+    """
+    Combustion: $4 damage to a minion; any excess damages both of its
+    neighbours.
+    """
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        neighbours = list(target.adjacent_minions)
+        # The card is IMMUNE_TO_SPELLPOWER in CardDefs.xml: its script adds
+        # the Spell Damage to the $4 itself, once.
+        amount = source.controller.get_spell_damage(source, 4)
+        excess = max(0, amount - target.health)
+        source.game.queue_actions(source, [Predamage(target, amount)])
+        if excess:
+            for minion in neighbours:
+                source.game.queue_actions(source, [Predamage(minion, excess)])
+
 
 ##
 # Minions
@@ -32,26 +86,9 @@ class SCH_351:
     # [x]<b>Battlecry:</b> Summon two random 5-Cost minions. Secretly pick one
     # that dies _when it takes damage.
 
-    # TODO need to be tested
-    play = (
-        SetTags(
-            SELF,
-            {
-                GameTag.TAG_SCRIPT_DATA_ENT_1: RandomMinion(cost=5),
-                GameTag.TAG_SCRIPT_DATA_ENT_2: RandomMinion(cost=5),
-            },
-        ),
-        Summon(CONTROLLER, GetTag(SELF, GameTag.TAG_SCRIPT_DATA_ENT_1)),
-        Summon(CONTROLLER, GetTag(SELF, GameTag.TAG_SCRIPT_DATA_ENT_2)),
-        Choice(
-            CONTROLLER,
-            (
-                GetTag(SELF, GameTag.TAG_SCRIPT_DATA_ENT_1),
-                GetTag(SELF, GameTag.TAG_SCRIPT_DATA_ENT_2),
-            ),
-        ).then(Buff(Choice.CARD, "SCH_351e")),
-        UnsetTags(SELF, (GameTag.TAG_SCRIPT_DATA_ENT_1, GameTag.TAG_SCRIPT_DATA_ENT_2)),
-    )
+    # The choice is between the two minions summoned (the old script offered
+    # two unevaluated tag readings and never marked a summoned minion).
+    play = JandiceBarovSummon(CONTROLLER)
 
 
 class SCH_351e:
@@ -100,7 +137,9 @@ class SCH_348:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_TARGET_TO_PLAY: 0,
     }
-    play = Hit(TARGET_ADJACENT, HitExcessDamage(TARGET, SPELL_DAMAGE(4)))
+    # The excess is what the target cannot take (its Health before the hit),
+    # dealt to both neighbours it had; Spell Damage counts once, on the $4.
+    play = CombustionHit(TARGET)
 
 
 class SCH_353:

@@ -196,7 +196,8 @@ class SCH_199t21:
     """Transfer Student"""
 
     # <b>Battlecry:</b> <b>Discover</b> a Dragon.
-    play = Discover(CONTROLLER, RandomDragon())
+    # DISCOVER gives the card chosen; a bare Discover never did
+    play = DISCOVER(RandomDragon())
 
 
 class SCH_199t22:

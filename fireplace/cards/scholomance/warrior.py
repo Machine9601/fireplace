@@ -31,10 +31,10 @@ class SCH_621:
     """Rattlegore"""
 
     # <b>Deathrattle:</b> Resummon this with -1/-1.
-    deathrattle = Summon(CONTROLLER, ExactCopy(SELF)).then(
-        SummonCustomMinion(
-            CONTROLLER, "SCH_621", 9, ATK(SELF) - 1, MAX_HEALTH(SELF) - 1
-        )
+    # One Rattlegore, with 1 less Attack and Health than the one that died
+    # (the old script also summoned an exact copy at full stats)
+    deathrattle = SummonCustomMinion(
+        CONTROLLER, "SCH_621", 9, ATK(SELF) - 1, MAX_HEALTH(SELF) - 1
     )
 
 
@@ -46,7 +46,9 @@ class SCH_237:
     """Athletic Studies"""
 
     # <b>Discover</b> a <b>Rush</b> minion. Your next one costs (1) less.
-    play = DISCOVER(RandomMinion(rush=True)), Buff(CONTROLLER, "SCH_237e")
+    # The reduction first: an action after a choice in the same tuple is lost
+    # (annex A47 of the rules); the minion discovered then gets it.
+    play = Buff(CONTROLLER, "SCH_237e"), DISCOVER(RandomMinion(rush=True))
 
 
 class SCH_237e:
@@ -74,10 +76,14 @@ class SCH_238:
     """Reaper's Scythe"""
 
     # [x]<b>Spellburst</b>: Also damages adjacent minions this turn.
-    spellburst = Buff(SELF, "SCH_238e")
+    # The enchantment goes on the hero (the events of a weapon's enchantment
+    # are never heard), for this turn (TAG_ONE_TURN_EFFECT), and acts while the
+    # Scythe is equipped.
+    spellburst = Buff(FRIENDLY_HERO, "SCH_238e")
 
 
 class SCH_238e:
-    events = Attack(FRIENDLY_HERO).on(
-        Hit(ADJACENT(Attack.DEFENDER), ATK(FRIENDLY_HERO))
+    events = Attack(OWNER).on(
+        Find(FRIENDLY_WEAPON + ID("SCH_238"))
+        & Hit(ADJACENT(Attack.DEFENDER), ATK(OWNER))
     )

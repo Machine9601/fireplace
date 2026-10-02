@@ -1,5 +1,20 @@
 from ..utils import *
 
+
+class SummonMinionOfWeaponAttackCost(TargetedAction):
+    """Steeldancer: a random minion whose Cost is the weapon's Attack."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        cost = target.weapon.atk if target.weapon else 0
+        # As Evolve: no minion of that Cost, nothing is summoned
+        card_set = RandomMinion(cost=cost).find_cards(source)
+        if card_set:
+            card = source.game.random.choice(card_set)
+            source.game.queue_actions(source, [Summon(target, card)])
+
+
 ##
 # Minions
 
@@ -49,19 +64,44 @@ class SCH_305:
     """Secret Passage"""
 
     # Replace your hand with 4 cards from your deck. Swap back next turn.
+    # The swap back is an end of turn effect (hearthstone.wiki.gg): the four
+    # cards still in hand are shuffled back into the deck, the cards gained
+    # since are kept, and the original hand comes back to their right.
     play = (
         StoringBuff(CONTROLLER, "SCH_305e", FRIENDLY_HAND),
         Remove(FRIENDLY_HAND),
-        Give(CONTROLLER, RANDOM(FRIENDLY_DECK, 4)),
+        Give(CONTROLLER, RANDOM(FRIENDLY_DECK, 4)).then(Buff(Give.CARD, "SCH_305e2")),
     )
+
+
+class SecretPassageShuffleBack(TargetedAction):
+    """Secret Passage: shuffle back the cards it took that are still in hand."""
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        taken = [
+            card
+            for card in target.hand
+            if any(buff.id == "SCH_305e2" for buff in card.buffs)
+        ]
+        for card in taken:
+            for buff in [b for b in card.buffs if b.id == "SCH_305e2"]:
+                buff.remove()
+        if taken:
+            source.game.queue_actions(source, [Shuffle(target, taken)])
 
 
 class SCH_305e:
-    events = OWN_TURN_BEGIN.on(
-        Shuffle(CONTROLLER, FRIENDLY_HAND),
+    events = OWN_TURN_END.on(
+        SecretPassageShuffleBack(CONTROLLER),
         Give(CONTROLLER, STORE_CARD),
         Destroy(SELF),
     )
+
+
+class SCH_305e2:
+    pass
 
 
 class SCH_521:
@@ -82,9 +122,8 @@ class SCH_522:
 
     # [x]<b>Battlecry:</b> Summon a random minion with Cost equal to your
     # weapon's Attack.
-    play = Find(FRIENDLY_WEAPON + MINION) & Summon(
-        CONTROLLER, RandomMinion(cost=COST(FRIENDLY_WEAPON))
-    )
+    # The weapon's Attack (0 without a weapon), not its Cost
+    play = SummonMinionOfWeaponAttackCost(CONTROLLER)
 
 
 class SCH_623:

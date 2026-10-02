@@ -139,10 +139,14 @@ def is_valid_target(self, target, requirements=None):
             ):
                 return False
         elif req == PlayReq.REQ_TARGET_IF_AVAILABLE_AND_PLAYER_HEALTH_CHANGED_THIS_TURN:
-            if not target.hero_health_changed_this_turn:
+            # The condition is the player's (Brittlebone Destroyer), not the
+            # target's
+            if not self.controller.hero_health_changed_this_turn:
                 return False
         elif req == PlayReq.REQ_TARGET_IF_AVAILABLE_AND_SOUL_FRAGMENT_IN_DECK:
-            if SOUL_FRAGMENT not in target.controller.deck:
+            # A Soul Fragment in the deck of the card's player (Shadowlight
+            # Scholar), not of the target's
+            if not any(card.id == SOUL_FRAGMENT for card in self.controller.deck):
                 return False
         elif req == PlayReq.REQ_DAMAGED_TARGET_UNLESS_COMBO:
             if not target.damage and not self.controller.combo:

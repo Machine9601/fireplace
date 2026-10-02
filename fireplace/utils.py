@@ -179,6 +179,16 @@ def weighted_card_choice(source, weights: List[int], card_sets: List[str], count
 
     chosen_cards = []
 
+    # A card in two pools (a dual-class card is both neutral and of its two
+    # classes, Scholomance) is offered once: it stays in the first pool only.
+    seen = set()
+    deduplicated = []
+    for card_set in card_sets:
+        kept = [card for card in card_set if card not in seen]
+        seen.update(kept)
+        deduplicated.append(kept)
+    card_sets = deduplicated
+
     # sum all the weights
     cum_weights = []
     totalweight = 0
@@ -191,6 +201,10 @@ def weighted_card_choice(source, weights: List[int], card_sets: List[str], count
 
     # for each card
     for i in range(count):
+        if totalweight <= 0:
+            # Fewer cards than asked (a pool bounded to a game's reservoir):
+            # all of them, and no more.
+            break
         # choose a set according to weighting
         chosen_set = bisect(cum_weights, source.game.random.random() * totalweight)
 

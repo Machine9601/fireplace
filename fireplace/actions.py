@@ -621,9 +621,17 @@ class Play(GameAction):
                 player.elemental_played_this_turn += 1
         elif card.type == CardType.SPELL:
             player.spells_played_this_game += 1
-            for entity in player.field[:]:
-                if entity.has_spellburst:
-                    source.game.queue_actions(card, [Spellburst(entity, card)])
+            # Spellburst is an "after you cast a spell" trigger: a countered
+            # spell does not set it off (Counterspell beats "after" triggers),
+            # and a weapon with Spellburst (Ceremonial Maul, Reaper's Scythe)
+            # answers it as a minion does.
+            if not card.cant_play:
+                spellbursters = player.field[:]
+                if player.weapon:
+                    spellbursters.append(player.weapon)
+                for entity in spellbursters:
+                    if getattr(entity, "has_spellburst", False):
+                        source.game.queue_actions(card, [Spellburst(entity, card)])
         player.cards_played_this_turn += 1
         player.cards_played_this_game.append(card)
         card.turn_played = source.game.turn
@@ -1136,6 +1144,10 @@ class Damage(TargetedAction):
                 target.damaged_on_opponent_turn += amount
             if target.type == CardType.HERO:
                 target.controller.hero_health_changed_this_turn += 1
+                # Flesh Giant: "each time your hero's Health changed during
+                # your turns", for the whole game
+                if target.controller.current_player:
+                    target.controller.hero_health_changed_on_own_turns += 1
             if source.type == CardType.HERO_POWER:
                 source.controller.hero_power_damage_this_game += amount
             self.broadcast(source, EventListener.AFTER, target, amount, source)
@@ -1673,7 +1685,10 @@ class Heal(TargetedAction):
             target.healed_this_turn += amount
             source.controller.healed_this_game += amount
             if target.type == CardType.HERO:
-                source.controller.hero_health_changed_this_turn += 1
+                # The healed hero's player, not the healer's
+                target.controller.hero_health_changed_this_turn += 1
+                if target.controller.current_player:
+                    target.controller.hero_health_changed_on_own_turns += 1
 
 
 class LifestealHeal(Heal):

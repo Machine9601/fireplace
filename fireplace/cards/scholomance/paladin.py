@@ -1,5 +1,24 @@
 from ..utils import *
 
+
+class GainToMatchTheHighest(TargetedAction):
+    """
+    Argent Braggart: gain the Attack and the Health it lacks to match the
+    highest Attack and the highest Health among the minions in play.
+    """
+
+    TARGET = ActionArg()
+
+    def do(self, source, target):
+        minions = [m for p in source.game.players for m in p.field]
+        atk = max([m.atk for m in minions] + [target.atk]) - target.atk
+        health = max([m.health for m in minions] + [target.health]) - target.health
+        if atk or health:
+            source.game.queue_actions(
+                source, [Buff(target, "SCH_149e", atk=atk, max_health=health)]
+            )
+
+
 ##
 # Minions
 
@@ -38,21 +57,7 @@ class SCH_149:
 
     # <b>Battlecry:</b> Gain Attack and Health to match the highest in the
     # battlefield.
-    play = Buff(SELF, "SCH_149e")
-
-
-def SCH_149e():
-    def apply(self, target):
-        self._xatk = HIGHEST_ATK(ALL_MINIONS).eval(self.game)
-        self._xhealth = HIGHEST_HEALTH(ALL_MINIONS).eval(self.game)
-        target.damage = 0
-
-    cls = buff()
-    cls.atk = lambda self, i: self._xatk
-    cls.max_health = lambda self, i: self._xhealth
-    cls.apply = apply
-
-    return cls
+    play = GainToMatchTheHighest(SELF)
 
 
 class SCH_526:
@@ -87,15 +92,16 @@ class SCH_138:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_TARGET_TO_PLAY: 0,
     }
-    play = Buff(TARGET, "SCH_138e")
+    # +8/+8 for good, and "Can't attack heroes this turn" (SCH_138e2) for this
+    # turn only
+    play = Buff(TARGET, "SCH_138e"), Buff(TARGET, "SCH_138e2")
 
 
-class SCH_138e:
-    tags = {
-        GameTag.ATK: 8,
-        GameTag.HEALTH: 8,
-        GameTag.CANNOT_ATTACK_HEROES: True,
-    }
+SCH_138e = buff(+8, +8)
+
+
+class SCH_138e2:
+    tags = {GameTag.CANNOT_ATTACK_HEROES: True}
 
 
 class SCH_247:
@@ -169,6 +175,18 @@ class SCH_523:
 
     # <b>Spellburst</b>: Summon a Student with <b>Taunt</b> and stats equal to
     # the spell's Cost.
+    # The spell's Cost, not the weapon's
     spellburst = SummonCustomMinion(
-        CONTROLLER, "SCH_523t", Min(COST(SELF), 10), COST(SELF), COST(SELF)
+        CONTROLLER,
+        "SCH_523t",
+        Min(COST(Spellburst.SPELL), 10),
+        COST(Spellburst.SPELL),
+        COST(Spellburst.SPELL),
     )
+
+
+class SCH_523t:
+    """Honor Student"""
+
+    # <b>Taunt</b>, which CardDefs.xml (patch 21.8) does not tag
+    tags = {GameTag.TAUNT: True}
