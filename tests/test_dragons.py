@@ -278,3 +278,146 @@ def test_cleric_of_scales():
 def test_wyrmrest_purifier():
     game = prepare_game(CardClass.DRUID, CardClass.DRUID)
     game.player1.give("DRG_062").play()
+
+
+# WP-191: the cards the fork played otherwise than their text.
+
+
+def test_wing_commander_follows_the_dragons_in_hand():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    game.player1.give("BRM_020")
+    commander = game.player1.give("DRG_058").play()
+    assert commander.atk == 4
+    game.player1.give("BRM_020")
+    assert commander.atk == 6
+    game.player1.hand[0].discard()
+    assert commander.atk == 4
+
+
+def test_dread_raven_counts_the_other_ravens():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    ravens = [game.player1.give("DRG_088").play() for _ in range(3)]
+    assert [r.atk for r in ravens] == [9, 9, 9]
+    ravens[0].destroy()
+    assert [r.atk for r in ravens[1:]] == [6, 6]
+
+
+def test_troll_batrider_only_hits_a_minion():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    game.player1.give("DRG_067").play()
+    assert game.player2.hero.health == 30
+    golem = game.player2.summon("CS2_186")
+    game.player1.give("DRG_067").play()
+    assert golem.damage == 3
+    assert game.player2.hero.health == 30
+
+
+def test_dragonbane_hits_a_random_enemy_not_only_the_hero():
+    hit_minion = hit_hero = False
+    for _ in range(30):
+        game = prepare_empty_game(CardClass.HUNTER, CardClass.HUNTER)
+        golem = game.player2.summon("CS2_186")
+        game.player1.give("DRG_256").play()
+        game.player1.hero.power.use()  # Steady Shot: 2 to the enemy hero
+        assert (golem.damage == 5) != (game.player2.hero.health == 23)
+        hit_minion |= golem.damage == 5
+        hit_hero |= game.player2.hero.health == 23
+    assert hit_minion and hit_hero
+
+
+def test_toxic_reinforcements_summons_three_leper_gnomes():
+    game = prepare_empty_game(CardClass.HUNTER, CardClass.HUNTER)
+    game.player1.give("DRG_255").play()
+    for _ in range(3):
+        game.player1.hero.power.use()
+        game.skip_turn()
+    assert game.player1.field == ["EX1_029"] * 3
+    assert [(m.atk, m.health) for m in game.player1.field] == [(2, 1)] * 3
+
+
+def test_arcane_breath_discovers_a_spell():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    wisp = game.player2.summon(WISP)
+    game.player1.give("BRM_020")
+    game.player1.give("DRG_106").play(target=wisp)
+    assert wisp.dead
+    assert len(game.player1.choice.cards) == 3
+    assert all(c.type == CardType.SPELL for c in game.player1.choice.cards)
+
+
+def test_lightforged_crusader_adds_five_cards():
+    game = prepare_empty_game(CardClass.PALADIN, CardClass.MAGE)
+    game.player1.give("DRG_231").play()
+    assert len(game.player1.hand) == 5
+    game = prepare_empty_game(CardClass.PALADIN, CardClass.MAGE)
+    game.player1.give(WISP).shuffle_into_deck()
+    game.player1.give("DRG_231").play()
+    assert len(game.player1.hand) == 0
+
+
+def test_dragons_hoard_never_offers_a_neutral_or_own_class_card():
+    for _ in range(15):
+        game = prepare_empty_game(CardClass.ROGUE, CardClass.ROGUE)
+        game.player1.give("DRG_028").play()
+        for card in game.player1.choice.cards:
+            assert card.data.rarity == Rarity.LEGENDARY
+            assert CardClass.NEUTRAL not in card.data.classes
+            assert CardClass.ROGUE not in card.data.classes
+
+
+def test_overloaded_cards_see_the_crystals_about_to_be_locked():
+    game = prepare_empty_game(CardClass.SHAMAN, CardClass.SHAMAN)
+    tempest = game.player1.summon("DRG_216")
+    assert tempest.atk == 1
+    game.player1.give("EX1_238").play(target=game.player2.hero)  # Overload (1)
+    assert tempest.atk == 2
+    golem = game.player2.summon("CS2_186")
+    game.player1.give("DRG_223").play(target=golem)
+    assert golem.damage == 5
+
+
+def test_cumulo_maximus_needs_overloaded_crystals():
+    game = prepare_empty_game(CardClass.SHAMAN, CardClass.MAGE)
+    golem = game.player2.summon("CS2_186")
+    game.player1.give("DRG_223").play()
+    assert golem.damage == 0
+
+
+def test_scion_of_ruin_summons_a_copy_on_each_side():
+    game = prepare_empty_game(CardClass.WARRIOR, CardClass.MAGE)
+    game.player1.give(WISP).play()
+    game.player1.give(WISP).play(index=1)
+    game.player1.give("DRG_019").play(index=1)
+    assert game.player1.field == [WISP, "DRG_019", WISP]
+    game.player1.invoke_counter = 2
+    game.player1.give("DRG_019").play(index=1)
+    assert game.player1.field == [WISP] + ["DRG_019"] * 4 + [WISP]
+
+
+def test_valdris_felgorge_raises_the_hand_limit():
+    game = prepare_empty_game(CardClass.WARLOCK, CardClass.MAGE)
+    game.player1.give("DRG_208").play()
+    assert game.player1.max_hand_size == 12
+    for _ in range(12):
+        game.player1.give(WISP)
+    assert len(game.player1.hand) == 12
+
+
+def test_blowtorch_saboteur_makes_the_next_hero_power_cost_three():
+    game = prepare_empty_game(CardClass.HUNTER, CardClass.HUNTER)
+    game.player1.give("DRG_403").play()
+    assert game.player2.hero.power.cost == 3
+    assert game.player1.hero.power.cost == 2
+    game.end_turn()
+    game.player2.hero.power.use()
+    assert game.player2.hero.power.cost == 2
+
+
+def test_bandersmosh_becomes_a_5_5_each_turn():
+    game = prepare_empty_game(CardClass.SHAMAN, CardClass.MAGE)
+    game.player1.give("DRG_096")
+    for _ in range(2):
+        game.skip_turn()
+        card = game.player1.hand[0]
+        assert card.id != "DRG_096"
+        assert (card.atk, card.health) == (5, 5)

@@ -11,14 +11,18 @@ class DRG_096:
     # <b>Legendary</b> minion.
     class Hand:
         events = OWN_TURN_BEGIN.on(
-            Morph(SELF, RandomLegendaryMinion()).then(Buff(Morph.CARD, "DRG_096e"))
+            Morph(SELF, RandomLegendaryMinion()).then(
+                Buff(Morph.CARD, "DRG_096e"), Buff(Morph.CARD, "DRG_096e2")
+            )
         )
 
 
 class DRG_096e:
     class Hand:
         events = OWN_TURN_BEGIN.on(
-            Morph(OWNER, RandomLegendaryMinion()).then(Buff(Morph.CARD, "DRG_096e"))
+            Morph(OWNER, RandomLegendaryMinion()).then(
+                Buff(Morph.CARD, "DRG_096e"), Buff(Morph.CARD, "DRG_096e2")
+            )
         )
 
     events = REMOVED_IN_PLAY
@@ -33,7 +37,10 @@ class DRG_216:
     """Surging Tempest"""
 
     # Has +1 Attack while you_have <b>Overloaded</b> Mana Crystals.
-    update = OVERLOADED(CONTROLLER) & Refresh(SELF, {GameTag.ATK: 1})
+    # Overloaded = locked or owed crystals (WP-191; the common OVERLOADED sees the locked only).
+    update = (OVERLOAD_LOCKED(CONTROLLER) + OVERLOAD_OWED(CONTROLLER) > 0) & Refresh(
+        SELF, {GameTag.ATK: 1}
+    )
 
 
 class DRG_218:
@@ -48,7 +55,7 @@ class DRG_223:
 
     # <b>Battlecry:</b> If you have <b>Overloaded</b> Mana Crystals, deal 5 damage.
     requirements = {PlayReq.REQ_TARGET_IF_AVAILABLE_AND_HAS_OVERLOADED_MANA: 0}
-    powered_up = OVERLOADED(CONTROLLER)
+    powered_up = OVERLOAD_LOCKED(CONTROLLER) + OVERLOAD_OWED(CONTROLLER) > 0
     play = powered_up & Hit(TARGET, 5)
 
 

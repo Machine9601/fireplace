@@ -49,7 +49,7 @@ class DRG_256:
     """Dragonbane"""
 
     # After you use your Hero Power, deal 5 damage to a random enemy.
-    events = Activate(FRIENDLY_HERO_POWER).after(Hit(ENEMY_HERO, 5))
+    events = Activate(FRIENDLY_HERO_POWER).after(Hit(RANDOM_ENEMY_CHARACTER, 5))
 
 
 ##
@@ -85,7 +85,8 @@ class DRG_255:
     sidequest = Activate(FRIENDLY_HERO_POWER).after(
         AddProgress(SELF, FRIENDLY_HERO_POWER)
     )
-    reward = Summon(CONTROLLER, "DRG_251t") * 3
+    # Three 2/1 Leper Gnomes (WP-191: it summoned three 4/4 Gryphons).
+    reward = Summon(CONTROLLER, "EX1_029") * 3
 
 
 ##

@@ -58,7 +58,10 @@ class DRG_088:
     """Dread Raven"""
 
     # Has +3 Attack for each other Dread Raven you_control.
-    update = Find(FRIENDLY_MINIONS + ID("DRG_088")) & Refresh(SELF, {GameTag.ATK: 3})
+    # +3 for each *other* Dread Raven (WP-191: the bonus was 3 whatever their number).
+    update = Refresh(
+        SELF, {GameTag.ATK: Count(FRIENDLY_MINIONS + ID("DRG_088") - SELF) * 3}
+    )
 
 
 class DRG_092:
@@ -89,9 +92,11 @@ class DRG_403:
     """Blowtorch Saboteur"""
 
     # <b>Battlecry:</b> Your opponent's next Hero Power costs (3).
-    play = Buff(ENEMY_HERO_POWER, "DRG_403e")
+    play = Buff(OPPONENT, "DRG_403e")
 
 
 class DRG_403e:
+    # On the opponent himself (WP-191: on his power, the cost was never changed and the
+    # enchantment never left), as Tour Guide.
     update = Refresh(ENEMY_HERO_POWER, {GameTag.COST: SET(3)})
-    events = Activate(OWNER).on(Destroy(SELF))
+    events = Activate(ENEMY_HERO_POWER).after(Destroy(SELF))

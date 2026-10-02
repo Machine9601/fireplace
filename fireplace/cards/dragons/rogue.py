@@ -62,11 +62,28 @@ class DRG_037:
 # Spells
 
 
+# The nine classes that are not the hero's, neutral left out (WP-191): ANOTHER_CLASS
+# keeps the neutral cards, and a Discover with no `card_class` adds the hero's own.
+OTHER_HERO_CLASSES = FuncSelector(
+    lambda entities, source: [
+        c
+        for c in CardClass
+        if c.is_playable
+        and c != CardClass.NEUTRAL
+        and c != CardClass(source.controller.hero.card_class)
+    ]
+)
+
+
 class DRG_028:
     """Dragon's Hoard"""
 
     # <b>Discover</b> a <b>Legendary</b>_minion from another class.
-    play = DISCOVER(RandomLegendaryMinion(card_class=ANOTHER_CLASS))
+    play = DISCOVER(
+        RandomLegendaryMinion(
+            card_class=OTHER_HERO_CLASSES, custom_filter=AnotherHeroClass()
+        )
+    )
 
 
 class DRG_030:

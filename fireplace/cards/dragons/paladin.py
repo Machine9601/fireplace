@@ -36,8 +36,9 @@ class DRG_231:
     # [x]<b>Battlecry:</b> If your deck has no Neutral cards, add 5 random Paladin cards to
     # your hand.
     powered_up = -Find(FRIENDLY_DECK + NEUTRAL)
-    play = powered_up & Give(
-        CONTROLLER, RandomCollectible(card_class=CardClass.PALADIN)
+    play = (
+        powered_up
+        & Give(CONTROLLER, RandomCollectible(card_class=CardClass.PALADIN)) * 5
     )
 
 
