@@ -11,6 +11,16 @@ def _from_another_class(entities, source):
 
 FROM_ANOTHER_CLASS = FuncSelector(_from_another_class)
 
+# The SI_7 selector of the dsl reads `entity.tags`, which does not keep the SI_7
+# tag (no mapping in managers.py): it matches no card. The data keeps it.
+SI_7_CARD = FuncSelector(
+    lambda entities, source: [
+        e
+        for e in entities
+        if getattr(e, "data", None) and e.data.tags.get(GameTag.SI_7)
+    ]
+)
+
 ##
 # Minions
 
@@ -65,7 +75,7 @@ class ONY_030:
     # other SI:7 card you _have played this game.)</i>
     play = Summon(
         CONTROLLER,
-        RandomMinion(cost=Min(Count(CARDS_PLAYED_THIS_GAME + SI_7 - SELF), 10)),
+        RandomMinion(cost=Min(Count(CARDS_PLAYED_THIS_GAME + SI_7_CARD - SELF), 10)),
     )
 
 

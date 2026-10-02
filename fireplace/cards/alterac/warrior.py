@@ -71,8 +71,18 @@ class AV_109:
     play = GainArmor(FRIENDLY_HERO, 10), Buff(CONTROLLER, "AV_109e")
 
 
+class LoseArmor(TargetedAction):
+    """Lose up to \\a amount Armor (never below 0, and not an Armor gained)."""
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+
+    def do(self, source, target, amount):
+        target.armor = max(0, target.armor - amount)
+
+
 class AV_109e:
-    events = OWN_TURN_BEGIN.on(GainArmor(FRIENDLY_HERO, -5), Destroy(SELF))
+    events = OWN_TURN_BEGIN.on(LoseArmor(FRIENDLY_HERO, 5), Destroy(SELF))
 
 
 class AV_322:

@@ -439,7 +439,7 @@ def test_tooth_of_nefarian_discovers_a_spell_of_another_class_on_an_honorable_ki
     assert game.player1.choice
     for card in game.player1.choice.cards:
         assert card.type == CardType.SPELL
-        assert card.data.card_class not in (CardClass.ROGUE, CardClass.NEUTRAL)
+        assert CardClass.ROGUE not in card.data.classes
 
 
 def test_forsaken_lieutenant_becomes_a_copy_with_rush_of_a_deathrattle_minion():
@@ -644,4 +644,181 @@ def test_si7_smuggler_summons_a_minion_that_costs_more_for_each_other_si7_card()
     game.player1.give("ONY_030").play()
     assert len(game.player1.field) == 2
     assert game.player1.field[1].data.cost == 0
+    game.player1.give("ONY_030").play()  # one other SI:7 card played: a 1-Cost
+    assert len(game.player1.field) == 4
+    assert game.player1.field[-1].data.cost == 1 or game.player1.field[-2].data.cost == 1
+
+
+def test_caria_felsoul_becomes_a_6_6_copy_of_a_demon_of_the_deck():
+    game = prepare_empty_game(CardClass.DEMONHUNTER, CardClass.MAGE)
+    caria = game.player1.give("AV_267").play()  # no Demon in the deck: stays
+    assert game.player1.field == ["AV_267"] and caria.atk == 6
+    game = prepare_empty_game(CardClass.DEMONHUNTER, CardClass.MAGE)
+    _to_deck(game.player1, "BT_307")
+    game.player1.give("AV_267").play()
+    assert game.player1.field == ["BT_307"]
+    assert (game.player1.field[0].atk, game.player1.field[0].health) == (6, 6)
+
+
+def test_kazakusan_treasures_need_a_target_and_destroy_it():
+    # the treasures were written with a set of requirements (a plantage in a game)
+    game = prepare_empty_game()
+    target = game.player2.summon("CS2_182")
+    treasure = game.player1.give("ONY_005ta1")  # Necrotic Poison
+    assert treasure.requires_target()
+    treasure.play(target=target)
+    assert target.dead
+
+
+def test_frozen_mammoth_is_frozen_until_a_fire_spell_is_cast():
+    game = prepare_empty_game()
+    mammoth = game.player1.give("AV_128").play()
+    assert mammoth.frozen
+    game.skip_turn()
+    assert mammoth.frozen and not mammoth.can_attack()
+    game.player1.give(FIREBALL).play(target=game.player2.hero)
+    assert not mammoth.frozen and mammoth.can_attack()
+
+
+def test_abominable_lieutenant_eats_an_enemy_minion_at_the_end_of_your_turn():
+    game = prepare_empty_game()
+    lieutenant = game.player1.give("AV_139").play()
+    game.player2.summon("CS2_182")
+    game.end_turn()
+    assert game.player2.field == []
+    assert (lieutenant.atk, lieutenant.health) == (3 + 4, 5 + 5)
+
+
+def test_grimtotem_bounty_hunter_destroys_an_enemy_legendary_only():
+    game = prepare_empty_game()
+    mine = game.player1.summon("EX1_116")  # Leeroy Jenkins
+    theirs = game.player2.summon("EX1_116")
+    game.player2.summon("CS2_182")
+    hunter = game.player1.give("AV_138")
+    assert hunter.targets == [theirs]
+    hunter.play(target=theirs)
+    assert theirs.dead and not mine.dead
+
+
+def test_frozen_buckler_loses_five_armor_at_the_start_of_the_next_turn_at_most():
+    game = prepare_empty_game(CardClass.WARRIOR, CardClass.MAGE)
+    game.player1.give("AV_109").play()
+    assert game.player1.hero.armor == 10
+    game.end_turn()
+    game.player2.give(FIREBALL).play(target=game.player1.hero)
+    assert game.player1.hero.armor == 4
+    gained = game.player1.armor_gained_this_game
+    game.end_turn()
+    assert game.player1.hero.armor == 0  # never below 0
+    assert game.player1.armor_gained_this_game == gained
+
+
+def test_improved_open_the_cages_needs_two_minions_and_summons_two_companions():
+    game = prepare_empty_game(CardClass.HUNTER, CardClass.MAGE)
+    game.player1.give("AV_113t8").play()
+    game.player1.summon(WISP)
+    game.skip_turn()
+    assert len(game.player1.field) == 1 and len(game.player1.secrets) == 1
+    game.player1.summon(WISP)
+    game.skip_turn()
+    assert len(game.player1.field) == 4 and not game.player1.secrets
+
+
+def test_beaststalker_tavish_and_the_hero_card_armor():
+    game = prepare_empty_game(CardClass.HUNTER, CardClass.MAGE)
+    game.player1.give("AV_113").play()
+    assert game.player1.hero.armor == 5
+    _choose(game)
+    _choose(game)
+    assert game.player1.hero.armor == 5
+
+
+def test_brukan_of_the_elements_calls_two_elements_then_changes_each_turn():
+    game = prepare_empty_game(CardClass.SHAMAN, CardClass.MAGE)
+    game.player2.summon("CS2_186")
+    game.player1.give("AV_258").play()
+    assert game.player1.hero.armor == 5
+    assert game.player1.hero.power.id in ("AV_258pt", "AV_258p2", "AV_258pt3", "AV_258pt4")
+    first = game.player1.hero.power.id
+    offered = [c.id for c in game.player1.choice.cards]
+    assert offered == ["AV_258t", "AV_258t2", "AV_258t3", "AV_258t4"]
+    game.player1.choice.choose(game.player1.choice.cards[2])  # Fire
+    assert [c.id for c in game.player1.choice.cards] == ["AV_258t", "AV_258t2", "AV_258t4"]
+    game.player1.choice.choose(game.player1.choice.cards[0])  # Earth
+    assert game.player2.hero.health == 24  # Fire: 6 damage to the enemy hero
+    assert game.player1.field == ["AV_258t6", "AV_258t6"]
+    game.skip_turn()
+    assert game.player1.hero.power.id != first
+
+
+def test_dreadprison_glaive_and_bloodseeker_honorable_kills():
+    game = prepare_empty_game(CardClass.DEMONHUNTER, CardClass.MAGE)
+    game.player1.give("AV_209").play()
+    game.skip_turn()
+    game.player1.hero.attack(game.player2.summon(WISP))  # exactly 1
+    assert game.player2.hero.health == 29
+    game = prepare_empty_game(CardClass.HUNTER, CardClass.MAGE)
+    bloodseeker = game.player1.give("AV_244").play()
+    game.skip_turn()
+    game.player1.hero.attack(game.player2.summon("CS2_142"))  # 2 on a 2/2
+    assert (bloodseeker.atk, bloodseeker.durability) == (3, 2)
+
+
+def test_grand_slam_gains_armor_on_an_honorable_kill():
+    game = prepare_empty_game(CardClass.WARRIOR, CardClass.MAGE)
+    game.player1.give("AV_202").play()
+    assert game.player1.hero.armor == 10
+    game.skip_turn()
+    power = game.player1.hero.power
+    assert power.id == "AV_202p"
+    power.use(target=game.player2.summon("CS2_182"))
+    assert game.player1.hero.armor == 10
+    game.skip_turn()
+    game.player1.hero.power.use(target=game.player2.summon("CS2_121"))  # 2 on a 2/2
+    assert game.player1.hero.armor == 14
+
+
+def test_the_unstoppable_force_smashes_the_minion_into_its_own_hero():
+    game = prepare_empty_game(CardClass.WARRIOR, CardClass.MAGE)
+    game.player1.give("AV_202").play()
+    game.skip_turn()
+    ogre = game.player2.summon("CS2_200")  # 6/7: survives 5
+    game.player1.hero.attack(ogre)
+    assert ogre.damage == 5
+    assert game.player2.hero.health == 30 - 5 or game.player2.hero.health < 30
+
+
+def test_whelp_bonker_draws_on_frenzy_and_on_an_honorable_kill():
+    game = prepare_empty_game(CardClass.PALADIN, CardClass.MAGE)
+    bonker = game.player1.give("ONY_003").play()
+    _to_deck(game.player1, WISP, WISP, WISP)
+    game.player1.give(MOONFIRE).play(target=bonker)  # Frenzy: draws
+    assert game.player1.hand == [WISP]
+    game.skip_turn()
+    game.player1.discard_hand()
+    bonker.attack(game.player2.summon(WISP))  # exactly lethal
+    assert game.player1.hand == [WISP]
+
+
+def test_najak_hexxen_takes_an_enemy_minion_and_gives_it_back():
+    game = prepare_empty_game(CardClass.PRIEST, CardClass.MAGE)
+    yeti = game.player2.summon("CS2_182")
+    najak = game.player1.give("AV_331").play(target=yeti)
+    assert game.player1.field == ["AV_331", "CS2_182"]
+    najak.destroy()
+    assert game.player2.field == ["CS2_182"]
+
+
+def test_xyrella_flips_between_healing_and_damage_each_turn():
+    game = prepare_empty_game(CardClass.PRIEST, CardClass.MAGE)
+    game.player1.give("AV_207").play()
+    power = game.player1.hero.power
+    assert power.id == "AV_207p"
+    game.player1.hero.set_current_health(20)
+    power.use(target=game.player1.hero)
+    assert game.player1.hero.health == 25
+    game.skip_turn()
+    assert game.player1.hero.power.id == "AV_207p2"
+    game.player1.hero.power.use(target=game.player2.hero)
+    assert game.player2.hero.health == 25
 

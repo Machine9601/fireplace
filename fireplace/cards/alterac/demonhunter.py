@@ -37,7 +37,9 @@ class AV_267:
     """Caria Felsoul"""
 
     # <b>Battlecry:</b> Transform into a 6/6 copy of a Demon in your deck.
-    play = Morph(SELF, RANDOM(FRIENDLY_DECK + DEMON)).then(Buff(SELF, "AV_267e2"))
+    play = Find(FRIENDLY_DECK + DEMON) & (
+        Morph(SELF, RANDOM(FRIENDLY_DECK + DEMON)).then(Buff(Morph.CARD, "AV_267e2"))
+    )
 
 
 class AV_267e2:

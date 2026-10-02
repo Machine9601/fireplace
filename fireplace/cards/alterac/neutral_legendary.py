@@ -148,8 +148,8 @@ class ONY_005ta1:
 
     # Destroy a minion.
     requirements = {
-        PlayReq.REQ_TARGET_TO_PLAY,
-        PlayReq.REQ_MINION_TARGET,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
     }
     play = Destroy(TARGET)
 
@@ -159,8 +159,8 @@ class ONY_005ta2:
 
     # Give a minion +4/+4 and <b>Taunt</b>.
     requirements = {
-        PlayReq.REQ_TARGET_TO_PLAY,
-        PlayReq.REQ_MINION_TARGET,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
     }
     play = Buff(TARGET, "ONY_005ta2e")
 
@@ -188,8 +188,8 @@ class ONY_005ta5:
     # [x]<b>Battlecry</b>: Summon six 1/1 Bloodhounds with <b>Rush</b> to
     # attack an enemy minion.
     requirements = {
-        PlayReq.REQ_TARGET_IF_AVAILABLE,
-        PlayReq.REQ_MINION_TARGET,
+        PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
     }
     play = (
         SummonBothSides(CONTROLLER, "ONY_005ta5t").then(
@@ -204,8 +204,8 @@ class ONY_005ta6:
 
     # <b>Silence</b> and destroy a minion. Summon a 10/10 copy of it.
     requirements = {
-        PlayReq.REQ_TARGET_TO_PLAY,
-        PlayReq.REQ_MINION_TARGET,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
     }
     play = (
         Silence(TARGET),
@@ -229,8 +229,8 @@ class ONY_005ta7:
 
     # [x]<b>Battlecry:</b> Destroy a minion. Gain its Attack and Health.
     requirements = {
-        PlayReq.REQ_TARGET_IF_AVAILABLE,
-        PlayReq.REQ_MINION_TARGET,
+        PlayReq.REQ_TARGET_IF_AVAILABLE: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
     }
     play = (
         Buff(SELF, "ONY_005ta7e", atk=ATK(TARGET), max_health=CURRENT_HEALTH(TARGET)),
@@ -515,8 +515,8 @@ class ONY_005tc6:
 
     # Give a minion +3/+3.
     requirements = {
-        PlayReq.REQ_TARGET_TO_PLAY,
-        PlayReq.REQ_MINION_TARGET,
+        PlayReq.REQ_TARGET_TO_PLAY: 0,
+        PlayReq.REQ_MINION_TARGET: 0,
     }
     play = Buff(TARGET, "ONY_005tc6e")
 

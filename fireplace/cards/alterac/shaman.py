@@ -171,7 +171,13 @@ class AV_258:
                 self.source.game.queue_actions(card, [Battlecry(card, self.source)])
 
     entourage = ["AV_258pt", "AV_258p2", "AV_258pt3", "AV_258pt4"]
-    play = ElementalMasteryAction(CONTROLLER), Summon(CONTROLLER, RandomEntourage())
+    # `Hero.play` gains the 5 Armor of the hero card after the battlecry, and an
+    # action queued behind an open choice is dropped: both come before the choice.
+    play = (
+        GainArmor(FRIENDLY_HERO, 5),
+        Summon(CONTROLLER, RandomEntourage()),
+        ElementalMasteryAction(CONTROLLER),
+    )
 
 
 class AV_258t:
