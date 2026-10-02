@@ -21,7 +21,9 @@ class ULD_162:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_FRIENDLY_LACKEY: 0,
     }
-    play = Destroy(TARGET), Summon(CONTROLLER, "ULD_162t")
+    # The Lackey dies before the Demon comes: on a full board, it left no room
+    # for the Demon (WP-190). Without a Lackey, nothing.
+    play = Find(TARGET) & (Destroy(TARGET), Deaths(), Summon(CONTROLLER, "ULD_162t"))
 
 
 class ULD_163:
@@ -53,9 +55,10 @@ class ULD_165:
 class ULD_167:
     """Diseased Vulture"""
 
-    # After your hero takes damage on your turn, summon a random 3-Cost minion.
-    events = Hit(FRIENDLY_HERO).on(
-        Find(CURRENT_PLAYER + CONTROLLER) & Summon(CONTROLLER, RandomMinion(cost=3))
+    # Whenever your hero takes damage on your turn, summon a random 3-Cost minion.
+    # `Hit` is never broadcast: `Damage` is, as for Floating Watcher (WP-190).
+    events = Damage(FRIENDLY_HERO).on(
+        CurrentPlayer(CONTROLLER) & Summon(CONTROLLER, RandomMinion(cost=3))
     )
 
 

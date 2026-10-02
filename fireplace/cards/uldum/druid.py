@@ -1,5 +1,22 @@
 from ..utils import *
 
+
+# A spell its controller played this turn that costs (5) or more: the cost is
+# read only on such a spell (`COST >= 5` on every entity read the Defender's
+# own cost, an endless recursion).
+def _big_spell_cast_this_turn(entities, source):
+    return [
+        e
+        for e in entities
+        if getattr(e, "played_this_turn", False)
+        and e.type == CardType.SPELL
+        and e.controller == source.controller
+        and e.cost >= 5
+    ]
+
+
+BIG_SPELL_CAST_THIS_TURN = FuncSelector(_big_spell_cast_this_turn)
+
 ##
 # Minions
 
@@ -8,7 +25,8 @@ class ULD_133:
     """Crystal Merchant"""
 
     # If you have any unspent Mana at the end of your turn, draw a card.
-    events = OWN_TURN_END.on((MANA(CONTROLLER) > 0) & Draw(CONTROLLER))
+    # MANA is the crystals (RESOURCES), CURRENT_MANA what is left (WP-190).
+    events = OWN_TURN_END.on((CURRENT_MANA(CONTROLLER) > 0) & Draw(CONTROLLER))
 
 
 class ULD_137:
@@ -24,8 +42,10 @@ class ULD_138:
     """Anubisath Defender"""
 
     # <b>Taunt</b>. Costs (0) if you've cast a spell that costs (5) or more this turn.
-    class Hand:
-        events = Play(CONTROLLER, SPELL + (COST >= 5)).after(Buff(SELF, "GBL_009e"))
+    # A condition of the turn, not a buff: a Defender drawn after the spell
+    # costs 0 too, and none costs 0 any more the next turn (the buff stayed)
+    # (WP-190).
+    cost_mod = Find(BIG_SPELL_CAST_THIS_TURN) & -100
 
 
 class ULD_139:
@@ -51,6 +71,10 @@ class ULD_292a:
     play = Buff(SELF, "ULD_292ae")
 
 
+# CardDefs gives "Focused" no stats: +2/+2 never came (WP-190).
+ULD_292ae = buff(+2, +2)
+
+
 class ULD_292b:
     requirements = {
         PlayReq.REQ_NUM_MINION_SLOTS: 2,
@@ -67,7 +91,7 @@ class ULD_131:
 
     # [x]<b>Quest:</b> End 4 turns with any unspent Mana. <b>Reward:</b> Ossirian Tear.
     progress_total = 4
-    quest = OWN_TURN_END.on((MANA(CONTROLLER) > 0) & AddProgress(SELF, SELF))
+    quest = OWN_TURN_END.on((CURRENT_MANA(CONTROLLER) > 0) & AddProgress(SELF, SELF))
     reward = Summon(CONTROLLER, "ULD_131p")
 
 

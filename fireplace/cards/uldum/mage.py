@@ -20,7 +20,8 @@ class ULD_238:
     # <b>Battlecry:</b> If your deck has no duplicates, deal 10 damage randomly split among
     # all enemy minions.
     powered_up = -FindDuplicates(FRIENDLY_DECK)
-    play = powered_up & Hit(RANDOM_ENEMY_CHARACTER, 1) * 10
+    # "among all enemy minions": never the enemy hero (WP-190).
+    play = powered_up & Hit(RANDOM_ENEMY_MINION, 1) * 10
 
 
 class ULD_240:
@@ -76,7 +77,8 @@ class ULD_239:
     """Flame Ward"""
 
     # <b>Secret:</b> After a minion attacks your hero, deal $3 damage to all enemy minions.
-    secret = Attack(MINION, FRIENDLY_HERO).after(Hit(ENEMY_MINIONS, 3))
+    # Revealed like any Secret: it stayed and went off at every attack (WP-190).
+    secret = Attack(MINION, FRIENDLY_HERO).after(Reveal(SELF), Hit(ENEMY_MINIONS, 3))
 
 
 class ULD_433:

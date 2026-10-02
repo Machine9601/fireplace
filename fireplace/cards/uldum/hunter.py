@@ -31,7 +31,16 @@ class ULD_212:
     """Wild Bloodstinger"""
 
     # <b>Battlecry:</b> Summon a minion from your opponent's hand. Attack it.
-    play = Summon(OPPONENT, RANDOM(ENEMY_HAND + MINION)).then(Attack(SELF, Summon.CARD))
+    def play(self):
+        # On a full enemy board nothing is summoned: it attacked the minion
+        # left in the opponent's hand (WP-190, as Duel! in WP-189).
+        minions = self.controller.opponent.hand.filter(type=CardType.MINION)
+        if not minions:
+            return
+        minion = self.game.random.choice(minions)
+        yield Summon(OPPONENT, minion)
+        if minion.zone == Zone.PLAY and self.zone == Zone.PLAY and not self.dead:
+            yield Attack(SELF, minion)
 
 
 class ULD_410:
