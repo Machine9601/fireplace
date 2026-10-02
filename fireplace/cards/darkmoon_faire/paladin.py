@@ -57,12 +57,19 @@ class DMF_240e:
     events = Summon(CONTROLLER, ID("CS2_101t")).after(GiveDivineShield(Summon.CARD))
 
 
+MULTI_CLASS_CARDS = FuncSelector(
+    lambda entities, source: [e for e in entities if len(getattr(e, "classes", ())) > 1]
+)
+
+
 class DMF_241:
     """High Exarch Yrel"""
 
     # [x]<b>Battlecry:</b> If your deck has no Neutral cards, gain <b>Rush</b>,
     # <b>Lifesteal</b>, <b>Taunt</b>, and <b>Divine Shield</b>.
-    powered_up = -Find(FRIENDLY_DECK + NEUTRAL)
+    # A dual-class card has the class NEUTRAL in fireplace, but it is not a
+    # Neutral card (WP-195: one in the deck turned Yrel off).
+    powered_up = -Find(FRIENDLY_DECK + NEUTRAL - MULTI_CLASS_CARDS)
     play = powered_up & (
         SetTags(
             SELF,

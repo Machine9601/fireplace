@@ -1300,6 +1300,12 @@ def test_high_exarch_yrel_without_neutral_cards():
     card.zone = Zone.DECK
     yrel = game.player1.give("DMF_241").play()
     assert yrel.rush and yrel.lifesteal and yrel.taunt and yrel.divine_shield
+    # A dual-class card is not a Neutral card.
+    card = game.player1.give("YOP_009")  # Rally!, paladin and priest
+    card.zone = Zone.DECK
+    _refill(game)
+    yrel = game.player1.give("DMF_241").play()
+    assert yrel.taunt
     card = game.player1.give(WISP)
     card.zone = Zone.DECK
     _refill(game)
