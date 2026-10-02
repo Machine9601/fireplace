@@ -45,7 +45,12 @@ class SW_113:
             turns = player.turns[-4:-1]
         for turn in turns:
             for card in player.cards_played_this_game:
-                if card.turn_played == turn:
+                # WP-197: a Fire *spell* (any card played counted)
+                if (
+                    card.turn_played == turn
+                    and card.type == CardType.SPELL
+                    and card.spell_school == SpellSchool.FIRE
+                ):
                     count += 1
                     break
         return count

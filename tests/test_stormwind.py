@@ -744,3 +744,32 @@ def test_a_questline_is_in_the_starting_hand():
     for _ in range(3):
         game, mage = _start([WISP] * 29 + ["SW_450"], CardClass.MAGE)
         assert "SW_450" in [c.id for c in mage.hand]
+
+
+def test_grand_magus_antonidas_counts_fire_spells_only():
+    game = _turn(prepare_empty_game(CardClass.MAGE, CardClass.MAGE))
+    for _ in range(3):
+        game.player1.give(WISP).play()
+        game.skip_turn()
+    assert game.player1.give("SW_113").progress == 0
+    for _ in range(3):
+        game.player1.give(FIREBALL).play(target=game.player1.hero)
+        game.skip_turn()
+    assert game.player1.give("SW_113").progress == 3
+
+
+def test_oracle_of_elune_puts_the_copy_right_of_itself():
+    game = _turn(prepare_empty_game(CardClass.DRUID, CardClass.DRUID))
+    game.player1.give("SW_419").play()
+    game.player1.give(WISP).play(index=0)
+    game.player1.give("CS2_168").play(index=0)
+    assert game.player1.field == ["CS2_168", "CS2_231", "SW_419", "CS2_168", "CS2_231"]
+
+
+def test_imported_tarantula_leaves_its_spiders_where_it_stood():
+    game = _turn(prepare_empty_game(CardClass.HUNTER, CardClass.HUNTER))
+    game.player1.give(WISP).play()
+    tarantula = game.player1.give("SW_463").play()
+    game.player1.give(WISP).play()
+    tarantula.destroy()
+    assert game.player1.field == [WISP, "SW_463t", "SW_463t", WISP]
