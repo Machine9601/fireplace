@@ -738,3 +738,9 @@ def test_maestra_of_the_masquerade_disguises_the_hero_until_a_rogue_card():
     assert rogue.hero.data.card_class != CardClass.ROGUE
     rogue.give("SW_413").play()
     assert rogue.hero.data.card_class == CardClass.ROGUE
+
+
+def test_a_questline_is_in_the_starting_hand():
+    for _ in range(3):
+        game, mage = _start([WISP] * 29 + ["SW_450"], CardClass.MAGE)
+        assert "SW_450" in [c.id for c in mage.hand]

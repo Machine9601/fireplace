@@ -529,7 +529,8 @@ class Player(Entity, TargetableByAuras):
         def key_func(card):
             if getattr(card, "stays_at_bottom", False):
                 return -2, self.game.random.random()
-            if card.tags.get(GameTag.QUEST):
+            # A questline too (WP-197, hearthstone.wiki.gg page Questline)
+            if card.tags.get(GameTag.QUEST) or card.tags.get(GameTag.QUESTLINE):
                 return 1, self.game.random.random()
             if card.tags.get(GameTag.CANT_DRAW_DURING_MULLIGAN):
                 return -1, self.game.random.random()
