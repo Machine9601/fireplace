@@ -690,6 +690,25 @@ def test_fel_barrage_hits_the_enemy_hero_when_no_minion_is_there():
     assert game.player2.hero.damage == 4
 
 
+def test_the_si_7_selector_recognizes_an_si_7_card():
+    # A227 (WP-189c): since WP-197 mapped GameTag.SI_7, the dsl selector matches
+    # the SI:7 cards (no local workaround needed), and only them.
+    from fireplace.dsl.selector import SI_7
+
+    game = _turn(prepare_empty_game(CardClass.ROGUE, CardClass.ROGUE))
+    agent = game.player1.give("EX1_134")
+    wisp = game.player1.give(WISP)
+    assert SI_7.eval([agent, wisp], agent) == [agent]
+    agent.play()
+    wisp.play()
+    played = [c for c in game.player1.cards_played_this_game]
+    assert SI_7.eval(played, agent) == [agent]
+    informant = game.player1.give("SW_411").play()
+    # the Informant counts the SI:7 card played before it (the Agent), not itself
+    base = informant.data.tags[GameTag.ATK]
+    assert informant.atk == base + 1
+
+
 def test_sigil_of_alacrity_reduces_the_card_drawn():
     game = _turn(prepare_empty_game(CardClass.DEMONHUNTER, CardClass.DEMONHUNTER))
     for _ in range(2):

@@ -882,3 +882,20 @@ def test_zephrys_lamp_offers_three_cards():
     assert len(choice.cards) == 3
     assert len({c.id for c in choice.cards}) == 3
 
+
+def test_the_three_tradeable_cards_of_alterac_trade():
+    # A233 (WP-189c): the three Tradeable cards of Alterac (Drakefire Amulet,
+    # Ring of Replenishment, Dragonbane's Strike...) trade since WP-197 repaired
+    # `Card.is_tradeable`.
+    for card_id in ("ONY_025", "ONY_027", "ONY_029"):
+        game = prepare_game()
+        player = game.current_player
+        card = player.give(card_id)
+        assert card.tradeable, card_id
+        assert card.is_tradeable(), card_id
+        deck, mana = len(player.deck), player.used_mana
+        card.trade()
+        assert card.zone == Zone.DECK, card_id
+        assert len(player.deck) == deck, card_id
+        assert player.used_mana == mana + 1, card_id
+
