@@ -43,7 +43,10 @@ class CFM_310:
 class CFM_313:
     """Finders Keepers"""
 
-    play = DISCOVER(RandomCollectible(card_class=CardClass.SHAMAN, overload=True))
+    # Jamais lui-même (corrigé dans le jeu en 2020, avant le patch 21.8 ; hearthstone.wiki.gg).
+    play = DISCOVER(
+        RandomCollectible(card_class=CardClass.SHAMAN, overload=True, exclude=SELF)
+    )
 
 
 class DevolveOne(TargetedAction):

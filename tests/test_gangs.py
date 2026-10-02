@@ -528,6 +528,22 @@ def test_grimscale_chum_buffs_one_random_murloc():
     assert sorted((m.atk, m.health) for m in murlocs) == [(2, 1), (2, 1), (3, 2)]
 
 
+def test_finders_keepers_never_offers_itself():
+    # Environ 70 cartes de chaman à Surcharge : 150 découvertes la montreraient (p < 0,001).
+    # Une partie Wild : sans cela, le vivier Standard n'a pas Mean Streets of Gadgetzan.
+    game = prepare_empty_game()
+    game.player1.is_standard = False
+    for _ in range(150):
+        game.player1.give("CFM_313").play()
+        cards = game.player1.choice.cards
+        assert "CFM_313" not in [c.id for c in cards]
+        assert all(c.overload for c in cards)
+        game.player1.choice.choose(cards[0])
+        game.player1.discard_hand()
+        game.player1.used_mana = 0
+        game.player1.overloaded = 0
+
+
 def test_getaway_kodo_after_the_deathrattle():
     """Le wiki : « When Getaway Kodo triggers on a Deathrattle minion, the Deathrattle effect
     occurs first » : Loot Hoarder pioche, puis revient en main ; main à 9, la pioche la remplit
