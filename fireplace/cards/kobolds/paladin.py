@@ -58,8 +58,9 @@ class LOOT_091:
     play = Summon(CONTROLLER, "LOOT_091t")
     reward = Morph(SELF, "LOOT_091t1")
 
+    # The healing of its player only, not the opponent's (WP-185).
     class Hand:
-        events = Heal().on(AddProgress(SELF, Heal.TARGET, Heal.AMOUNT))
+        events = Heal(source=FRIENDLY).on(AddProgress(SELF, Heal.TARGET, Heal.AMOUNT))
 
 
 class LOOT_091t1:
@@ -74,7 +75,7 @@ class LOOT_091t1:
     reward = Morph(SELF, "LOOT_091t2")
 
     class Hand:
-        events = Heal().on(AddProgress(SELF, Heal.TARGET, Heal.AMOUNT))
+        events = Heal(source=FRIENDLY).on(AddProgress(SELF, Heal.TARGET, Heal.AMOUNT))
 
 
 class LOOT_091t2:

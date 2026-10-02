@@ -415,6 +415,23 @@ def test_sapphire_spellstone_upgrades_on_overload():
     assert game.player1.hand[0].id == "LOOT_064t2"
 
 
+def test_pearl_spellstone_counts_only_its_own_healing():
+    # "Restore 3 Health to upgrade": the healing of its player, not of the
+    # opponent; a heal that restores nothing does not count.
+    game = prepare_empty_game()
+    game.player1.give("LOOT_091")
+    game.player1.give(HOLY_LIGHT).play()  # at full Health: nothing restored
+    assert game.player1.hand[0].id == "LOOT_091"
+    game.player1.hero.set_current_health(20)
+    game.end_turn()
+    game.player2.give("CS2_007").play(target=game.player1.hero)  # Healing Touch
+    assert game.player1.hand[0].id == "LOOT_091"
+    game.end_turn()
+    game.player1.hero.set_current_health(20)
+    game.player1.give("CS2_007").play(target=game.player1.hero)
+    assert game.player1.hand[0].id == "LOOT_091t1"
+
+
 def test_primal_talismans_only_friendly_minions():
     game = prepare_empty_game()
     enemy = game.player2.summon(WISP)
@@ -514,6 +531,7 @@ def test_unidentified_cards_are_revealed_in_the_starting_hand_and_mulligan():
         player.choice.choose(*mulligan)
         assert all(c.id != "LOOT_285" for c in player.hand)
         # In the deck, the cards never drawn stay unidentified; the ones sent
-        # back by the mulligan stay what they became.
+        # back by the mulligan (some may come back at once) stay what they became.
         unidentified = [c for c in player.deck if c.id == "LOOT_285"]
-        assert len(unidentified) == len(player.deck) - len(mulligan)
+        assert len(unidentified) >= len(player.deck) - len(mulligan)
+        assert len(unidentified) > 0
