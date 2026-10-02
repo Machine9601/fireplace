@@ -341,6 +341,30 @@ ZEPHRYS_POOL = [
 ]
 
 
+class SummonRightOf(Summon):
+    """
+    Summon right of a given minion of the field, whatever the source is (a
+    spell, or a minion that is not that one): Power Word: Replicate, Oracle of
+    Elune (A120, A217, D-108). With no such minion on the field, at the far right.
+    """
+
+    TARGET = ActionArg()
+    CARD = ActionArg()
+    NEIGHBOR = CardArg()
+
+    def get_summon_index(self, source_index):
+        return self._index
+
+    def do(self, source, target, cards, neighbor):
+        if not isinstance(cards, list):
+            cards = [cards]
+        field = target.field
+        self._index = field.index(neighbor) + 1 if neighbor in field else len(field)
+        for card in cards:
+            card._summon_index = self._index
+        return super().do(source, target, cards)
+
+
 class ZephrysWish(LazyValue):
     """
     Three cards of ZEPHRYS_POOL drawn at random, read when the choice opens

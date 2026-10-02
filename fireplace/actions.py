@@ -2842,6 +2842,11 @@ class Spellburst(TargetedAction):
         if not target.has_spellburst:
             log.info("%r does not have spellburst", target)
             return
+        if getattr(target, "dead", False):
+            # A185 (D-108): the Spellburst card must survive; one killed by an
+            # earlier Spellburst of the same spell triggers nothing.
+            log.info("%r is dead, its spellburst does not trigger", target)
+            return
 
         actions = target.get_actions("spellburst", spell)
         source.game.queue_actions(target, actions, event_args=[target, spell])

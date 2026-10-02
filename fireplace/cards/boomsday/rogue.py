@@ -68,7 +68,14 @@ class BOT_084:
     """Violet Haze"""
 
     # Add 2 random <b>Deathrattle</b> cards to_your hand.
-    play = Give(CONTROLLER, RandomMinion(deathrattle=True)) * 2
+    # Weapons with a Deathrattle too (A116, D-108)
+    play = (
+        Give(
+            CONTROLLER,
+            RandomCollectible(type=[CardType.MINION, CardType.WEAPON], deathrattle=True),
+        )
+        * 2
+    )
 
 
 class BOT_087:

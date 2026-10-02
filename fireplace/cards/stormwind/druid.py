@@ -9,8 +9,8 @@ class SW_419:
 
     # [x]After you play a minion that costs (2) or less, summon a copy of it.
     events = Play(CONTROLLER, MINION + (COST <= 2)).after(
-        Summon(CONTROLLER, ExactCopy(Play.CARD))
-    )
+        SummonRightOf(CONTROLLER, ExactCopy(Play.CARD), Play.CARD)
+    )  # right of the minion played (A217, D-108)
 
 
 class SW_431:

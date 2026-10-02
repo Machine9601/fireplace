@@ -116,7 +116,8 @@ class BOT_529:
         PlayReq.REQ_FRIENDLY_TARGET: 0,
         PlayReq.REQ_NUM_MINION_SLOTS: 1,
     }
-    play = Summon(CONTROLLER, Buff(ExactCopy(TARGET), "BOT_529e"))
+    # The copy goes right of the original (A120, D-108)
+    play = SummonRightOf(CONTROLLER, Buff(ExactCopy(TARGET), "BOT_529e"), TARGET)
 
 
 class BOT_529e:

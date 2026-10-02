@@ -250,3 +250,36 @@ def test_gloop_sprayer_puts_one_copy_on_each_side_of_itself():
     game.player1.give(WISP).play()
     game.player1.give("BOT_507").play(index=1)
     assert [m.id for m in game.player1.field] == [WISP, WISP, "BOT_507"]
+
+
+def test_violet_haze_adds_deathrattle_weapons_too():
+    # A116 (D-108): "on ajoute les armes aussi" (5% of the pool: 300 cards
+    # make a miss a one in five million).
+    game = prepare_empty_game()
+    seen = set()
+    for _ in range(150):
+        game.player1.used_mana = 0
+        game.player1.give("BOT_084").play()
+        for card in list(game.player1.hand):
+            assert card.has_deathrattle
+            seen.add(card.type)
+            card.discard()
+    assert CardType.WEAPON in seen
+    assert CardType.MINION in seen
+
+
+def test_power_word_replicate_puts_the_copy_right_of_the_original():
+    # A120 (D-108): "à droite de l'original".
+    game = prepare_empty_game(CardClass.PRIEST, CardClass.PRIEST)
+    first = game.player1.give(WISP).play()
+    game.player1.give(CHICKEN).play()
+    game.player1.give(MURLOC).play()
+    game.player1.give("BOT_529").play(target=first)
+    assert [m.id for m in game.player1.field] == [WISP, WISP, CHICKEN, MURLOC]
+    copy = game.player1.field[1]
+    assert (copy.atk, copy.health) == (5, 5)
+    assert copy is not first
+    # the original, in the middle: the copy follows it
+    game.player1.used_mana = 0
+    game.player1.give("BOT_529").play(target=game.player1.field[2])
+    assert [m.id for m in game.player1.field] == [WISP, WISP, CHICKEN, CHICKEN, MURLOC]

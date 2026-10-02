@@ -88,9 +88,14 @@ class BT_130:
     """Overgrowth"""
 
     # Gain two empty Mana_Crystals.
-    play = AT_MAX_MANA(CONTROLLER) & Give(CONTROLLER, "CS2_013t") | GainEmptyMana(
-        CONTROLLER, 2
-    )
+    # A176 (D-108): an Excess Mana for each crystal over ten, as two Wild Growth
+    def play(self):
+        player = self.controller
+        gained = min(2, max(0, player.max_resources - player.max_mana))
+        if gained:
+            yield GainEmptyMana(CONTROLLER, gained)
+        for _ in range(2 - gained):
+            yield Give(CONTROLLER, "CS2_013t")
 
 
 class BT_132:

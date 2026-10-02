@@ -246,3 +246,15 @@ def test_witchs_cauldron_hears_a_friendly_minion_die():
     assert game.player1.hand[0].type == CardType.SPELL
     cauldron.destroy()
     assert len(game.player1.hand) == 1
+
+
+def test_glitter_moth_adds_the_current_health_to_the_maximum():
+    # A110 (D-108): +current Health to the maximum, the damage stays: a 4/5
+    # Yeti with 4 Health left goes to 8 Health of 9.
+    game = prepare_empty_game()
+    yeti = game.player1.give("CS2_182").play()
+    yeti.damage = 1
+    assert (yeti.health, yeti.max_health) == (4, 5)
+    game.player1.give("GIL_837").play()
+    assert (yeti.health, yeti.max_health) == (8, 9)
+    assert yeti.damage == 1

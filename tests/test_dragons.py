@@ -194,13 +194,35 @@ def test_kronx_dragonhoof_draw_unleash_devastation():
     game.player1.summon("DRG_650")
     wisp = game.player1.give(WISP).play()
     dragonhoof = game.player1.give("DRG_099").play()
-    choice = game.player1.choice
-    assert choice
-    choice.choose(choice.cards[2])
-    assert wisp.atk == 1 + 2
-    assert wisp.health == 1 + 2
-    assert dragonhoof.atk == 6
-    assert dragonhoof.health == 6
+    # A155 (D-108): the Devastation is drawn at random among the four, no choice
+    assert not game.player1.choice
+    kinds = _kronx_devastation_kind(game, wisp, dragonhoof)
+    assert kinds
+
+
+def _kronx_devastation_kind(game, wisp, dragonhoof):
+    """Which Devastation was unleashed (None if none or not one alone)."""
+    if game.player2.hero.health == 25 and game.player1.hero.damage == 0:
+        return "Decimation"
+    if any(m.id == "DRG_099t2t" for m in game.player1.field):
+        return "Reanimation"
+    if wisp.atk == 3 and dragonhoof.atk == 6:
+        return "Domination"  # the other minions only, not Kronx
+    if wisp.dead and not dragonhoof.dead:
+        return "Annihilation"  # all other minions, not Kronx
+    return None
+
+
+def test_kronx_dragonhoof_unleashes_each_devastation_at_random():
+    seen = set()
+    for _ in range(60):
+        game = prepare_empty_game()
+        game.player1.summon("DRG_650")
+        wisp = game.player1.give(WISP).play()
+        dragonhoof = game.player1.give("DRG_099").play()
+        assert not game.player1.choice
+        seen.add(_kronx_devastation_kind(game, wisp, dragonhoof))
+    assert seen == {"Decimation", "Reanimation", "Domination", "Annihilation"}
 
 
 def test_invoke():
@@ -432,8 +454,8 @@ def test_kronx_dragonhoof_draws_galakrond_and_unleashes_a_devastation():
     game.player1.give("DRG_099").play()
     assert game.player1.hand == ["DRG_660"]
     assert game.player2.deck == ["DRG_610"]
-    assert game.player1.choice
-    assert len(game.player1.choice.cards) == 4
+    # the Devastation is drawn at random (A155, D-108): no choice opens
+    assert not game.player1.choice
 
 
 def test_murozond_replays_the_cards_in_reverse_order_without_battlecries():

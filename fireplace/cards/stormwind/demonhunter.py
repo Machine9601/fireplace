@@ -147,15 +147,14 @@ class SW_040:
     # [x]Deal $2 damage to the lowest Health enemy, twice.
     # WP-197: the lowest Health enemy is looked for again for the second hit
     # (a dead minion is not the lowest): `* 2` hit the same minion twice.
-    # Enemy minions only: the heroes are an open question (annexe A215).
+    # The enemy hero is one of the enemies (A215, D-108).
     def play(self):
+        opponent = self.controller.opponent
         for _ in range(2):
-            minions = [m for m in self.controller.opponent.field if not m.dead]
-            if not minions:
-                return
-            lowest = min(m.health for m in minions)
+            enemies = [m for m in opponent.field if not m.dead] + [opponent.hero]
+            lowest = min(m.health for m in enemies)
             yield Hit(
-                self.game.random.choice([m for m in minions if m.health == lowest]), 2
+                self.game.random.choice([m for m in enemies if m.health == lowest]), 2
             )
 
 

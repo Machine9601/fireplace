@@ -40,10 +40,11 @@ class DRG_099:
         Find(GALAKROND + FRIENDLY_DECK)
         & ForceDraw(RANDOM(GALAKROND + FRIENDLY_DECK)),
         Find(GALAKROND + FRIENDLY_HERO)
-        & Choice(CONTROLLER, ["DRG_099t1", "DRG_099t2", "DRG_099t3", "DRG_099t4"]).then(
-            Battlecry(Choice.CARD, None)
+        & Battlecry(
+            RandomID("DRG_099t1", "DRG_099t2", "DRG_099t3", "DRG_099t4"), None
         ),
     )
+    # A155 (D-108): the Devastation is drawn at random among the four, not chosen.
 
 
 class DRG_099t1:

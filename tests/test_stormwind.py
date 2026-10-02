@@ -683,6 +683,13 @@ def test_fel_barrage_hits_the_lowest_enemy_again():
     assert yeti.damage == 2
 
 
+def test_fel_barrage_hits_the_enemy_hero_when_no_minion_is_there():
+    # A215 (D-108): the enemy hero is one of the enemies, hit twice here.
+    game = _turn(prepare_empty_game(CardClass.DEMONHUNTER, CardClass.DEMONHUNTER))
+    game.player1.give("SW_040").play()
+    assert game.player2.hero.damage == 4
+
+
 def test_sigil_of_alacrity_reduces_the_card_drawn():
     game = _turn(prepare_empty_game(CardClass.DEMONHUNTER, CardClass.DEMONHUNTER))
     for _ in range(2):
@@ -766,12 +773,14 @@ def test_city_architect_summons_a_wall_on_each_side():
     assert game.player1.field == ["SW_076t", "SW_076", "SW_076t"]
 
 
-def test_oracle_of_elune_puts_the_copy_right_of_itself():
+def test_oracle_of_elune_puts_the_copy_right_of_the_minion_played():
+    # A217 (D-108): the copy goes right of the minion played, not right of Oracle.
     game = _turn(prepare_empty_game(CardClass.DRUID, CardClass.DRUID))
     game.player1.give("SW_419").play()
     game.player1.give(WISP).play(index=0)
+    assert game.player1.field == [WISP, WISP, "SW_419"]
     game.player1.give("CS2_168").play(index=0)
-    assert game.player1.field == ["CS2_168", "CS2_231", "SW_419", "CS2_168", "CS2_231"]
+    assert game.player1.field == ["CS2_168", "CS2_168", WISP, WISP, "SW_419"]
 
 
 def test_imported_tarantula_leaves_its_spiders_where_it_stood():

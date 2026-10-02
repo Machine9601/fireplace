@@ -74,10 +74,10 @@ class GIL_837:
 
 
 class GIL_837e:
+    # A110 (D-108): the current Health is added to the maximum, the damage stays
+    # (a `max_health` script would also remove the damage: use the plain bonus)
     def apply(self, target):
-        self._xhealth = target.health * 2
-
-    max_health = lambda self, _: self._xhealth
+        self._max_health = target.health
 
 
 class GIL_840:

@@ -7,7 +7,10 @@ class SummonMinionOfWeaponAttackCost(TargetedAction):
     TARGET = ActionArg()
 
     def do(self, source, target):
-        cost = target.weapon.atk if target.weapon else 0
+        # No weapon, nothing is summoned (A188, D-108)
+        if not target.weapon:
+            return
+        cost = target.weapon.atk
         # As Evolve: no minion of that Cost, nothing is summoned
         card_set = RandomMinion(cost=cost).find_cards(source)
         if card_set:

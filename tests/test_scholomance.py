@@ -217,11 +217,22 @@ def test_steeldancer_summons_a_minion_of_the_weapons_attack():
     assert game.player1.field[1].cost == 3
 
 
-def test_steeldancer_without_a_weapon_summons_a_zero_cost_minion():
+def test_steeldancer_without_a_weapon_summons_nothing():
+    # A188 (D-108): "Rien sans arme"
     game = _game(CardClass.WARRIOR)
-    game.player1.give("SCH_522").play()
-    assert len(game.player1.field) == 2
-    assert game.player1.field[1].cost == 0
+    steeldancer = game.player1.give("SCH_522").play()
+    assert game.player1.field == [steeldancer]
+
+
+def test_spellburst_of_a_minion_killed_by_an_earlier_spellburst_does_nothing():
+    # A185 (D-108): "Mort = pas de Spellburst". Wretched Tutor (first on the
+    # board) kills the Gibberling, whose Spellburst then summons nothing.
+    game = _game()
+    tutor = game.player1.give("SCH_313").play()
+    gibberling = game.player1.give("SCH_242").play()
+    game.player1.give(MOONFIRE).play(target=game.player2.hero)
+    assert gibberling.dead
+    assert game.player1.field == [tutor]
 
 
 def test_diligent_notetaker_returns_the_spell():
