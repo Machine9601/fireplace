@@ -34,7 +34,11 @@ class DAL_379t:
     events = Attack(FRIENDLY_HERO).after(Buff(CONTROLLER, "DAL_379e"))
 
 
-DAL_379e = buff(spellpower=2)
+class DAL_379e:
+    # A SPELLPOWER tag on an enchantment of the player is never read: as
+    # Auchenai Phantasm (WP-188), the enchantment refreshes the player's spell
+    # damage; it ends with the turn (TAG_ONE_TURN_EFFECT) (WP-189).
+    update = Refresh(CONTROLLER, {GameTag.SPELLPOWER: 2})
 
 
 class DAL_587:
@@ -69,11 +73,12 @@ class DAL_371:
 class DAL_373:
     """Rapid Fire"""
 
-    # <b>Twinspell</b> Deal $1 damage.
+    # <b>Twinspell</b> Deal $2 damage.
+    # The card data (2 mana) says 2 damage, not the 1 of its first version (WP-189).
     requirements = {
         PlayReq.REQ_TARGET_TO_PLAY: 0,
     }
-    play = Hit(TARGET, 1)
+    play = Hit(TARGET, 2)
 
 
 class DAL_373ts(DAL_373):

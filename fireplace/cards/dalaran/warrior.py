@@ -16,7 +16,8 @@ class DAL_064:
     """Blastmaster Boom"""
 
     # [x]<b>Battlecry:</b> Summon two 1/1 Boom Bots for each Bomb in your opponent's deck.
-    play = Summon(CONTROLLER, "GVG_110t") * (Count(FRIENDLY_DECK + ID("BOT_511t")) * 2)
+    # The Bombs of the opponent's deck, not of one's own (WP-189).
+    play = Summon(CONTROLLER, "GVG_110t") * (Count(ENEMY_DECK + ID("BOT_511t")) * 2)
 
 
 class DAL_070:
@@ -87,8 +88,29 @@ class DAL_062:
     play = Buff(TARGET, "DAL_062e")
 
 
+class SweepingStrikesHit(TargetedAction):
+    """
+    Sweeping Strikes: the minions next to the defender take the attacker's
+    Attack in damage, dealt by the attacker itself, not by the enchantment
+    ("Overkill can trigger against adjacent minions", hearthstone.wiki.gg):
+    Poisonous, Lifesteal, Vicious Scraphound apply (WP-189).
+    """
+
+    TARGET = ActionArg()
+    DEFENDER = ActionArg()
+
+    def do(self, source, target, defender):
+        defenders = defender if isinstance(defender, list) else [defender]
+        for entity in defenders:
+            if getattr(entity, "type", None) != CardType.MINION:
+                continue
+            neighbours = list(entity.adjacent_minions)
+            if neighbours:
+                source.game.queue_actions(target, [Hit(neighbours, target.atk)])
+
+
 class DAL_062e:
-    events = Attack(OWNER).on(Hit(ADJACENT(Attack.DEFENDER), ATK(OWNER)))
+    events = Attack(OWNER).on(SweepingStrikesHit(OWNER, Attack.DEFENDER))
 
 
 class DAL_769:
