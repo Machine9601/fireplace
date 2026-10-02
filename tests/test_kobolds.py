@@ -644,3 +644,28 @@ def test_unidentified_cards_are_revealed_in_the_starting_hand_and_mulligan():
         unidentified = [c for c in player.deck if c.id == "LOOT_285"]
         assert len(unidentified) >= len(player.deck) - len(mulligan)
         assert len(unidentified) > 0
+
+
+def test_twig_of_the_world_tree_refreshes_the_spent_mana():
+    # D-108, A95 (rule 844): "Refresh your Mana Crystals" (patch 26.0.4).
+    game = prepare_empty_game(CardClass.DRUID, CardClass.DRUID)
+    player = game.player1
+    twig = player.give("LOOT_392").play()
+    player.max_mana = 6
+    player.used_mana = 4
+    assert player.mana == 2
+    twig.destroy()
+    assert player.mana == 6
+    assert player.max_mana == 6  # no crystal is gained any more
+
+
+def test_twig_of_the_world_tree_refreshes_at_ten_crystals():
+    game = prepare_empty_game(CardClass.DRUID, CardClass.DRUID)
+    player = game.player1
+    twig = player.give("LOOT_392").play()
+    player.max_mana = 10
+    player.used_mana = 7
+    assert player.mana == 3
+    twig.destroy()
+    assert player.mana == 10
+    assert player.max_mana == 10

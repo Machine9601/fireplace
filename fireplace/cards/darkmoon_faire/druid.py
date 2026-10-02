@@ -165,9 +165,20 @@ class YOP_024:
 
     def play(self):
         player = self.controller
-        spells = [
-            player.card(id, source=self) for id in (RandomSpell() * 2).evaluate(self)
-        ]
+        # Weighted toward the hero's class like a discover (rule 171,
+        # `Discover.get_target_args`): neutral spells and the class's own
+        # (WP-212, A199).
+        if player.hero.data.card_class != CardClass.NEUTRAL:
+            spell_class = player.hero.data.card_class
+        elif self.data.card_class != CardClass.NEUTRAL:
+            spell_class = self.data.card_class
+        else:
+            spell_class = player.starting_hero.data.card_class
+        picker = (RandomSpell() * 2).copy_with_weighting(
+            1, card_class=CardClass.NEUTRAL
+        )
+        picker = picker.copy_with_weighting(1, card_class=spell_class)
+        spells = [player.card(id, source=self) for id in picker.evaluate(self)]
         path = player.card("YOP_024t", source=self)
         yield Choice(CONTROLLER, spells + [path]).then(
             Find(Choice.CARD + ID("YOP_024t"))

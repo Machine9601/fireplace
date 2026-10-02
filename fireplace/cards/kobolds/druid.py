@@ -155,5 +155,7 @@ class LOOT_309:
 class LOOT_392:
     """Twig of the World Tree"""
 
-    # <b>Deathrattle:</b> Gain 10 Mana Crystals.
-    deathrattle = GainMana(CONTROLLER, 10)
+    # <b>Deathrattle:</b> Refresh your Mana Crystals.
+    # Patch 26.0.4 rewrote "Gain 10 Mana Crystals" so; it fills the spent
+    # mana, at any number of crystals, and gains none (WP-212, A95).
+    deathrattle = FillMana(CONTROLLER, USED_MANA(CONTROLLER))

@@ -537,3 +537,31 @@ def test_garden_gnome_summons_a_treant_on_each_side_of_itself():
         "ULD_137t",
     ]
     assert game.player1.field[2] is gnome
+
+
+def test_supreme_archaeology_counts_a_card_burned_by_a_full_hand():
+    # D-108, A147 (rule 1043): a card drawn into a full hand burns, and
+    # still counts as drawn for the quest.
+    game = prepare_empty_game(CardClass.WARLOCK, CardClass.WARLOCK)
+    p1 = game.player1
+    quest = p1.give("ULD_140").play()
+    p1.card(WISP).zone = Zone.DECK
+    p1.draw()
+    assert quest.progress == 1
+    assert len(p1.hand) == 1
+    while len(p1.hand) < 10:
+        p1.give(WISP)
+    burned = p1.card(WISP)
+    burned.zone = Zone.DECK
+    p1.draw()
+    assert len(p1.hand) == 10
+    assert burned.zone == Zone.REMOVEDFROMGAME
+    assert quest.progress == 2
+
+
+def test_supreme_archaeology_ignores_an_empty_deck():
+    game = prepare_empty_game(CardClass.WARLOCK, CardClass.WARLOCK)
+    p1 = game.player1
+    quest = p1.give("ULD_140").play()
+    p1.draw()  # nothing to draw: fatigue, not a card
+    assert quest.progress == 0

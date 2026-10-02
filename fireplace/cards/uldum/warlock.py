@@ -89,7 +89,13 @@ class ULD_140:
 
     # <b>Quest:</b> Draw 20 cards. <b>Reward:</b> Tome of Origination.
     progress_total = 20
-    quest = Draw(CONTROLLER).on(AddProgress(SELF, Draw.CARD))
+    # A card drawn into a full hand burns and still counts as drawn: the
+    # engine broadcasts no draw for it, only the discard of a card still in
+    # the deck, which nothing else does (WP-212, A147).
+    quest = (
+        Draw(CONTROLLER).on(AddProgress(SELF, Draw.CARD)),
+        Discard(FRIENDLY_DECK).on(AddProgress(SELF, Discard.TARGET)),
+    )
     reward = Summon(CONTROLLER, "ULD_140p")
 
 

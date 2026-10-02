@@ -734,6 +734,22 @@ def test_guidance_one_spell_without_overload():
     spell = choice.cards[0]
     choice.choose(spell)
     assert list(game.player1.hand) == [spell]
+
+
+def test_guidance_spells_are_weighted_toward_the_hero_class():
+    # D-108, A199 (rule 1236): like a discover, the two spells are of the
+    # hero's class or neutral, never another class's.
+    for hero in (CardClass.DRUID, CardClass.MAGE):
+        for _ in range(40):
+            game = prepare_empty_game(hero, hero)
+            game.player1.give("YOP_024").play()
+            choice = game.player1.choice
+            spells = choice.cards[:2]
+            assert spells[0].id != spells[1].id
+            for spell in spells:
+                # `classes` : une carte à deux classes (Adorable Infestation)
+                # est des deux.
+                assert {hero, CardClass.NEUTRAL} & set(spell.classes), spell.id
     assert game.player1.overloaded == 0
 
 
