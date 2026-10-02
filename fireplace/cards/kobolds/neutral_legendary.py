@@ -76,7 +76,9 @@ class LOOT_526:
 
     # [x]Starts dormant. <b>Battlecry:</b> Shuffle 3 Candles into the enemy deck. When
     # drawn, this awakens.
-    tags = {GameTag.DORMANT: True}
+    # The wiki: "exempt from random summon or transform effects" (WP-185); the
+    # tag keeps it out of every random pick (cards.filter).
+    tags = {GameTag.DORMANT: True, GameTag.DONT_PICK_FROM_SUBSETS: True}
     progress_total = 3
     # "into the enemy deck" (WP-185); the third Candle drawn awakens it.
     play = Shuffle(OPPONENT, "LOOT_526t") * 3

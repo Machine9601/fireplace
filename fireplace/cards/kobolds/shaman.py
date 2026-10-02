@@ -45,9 +45,14 @@ class LOOT_518:
     """Windshear Stormcaller"""
 
     # <b>Battlecry:</b> If you control all 4 basic Totems, summon Al'Akir_the_Windlord.
-    play = FindAll(*[FRIENDLY_MINIONS + ID(totem) for totem in BASIC_TOTEMS]) & Summon(
-        CONTROLLER, "NEW1_010"
-    )
+    # The wiki: Healing, Searing and Stoneclaw Totems, and "one of Wrath of Air
+    # Totem and Strength Totem" (WP-185).
+    play = FindAll(
+        FRIENDLY_MINIONS + ID("CS2_050"),
+        FRIENDLY_MINIONS + ID("CS2_051"),
+        FRIENDLY_MINIONS + ID("NEW1_009"),
+        FRIENDLY_MINIONS + (ID("CS2_052") | ID("CS2_058")),
+    ) & Summon(CONTROLLER, "NEW1_010")
 
 
 ##

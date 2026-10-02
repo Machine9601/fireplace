@@ -1415,6 +1415,18 @@ class Discover(TargetedAction):
         self.trigger_choice_callback()
 
 
+def keep_starting_deck(old, new):
+    """
+    \a new takes the place of \a old in its player's starting deck, if \a old
+    was there: it is the same card, changed in the hand (WP-185).
+    """
+    starting_deck = old.controller.starting_deck
+    for i, card in enumerate(starting_deck):
+        if card is old:
+            starting_deck[i] = new
+            return
+
+
 def _identified(card):
     """
     The card that is in the hand now that \a card entered it: an
@@ -1797,6 +1809,13 @@ class Morph(TargetedAction):
         target.clear_buffs()
         target.zone = Zone.SETASIDE
         target.morphed = card
+        if target_zone == Zone.HAND and (
+            source is target or getattr(source, "owner", None) is target
+        ):
+            # A card that transforms itself in the hand (Shifting Scroll, a
+            # Spellstone, Molten Blade, Shifter Zerus) still started in the
+            # deck if it did (the wiki, Leyline Manipulator; WP-185).
+            keep_starting_deck(target, card)
         source.game.manager.targeted_action(self, source, target, card)
         return card
 

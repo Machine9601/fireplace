@@ -198,7 +198,8 @@ def test_unstable_evolution_leaves_the_hand_at_end_of_turn():
     game.player1.give("LOOT_504").play(target=game.player1.field[0])
     assert game.player1.hand[-1].id == "LOOT_504t"
     game.end_turn()
-    assert len(game.player1.hand) == 0
+    # (the evolved minion is random: only the copy is looked for)
+    assert "LOOT_504t" not in [c.id for c in game.player1.hand]
 
 
 def test_ebon_dragonsmith_reduces_a_weapon():
@@ -462,6 +463,46 @@ def test_zarogs_crown_summons_two_copies():
     choice.choose(choice.cards[0])
     assert [m.id for m in game.player1.field] == [chosen, chosen]
     assert len(game.player1.hand) == 0
+
+
+def test_leyline_manipulator_ignores_cards_that_transformed_themselves():
+    # The wiki (Leyline Manipulator): not affected, "Cards transform themselves
+    # into new cards while in the player's hand, such as Shifter Zerus, Molten
+    # Blade, or Shifting Scroll"; a Spellstone upgrades itself in the same way.
+    game = BaseTestGame(
+        players=(
+            Player("Player1", ["LOOT_104"] * 30, CardClass.MAGE.default_hero),
+            Player("Player2", [WISP] * 30, CardClass.MAGE.default_hero),
+        )
+    )
+    game.start()
+    game.player1.give("LOOT_051")  # given: did not start in the deck
+    game.end_turn()
+    game.end_turn()
+    spells = [c for c in game.player1.hand if c.type == CardType.SPELL and c.id != "LOOT_104"]
+    spells = [c for c in spells if not c.id.startswith("LOOT_051")]
+    assert spells
+    costs = [c.cost for c in spells]
+    game.player1.give("LOOT_537").play()
+    assert [c.cost for c in spells] == costs
+
+
+def test_the_darkness_is_never_summoned_at_random():
+    # The wiki: "The Darkness is exempt from random summon or transform effects."
+    assert "LOOT_526" not in fireplace.cards.filter(
+        collectible=True, type=CardType.MINION, cost=4
+    )
+
+
+def test_windshear_stormcaller_with_wrath_of_air():
+    # The wiki: "Healing Totem, Searing Totem, Stoneclaw Totem, and one of Wrath
+    # of Air Totem and Strength Totem."
+    for fourth in ("CS2_052", "CS2_058"):
+        game = prepare_empty_game()
+        for totem in ("CS2_050", "CS2_051", "NEW1_009", fourth):
+            game.player1.give(totem).play()
+        game.player1.give("LOOT_518").play()
+        assert game.player1.field[-1].id == "NEW1_010"
 
 
 def test_primal_talismans_only_friendly_minions():

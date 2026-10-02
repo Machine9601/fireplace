@@ -504,10 +504,7 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
         self.clear_buffs()
         self.zone = Zone.SETASIDE
         self.morphed = new
-        starting_deck = self.controller.starting_deck
-        i = index_of(starting_deck)
-        if i is not None:
-            starting_deck[i] = new
+        actions.keep_starting_deck(self, new)
         return new
 
     def destroy(self):
