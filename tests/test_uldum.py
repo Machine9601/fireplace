@@ -503,3 +503,21 @@ def test_tortollan_pilgrim_casts_the_spell():
     assert p1.deck == [FIREBALL] * 2
     # a random target among all the Fireball can hit, the Pilgrim comprised
     assert p1.hero.health + p2.hero.health == 54 or pilgrim.dead
+
+
+def test_zephrys_the_great_offers_three_cards_of_its_list():
+    # A146 (D-108): three cards drawn at random from the list, not the 155.
+    from fireplace.cards.utils import ZEPHRYS_POOL
+
+    game = prepare_empty_game()
+    p1 = game.player1
+    p1.give("ULD_003").play()
+    choice = p1.choice
+    assert choice is not None
+    assert len(choice.cards) == 3
+    assert len({c.id for c in choice.cards}) == 3
+    assert all(c.id in ZEPHRYS_POOL for c in choice.cards)
+    chosen = choice.cards[1]
+    choice.choose(chosen)
+    assert p1.choice is None
+    assert chosen in p1.hand

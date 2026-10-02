@@ -873,3 +873,12 @@ def test_xyrella_flips_between_healing_and_damage_each_turn():
     game.player1.hero.power.use(target=game.player2.hero)
     assert game.player2.hero.health == 25
 
+
+def test_zephrys_lamp_offers_three_cards():
+    # A146 (D-108), as Zephrys the Great: three cards of the list.
+    game = prepare_empty_game()
+    game.player1.give("ONY_005tb610").play()
+    choice = game.player1.choice
+    assert len(choice.cards) == 3
+    assert len({c.id for c in choice.cards}) == 3
+

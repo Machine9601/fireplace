@@ -136,7 +136,9 @@ class ICC_827t:
             ),
             OWN_TURN_END.on(Destroy(SELF)),
         )
-        update = Find(FRIENDLY_HERO_POWER - EXHAUSTED + ID("ICC_827p")) | Destroy(SELF)
+        # A87 (D-108): "exhausted" is not read; Mindbreaker disables the hero
+        # power, not the reflection a battlecry gave.
+        update = Find(FRIENDLY_HERO_POWER + ID("ICC_827p")) | Destroy(SELF)
 
 
 class ICC_827e:
@@ -150,6 +152,6 @@ class ICC_827e:
             ),
             OWN_TURN_END.on(Destroy(OWNER)),
         )
-        update = Find(FRIENDLY_HERO_POWER - EXHAUSTED + ID("ICC_827p")) | Destroy(OWNER)
+        update = Find(FRIENDLY_HERO_POWER + ID("ICC_827p")) | Destroy(OWNER)
 
     events = REMOVED_IN_PLAY

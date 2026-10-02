@@ -1,4 +1,5 @@
 from utils import *
+from utils import _empty_mulligan
 
 
 def test_lucentbark():
@@ -681,3 +682,27 @@ def test_unidentified_contract_is_revealed_however_it_enters_the_hand():
     game.start()
     for player in game.players:
         assert all(c.id in contracts for c in player.choice.cards)
+
+
+def test_scheme_of_the_starting_hand_does_not_grow_on_its_first_turn():
+    # A135 (D-108): "not on turn 1": a scheme of the starting hand is worth 1 on
+    # its player's first turn (progress 0), and grows from the second turn on.
+    deck = ["DAL_008"] * 30
+    game = BaseTestGame(
+        players=(
+            Player("Player1", list(deck), CardClass.WARRIOR.default_hero),
+            Player("Player2", list(deck), CardClass.WARRIOR.default_hero),
+        )
+    )
+    game.start()
+    _empty_mulligan(game)
+    first = game.current_player
+    second = first.opponent
+    starting = [c for c in first.hand if c.id == "DAL_008"]
+    # three cards of the starting hand, one drawn on the turn
+    assert len(starting) == 4
+    assert [c.progress for c in starting] == [0] * 4
+    game.end_turn()
+    assert [c.progress for c in second.hand if c.id == "DAL_008"] == [0] * 5
+    game.end_turn()
+    assert [c.progress for c in starting] == [1] * 4

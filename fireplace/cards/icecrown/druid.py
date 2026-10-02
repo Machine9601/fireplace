@@ -31,7 +31,8 @@ ICC_047e = buff(+2, +2)
 
 
 class ICC_047t2:
-    deathrattle = Buff(ALL_MINIONS, "ICC_047e"), Hit(ALL_MINIONS, 3)
+    # A86 (D-108): the damage kills before the +2/+2 is given.
+    deathrattle = Hit(ALL_MINIONS, 3), Deaths(), Buff(ALL_MINIONS, "ICC_047e")
 
 
 class ICC_051:

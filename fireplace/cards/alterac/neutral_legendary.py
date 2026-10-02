@@ -428,7 +428,8 @@ class ONY_005tb610:
     """Zephrys's Lamp"""
 
     # Wish for the perfect card.
-    play = GenericChoice(CONTROLLER, ZEPHRYS_POOL)
+    # Three cards, as Zephrys the Great (A146, D-108)
+    play = GenericChoice(CONTROLLER, ZephrysWish())
 
 
 class ONY_005tb12:

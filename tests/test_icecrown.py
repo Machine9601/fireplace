@@ -431,7 +431,8 @@ def test_druid_of_the_swarm_under_fandral():
 
 
 def test_fatespinner_under_fandral_both_deathrattles():
-    # Both at once: no death between the damage and the buff, a 2/3 lives on.
+    # Both at once (A86, D-108): the damage kills first, then the +2/+2 goes to
+    # the survivors only. The 2/3 dies; the 4/5 ends 6/4.
     game = prepare_empty_game()
     game.player1.give(FANDRAL_STAGHELM).play()
     game.player1.give("ICC_047").play()
@@ -442,7 +443,8 @@ def test_fatespinner_under_fandral_both_deathrattles():
     yeti = game.player2.give("CS2_182").play()
     game.end_turn()
     fatespinner.destroy()
-    assert (croc.atk, croc.health) == (4, 2)
+    assert croc.dead
+    assert croc not in game.player2.field
     assert (yeti.atk, yeti.health) == (6, 4)
 
 
@@ -499,3 +501,15 @@ def test_shadow_reflection_leaves_the_hand_at_end_of_turn():
     assert len(game.player1.hand) == 0
     game.end_turn()
     assert [c.id for c in game.player1.hand] == ["ICC_827t"]
+
+
+def test_valeera_the_hollow_reflection_stays_under_mindbreaker():
+    # A87 (D-108): Valeera's battlecry is not a hero power; Mindbreaker does not
+    # take the Shadow Reflection away from the hand.
+    game = prepare_empty_game()
+    game.player1.give("ICC_902").play()
+    game.player1.used_mana = 0
+    game.player1.give("ICC_827").play()
+    assert [c.id for c in game.player1.hand] == ["ICC_827t"]
+    game.player1.give(WISP).play()
+    assert [c.id for c in game.player1.hand] == [WISP]

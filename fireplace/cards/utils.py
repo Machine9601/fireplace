@@ -341,6 +341,17 @@ ZEPHRYS_POOL = [
 ]
 
 
+class ZephrysWish(LazyValue):
+    """
+    Three cards of ZEPHRYS_POOL drawn at random, read when the choice opens
+    (A146, D-108: the game offers three, not the whole list).
+    """
+
+    def evaluate(self, source):
+        ids = source.game.random.sample(ZEPHRYS_POOL, 3)
+        return [source.controller.card(id, source) for id in ids]
+
+
 SPELL_SCHOOLS = [
     SpellSchool.ARCANE,
     SpellSchool.FIRE,
@@ -536,6 +547,17 @@ class JadeGolemUtils:
     }
 
 
+# A card of the starting hand (it entered the hand before the first turn) on its
+# player's first turn.
+STARTING_HAND_ON_FIRST_TURN = FuncSelector(
+    lambda entities, source: [
+        e
+        for e in entities
+        if getattr(e, "turn_entered_hand", -1) == 0 and len(e.controller.turns) <= 1
+    ]
+)
+
+
 class SchemeUtils:
     def custom_cardtext(self):
         return self.data.description.replace("@", "{0}")
@@ -549,7 +571,10 @@ class SchemeUtils:
     }
 
     class Hand:
-        events = OWN_TURN_BEGIN.on(AddProgress(SELF, SELF))
+        # A135 (D-108): a scheme of the starting hand does not grow on turn 1
+        events = OWN_TURN_BEGIN.on(
+            Find(SELF - STARTING_HAND_ON_FIRST_TURN) & AddProgress(SELF, SELF)
+        )
 
 
 class GalakrondUtils:
