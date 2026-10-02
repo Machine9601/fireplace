@@ -454,6 +454,28 @@ def test_shadow_essence_leaves_the_deck():
     assert [c.id for c in game.player1.deck] == [WISP]
 
 
+def test_doomerang_the_weapon_deals_the_damage():
+    game = prepare_empty_game()
+    game.player1.give("CS2_106").play()
+    game.end_turn()
+    yeti = game.player2.give("CS2_182").play()
+    other = game.player2.give("CS2_182").play()
+    game.end_turn()
+    game.player1.give(KOBOLD_GEOMANCER).play()
+    game.player1.give(MOONFIRE).play(target=game.player1.hero)
+    game.player1.give("ICC_221").play()
+    game.player1.give("ICC_233").play(target=yeti)
+    assert yeti.health == 2
+    assert game.player1.hero.health == 30
+    assert [c.id for c in game.player1.hand] == ["CS2_106"]
+    assert game.player1.weapon is None
+    game.player1.used_mana = 0
+    game.player1.hand[0].play()
+    game.player1.give("UNG_823").play()
+    game.player1.give("ICC_233").play(target=other)
+    assert other.dead
+
+
 def test_valeera_the_hollow_cannot_be_attacked_while_stealthed():
     game = prepare_empty_game()
     game.player1.give("ICC_827").play()

@@ -74,7 +74,18 @@ class ICC_233:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_WEAPON_EQUIPPED: 0,
     }
-    play = Hit(TARGET, ATK(FRIENDLY_WEAPON)), Bounce(FRIENDLY_WEAPON)
+
+    def play(self):
+        # The weapon deals the damage (the wiki: Lifesteal, Poisonous and the
+        # like apply, Spell Damage does not; WP-184: the spell dealt it). As in
+        # an attack, fireplace has the hero deal a weapon's damage (`Damage`
+        # reads Lifesteal and Poisonous on the hero, which has the weapon's).
+        weapon = self.controller.weapon
+        if weapon is not None and self.target is not None:
+            self.game.queue_actions(
+                self.controller.hero, [Hit(self.target, weapon.atk)]
+            )
+        yield Bounce(FRIENDLY_WEAPON)
 
 
 ##
