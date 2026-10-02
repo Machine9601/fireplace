@@ -257,10 +257,12 @@ def test_moonlit_guidance_original_is_not_drawn_the_turn_after():
     game.player1.give("DED_002").play()
     pick = [c for c in game.player1.choice.cards if c.id == WISP][0]
     game.player1.choice.choose(pick)
-    game.end_turn()
-    game.end_turn()
-    game.player1.hand[-1].play() if game.player1.hand[-1].id == WISP else None
-    assert len(game.player1.deck) >= 2
+    copy = game.player1.hand[-1]
+    game.skip_turn()
+    assert copy.zone == Zone.HAND
+    deck = len(game.player1.deck)
+    copy.play()
+    assert len(game.player1.deck) == deck
 
 
 def test_druid_questline_goes_through_its_three_steps():
@@ -756,6 +758,12 @@ def test_grand_magus_antonidas_counts_fire_spells_only():
         game.player1.give(FIREBALL).play(target=game.player1.hero)
         game.skip_turn()
     assert game.player1.give("SW_113").progress == 3
+
+
+def test_city_architect_summons_a_wall_on_each_side():
+    game = _turn(prepare_empty_game())
+    game.player1.give("SW_076").play()
+    assert game.player1.field == ["SW_076t", "SW_076", "SW_076t"]
 
 
 def test_oracle_of_elune_puts_the_copy_right_of_itself():
