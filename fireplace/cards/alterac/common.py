@@ -16,6 +16,20 @@ class DiscoverOnly(GenericChoice):
                 _card.discard()
 
 
+class SecretsToDiscover(LazyValue):
+    """
+    Three of the source's entourage of Secrets, none of them already in play
+    (a Secret in play cannot be cast again); read when the choice opens.
+    """
+
+    def evaluate(self, source):
+        controller = source.controller
+        active = [secret.id for secret in controller.secrets]
+        pool = [id for id in source.entourage if id not in active]
+        picked = source.game.random.sample(pool, min(3, len(pool)))
+        return [controller.card(id, source) for id in picked]
+
+
 class GiveDeathrattleOf(TargetedAction):
     """
     Give the target minions the Deathrattles of a card (Tamsin's Phylactery).

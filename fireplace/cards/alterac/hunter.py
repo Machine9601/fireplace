@@ -173,17 +173,18 @@ class AV_113:
     # [x]<b>Battlecry:</b> <b>Discover</b> and cast 2 Improved <b>Secrets</b>.
     entourage = ["AV_113t1", "AV_113t2", "AV_113t3", "AV_113t7", "AV_113t8", "AV_113t9"]
 
-    def play(self):
-        # The 5 Armor of the hero card: `Hero.play` gains it after the battlecry,
-        # and an action queued behind an open choice is dropped.
-        yield GainArmor(FRIENDLY_HERO, 5)
-        for _ in range(2):
-            # a Secret already in play cannot be cast again: not offered
-            active = [secret.id for secret in self.controller.secrets]
-            pool = [id for id in self.entourage if id not in active]
-            yield DiscoverOnly(CONTROLLER, RandomID(*pool) * 3).then(
+    # The 5 Armor of the hero card: `Hero.play` gains it after the battlecry, and
+    # an action queued behind an open choice is dropped. The second choice opens
+    # when the first Secret is cast, and offers none already in play.
+    play = (
+        GainArmor(FRIENDLY_HERO, 5),
+        DiscoverOnly(CONTROLLER, SecretsToDiscover()).then(
+            Summon(CONTROLLER, GenericChoice.CARD),
+            DiscoverOnly(CONTROLLER, SecretsToDiscover()).then(
                 Summon(CONTROLLER, GenericChoice.CARD)
-            )
+            ),
+        ),
+    )
 
 
 class AV_113t1:

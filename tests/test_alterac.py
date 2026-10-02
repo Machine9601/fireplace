@@ -649,6 +649,57 @@ def test_si7_smuggler_summons_a_minion_that_costs_more_for_each_other_si7_card()
     assert game.player1.field[-1].data.cost == 1 or game.player1.field[-2].data.cost == 1
 
 
+def _hk_attack(minion_id, victim_id):
+    """The minion, played, attacks the next turn a minion that has `victim_id`."""
+    game = prepare_empty_game()
+    ally = game.player1.summon(WISP)
+    minion = game.player1.give(minion_id).play()
+    game.skip_turn()
+    victim = game.player2.summon(victim_id)
+    minion.attack(victim)
+    return game, ally, minion, victim
+
+
+def test_honorable_kill_minions_effects():
+    # Corporal 2/3: Divine Shield to its other minions (2 on a 2/2: exact)
+    game, ally, corporal, _ = _hk_attack("AV_122", "CS2_142")
+    assert ally.divine_shield and not corporal.divine_shield
+    game, ally, corporal, _ = _hk_attack("AV_122", "CS2_189")  # 1/1: an excess
+    assert not ally.divine_shield
+    # Direwolf Commander 2/5: a 2/2 Wolf with Stealth
+    game, _, _, _ = _hk_attack("AV_124", "CS2_142")
+    assert game.player1.field == [WISP, "AV_124", "AV_211t"] or "AV_211t" in [
+        m.id for m in game.player1.field
+    ]
+    # Frantic Hippogryph 3/7 Rush: Windfury (3 on a 2/3: exact)
+    game, _, hippo, _ = _hk_attack("AV_215", "CS2_120")
+    assert hippo.windfury
+    game, _, hippo, _ = _hk_attack("AV_215", "CS2_142")  # an excess
+    assert not hippo.windfury
+    # Sneaky Scout 3/2: the next Hero Power costs 0 (3 on a 2/3: exact)
+    game, _, scout, _ = _hk_attack("AV_123", "CS2_120")
+    assert game.player1.hero.power.cost == 0
+
+
+def test_battleworn_vanguard_summons_two_felwings_after_the_hero_attacks():
+    game = prepare_empty_game(CardClass.DEMONHUNTER, CardClass.DEMONHUNTER)
+    game.player1.give("AV_118").play()
+    game.skip_turn()
+    game.player1.hero.power.use()
+    game.player1.hero.attack(game.player2.hero)
+    assert game.player1.field.count("BT_922t") == 2
+    assert game.player1.field[0] == "BT_922t" and game.player1.field[-1] == "BT_922t"
+
+
+def test_arcane_brilliance_adds_a_copy_of_a_7_8_9_and_10_cost_spell_of_the_deck():
+    game = prepare_empty_game()
+    for id in ("EX1_279", "CS2_029", "BRM_002"):  # 10, 4, 5: only the 10
+        game.player1.give(id).zone = Zone.DECK
+    game.player1.give("AV_116").play()
+    assert game.player1.hand == ["EX1_279"]
+    assert len(game.player1.deck) == 3
+
+
 def test_caria_felsoul_becomes_a_6_6_copy_of_a_demon_of_the_deck():
     game = prepare_empty_game(CardClass.DEMONHUNTER, CardClass.MAGE)
     caria = game.player1.give("AV_267").play()  # no Demon in the deck: stays
