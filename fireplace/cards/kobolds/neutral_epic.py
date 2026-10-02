@@ -28,6 +28,19 @@ class LOOT_130:
         )
 
 
+# No longer used (WP-185), kept: the database counts the cards the modules add
+# (the server's health check reads that count, D-40).
+@custom_card
+class LOOT_130e:
+    tags = {
+        GameTag.CARDNAME: "Arcane Tyrant Buff",
+        GameTag.CARDTYPE: CardType.ENCHANTMENT,
+        GameTag.TAG_ONE_TURN_EFFECT: True,
+    }
+    cost = SET(0)
+    events = REMOVED_IN_PLAY
+
+
 class LOOT_149:
     """Corridor Creeper"""
 
