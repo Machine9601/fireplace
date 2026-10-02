@@ -2272,7 +2272,11 @@ class CastSpell(TargetedAction):
         player.choice = None
 
         if card.twinspell:
-            source.game.queue_actions(card, [Give(player, card.twinspell_copy)])
+            # To the player who casts it: Unseen Saboteur makes the opponent
+            # cast a spell of their hand, whose copy is theirs (WP-189).
+            source.game.queue_actions(
+                card, [Give(card.controller, card.twinspell_copy)]
+            )
         if card.must_choose_one:
             card = source.game.random.choice(card.choose_cards)
         for target in targets:

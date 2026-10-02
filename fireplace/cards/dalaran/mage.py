@@ -22,7 +22,11 @@ class DAL_575:
     """Khadgar"""
 
     # Your cards that summon minions summon twice_as_many.
-    events = Summon(CONTROLLER, MINION, source=FRIENDLY - PLAYER - ID("DAL_575")).after(
+    # Any card's summon on this side, the opponent's too (Hecklebot, Dirty Rat:
+    # hearthstone.wiki.gg), not only one's own cards (WP-189).
+    events = Summon(
+        CONTROLLER, MINION, source=(FRIENDLY | ENEMY) - PLAYER - ID("DAL_575")
+    ).after(
         Summon(CONTROLLER, ExactCopy(Summon.CARD))
     )
 
@@ -71,7 +75,9 @@ class DAL_177:
         PlayReq.REQ_TARGET_TO_PLAY: 0,
         PlayReq.REQ_MINION_TARGET: 0,
     }
-    play = Destroy(TARGET), Summon(CONTROLLER, RandomMinion(cost=COST(TARGET))) * 2
+    # "to replace it": for the destroyed minion's owner (hearthstone.wiki.gg), not
+    # always for the caster (WP-189).
+    play = Destroy(TARGET), Summon(TARGET_PLAYER, RandomMinion(cost=COST(TARGET))) * 2
 
 
 class DAL_177ts(DAL_177):

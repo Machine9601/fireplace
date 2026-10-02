@@ -797,7 +797,13 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
             PlayReq.REQ_TARGET_IF_AVAILABLE_AND_COST_5_OR_MORE_SPELL_IN_HAND
         )
         if req is not None:
-            if self.controller.hand.filter(cost=range(5, 100)):
+            # A spell that costs 5 or more: `filter(cost=range(...))` compared a
+            # cost to a range, never true, and did not ask for a spell
+            # (Sunreaver Warmage, Groundskeeper) (WP-189).
+            if any(
+                card.type == CardType.SPELL and card.cost >= 5
+                for card in self.controller.hand
+            ):
                 return bool(self.play_targets)
         req = self.requirements.get(
             PlayReq.REQ_TARGET_IF_AVAILABLE_AND_MIN_MANA_CRYSTAL

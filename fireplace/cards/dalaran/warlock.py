@@ -16,7 +16,9 @@ class DAL_422:
 
     # <b><b>Taunt</b> Battlecry:</b> Replace your hand and deck with <b>Legendary</b>
     # minions.
-    play = Morph(FRIENDLY_HAND + FRIENDLY_DECK, RandomLegendaryMinion())
+    # `+` intersects two selectors (nothing is both in hand and in deck): the
+    # union (WP-189).
+    play = Morph(FRIENDLY_HAND | FRIENDLY_DECK, RandomLegendaryMinion())
 
 
 class DAL_561:

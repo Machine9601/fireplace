@@ -1,5 +1,20 @@
 from ..utils import *
 
+
+class NotAnActiveSecret(LazyValue):
+    """
+    Desperate Measures: a card filter that keeps the Secrets whose name is not
+    among the Secrets its player has in play (WP-189).
+    """
+
+    def evaluate(self, source):
+        active = {secret.data.name for secret in source.controller.secrets}
+
+        def not_active(card):
+            return card.name not in active
+
+        return not_active
+
 ##
 # Minions
 
@@ -46,7 +61,16 @@ class DAL_141:
     requirements = {
         PlayReq.REQ_SECRET_ZONE_CAP_FOR_NON_SECRET: 0,
     }
-    play = CastSpell(RandomSpell(secret=True, card_class=CardClass.PALADIN))
+    # Never a Secret its player already has (two of the same Secret cannot be
+    # in play: Masked Contender, WP-188); the same name counts, whatever the set
+    # of the copy (WP-189).
+    play = CastSpell(
+        RandomSpell(
+            secret=True,
+            card_class=CardClass.PALADIN,
+            custom_filter=NotAnActiveSecret(),
+        )
+    )
 
 
 class DAL_141ts(DAL_141):
@@ -83,7 +107,8 @@ class DAL_727:
     """Call to Adventure"""
 
     # Draw the lowest Cost minion from your deck. Give it +2/+2.
-    play = ForceDraw(LOWEST_ATK(FRIENDLY_DECK + MINION)).then(
+    # The lowest Cost, not the lowest Attack (WP-189).
+    play = ForceDraw(LOWEST_COST(FRIENDLY_DECK + MINION)).then(
         Buff(ForceDraw.TARGET, "DAL_727e")
     )
 

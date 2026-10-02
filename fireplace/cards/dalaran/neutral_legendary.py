@@ -9,7 +9,9 @@ class DAL_546:
 
     # <b>Battlecry:</b> Add a copy of each of your other <b>Battlecry</b>
     # minions_to_your_hand.
-    play = Give(CONTROLLER, Copy(FRIENDLY_HAND + BATTLECRY + MINION))
+    # The minions on the board, from left to right (hearthstone.wiki.gg), not the
+    # hand (WP-189).
+    play = Give(CONTROLLER, Copy(FRIENDLY_MINIONS + BATTLECRY - SELF))
 
 
 class DAL_554:

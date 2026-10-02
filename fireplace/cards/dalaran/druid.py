@@ -32,7 +32,11 @@ class DAL_357:
 class DAL_357t:
     tags = {GameTag.DORMANT: True}
     progress_total = 5
-    dormant_events = Heal().on(AddProgress(SELF, Heal.TARGET, Heal.AMOUNT))
+    # "When you restore 5 Health": the healing of its controller's cards, as
+    # Lifeweaver, not the opponent's (WP-189).
+    dormant_events = Heal(source=FRIENDLY).on(
+        AddProgress(SELF, Heal.TARGET, Heal.AMOUNT)
+    )
     reward = Morph(SELF, "DAL_357")
 
 
