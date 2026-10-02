@@ -13,13 +13,37 @@ class TRL_311:
     play = powered_up & Hit(ALL_MINIONS - SELF, 3)
 
 
+class HeroPowerKillWindow(TargetedAction):
+    """Opens (1) or closes (0) the window in which the deaths are the Hero Power's."""
+
+    TARGET = ActionArg()
+    AMOUNT = IntArg()
+
+    def do(self, source, target, amount):
+        target.hero_power_kill_window = bool(amount)
+
+
 class TRL_315:
     """Pyromaniac"""
 
     # Whenever your Hero Power_kills a minion, draw a card.
-    events = Activate(FRIENDLY_HERO_POWER).after(
-        Dead(Activate.TARGET) & Draw(CONTROLLER)
-    )
+    # Every minion that dies while the Hero Power works counts, the neighbours
+    # that Spirit of the Dragonhawk hits as well as the target (A125, WP-188c): the
+    # deaths come between the "on" and the "after" of the Activate.
+    events = [
+        Activate(FRIENDLY_HERO_POWER).on(HeroPowerKillWindow(SELF, 1)),
+        Death(MINION).on(
+            Find(
+                FuncSelector(
+                    lambda entities, source: [source]
+                    if getattr(source, "hero_power_kill_window", False)
+                    else []
+                )
+            )
+            & Draw(CONTROLLER)
+        ),
+        Activate(FRIENDLY_HERO_POWER).after(HeroPowerKillWindow(SELF, 0)),
+    ]
 
 
 class TRL_316(metaclass=ThresholdUtils):

@@ -25,7 +25,22 @@ class FP1_003:
 class FP1_004:
     """Mad Scientist"""
 
-    deathrattle = Summon(CONTROLLER, RANDOM(FRIENDLY_DECK + SECRET))
+    # A Secret already active is never the one put into play (and with none
+    # left to put, nothing happens): hearthstone.wiki.gg, Mad Scientist (A129, WP-188c).
+    deathrattle = Summon(
+        CONTROLLER,
+        RANDOM(
+            FRIENDLY_DECK
+            + SECRET
+            + FuncSelector(
+                lambda entities, source: [
+                    e
+                    for e in entities
+                    if hasattr(e, "id") and not source.controller.secrets.contains(e.id)
+                ]
+            )
+        ),
+    )
 
 
 class FP1_005:
