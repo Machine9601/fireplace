@@ -90,6 +90,7 @@ class ICC_314t8:
 class ICC_851:
     """Prince Keleseth"""
 
+    powered_up = -Find(FRIENDLY_DECK + (COST == 2))
     play = Find(FRIENDLY_DECK + (COST == 2)) | Buff(FRIENDLY_DECK + MINION, "ICC_851e")
 
 
@@ -103,6 +104,7 @@ class ICC_852:
         PlayReq.REQ_MINION_TARGET: 0,
         PlayReq.REQ_TARGET_IF_AVAILABLE_AND_NO_3_COST_CARD_IN_DECK: 0,
     }
+    powered_up = -Find(FRIENDLY_DECK + (COST == 3))
     play = Morph(SELF, ExactCopy(TARGET)).then(Buff(Morph.CARD, "ICC_852e"))
 
 
@@ -115,6 +117,7 @@ class ICC_853:
     """Prince Valanar"""
 
     # "If your deck has no 4-Cost cards" (WP-184: it read 2-Cost cards).
+    powered_up = -Find(FRIENDLY_DECK + (COST == 4))
     play = Find(FRIENDLY_DECK + (COST == 4)) | (Taunt(SELF), GiveLifesteal(SELF))
 
 

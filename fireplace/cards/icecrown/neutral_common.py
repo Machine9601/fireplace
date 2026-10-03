@@ -143,7 +143,8 @@ class ICC_855:
 class ICC_900:
     """Necrotic Geist"""
 
-    events = Death(FRIENDLY_MINIONS - SELF).on(Summon(CONTROLLER, "ICC_900t"))
+    # FRIENDLY_MINIONS reads the PLAY zone; the dead minion is already in the graveyard.
+    events = Death(FRIENDLY + MINION - SELF).on(Summon(CONTROLLER, "ICC_900t"))
 
 
 class ICC_904:

@@ -104,6 +104,7 @@ class CFM_715(JadeGolemUtils):
 class CFM_809:
     """Tanaris Hogchopper"""
 
+    powered_up = -Find(ENEMY_HAND)
     play = Find(ENEMY_HAND) | GiveCharge(SELF)
 
 

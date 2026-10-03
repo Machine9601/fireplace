@@ -57,6 +57,15 @@ def is_valid_target(self, target, requirements=None):
         if target.immune and self.controller != target.controller:
             return False
 
+    # A stealthed hero (Valeera the Hollow, WP-214) is not targeted by the
+    # opponent's spells and Hero Powers any more than a stealthed minion is.
+    if (
+        target.type == CardType.HERO
+        and target.stealthed
+        and self.controller != target.controller
+    ):
+        return False
+
     # A hero too can't be targeted by spells or Hero Powers (Spellward Jeweler,
     # WP-189): the two checks were read for minions only.
     if target.type in (CardType.MINION, CardType.HERO):

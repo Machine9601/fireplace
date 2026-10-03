@@ -62,6 +62,7 @@ class UNG_847:
         PlayReq.REQ_NONSELF_TARGET: 0,
         PlayReq.REQ_TARGET_IF_AVAILABLE_AND_ELEMENTAL_PLAYED_LAST_TURN: 0,
     }
+    powered_up = ELEMENTAL_PLAYED_LAST_TURN
     play = Hit(TARGET, 5)
 
 

@@ -420,7 +420,10 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
         if not self.data.scripts.powered_up:
             return False
         for script in self.data.scripts.powered_up:
-            if not script.check(self):
+            # `-Find(...)` ("if your deck has no ...") only negates in evaluate():
+            # check() answers the bare condition, the negation is read here too
+            # (WP-214; it lit Kazakus, Raza... when the condition was false).
+            if script.check(self) == getattr(script, "_neg", False):
                 return False
         return True
 

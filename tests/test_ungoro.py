@@ -459,3 +459,54 @@ def test_living_spores_deathrattle():
     game.player1.give("UNG_999t2").play(target=wisp)
     wisp.destroy()
     assert [m.id for m in game.player1.field] == ["UNG_999t2t1"] * 2
+
+
+ELEMENTAL_COND_CARDS = [
+    "UNG_021", "UNG_070", "UNG_082", "UNG_208", "UNG_211", "UNG_816", "UNG_847", "UNG_907",
+]
+
+
+def test_powered_up_follows_an_elemental_played_last_turn():
+    # WP-214 : the "if you played an Elemental last turn" cards glow in the hand.
+    game = prepare_empty_game(CardClass.MAGE, CardClass.WARRIOR)
+    hand = [game.player1.give(c) for c in ELEMENTAL_COND_CARDS]
+    assert not any(c.powered_up for c in hand)
+    game.player1.give("UNG_809").play()
+    assert not any(c.powered_up for c in hand)  # this turn is not last turn
+    game.end_turn()
+    game.end_turn()
+    assert all(c.powered_up for c in hand), [c.id for c in hand if not c.powered_up]
+    game.end_turn()
+    game.end_turn()
+    assert not any(c.powered_up for c in hand)
+
+
+def test_powered_up_board_and_hand_conditions():
+    # WP-214 : Ravasaur Runt, Nesting Roc, Primalfin Lookout, Elder Longneck.
+    game = prepare_empty_game(CardClass.MAGE, CardClass.WARRIOR)
+    runt = game.player1.give("UNG_009")
+    lookout = game.player1.give("UNG_937")
+    longneck = game.player1.give("UNG_109")
+    assert not any(c.powered_up for c in (runt, lookout, longneck))
+    game.player1.summon(WISP)
+    assert not runt.powered_up
+    game.player1.summon(WISP)
+    assert runt.powered_up
+    assert not lookout.powered_up
+    game.player1.summon("EX1_506")  # Murloc Tidehunter
+    assert lookout.powered_up
+    assert not longneck.powered_up
+    game.player1.give("CS2_182")  # Chillwind Yeti, 4 Attack
+    assert not longneck.powered_up
+    game.player1.give("CS2_186")  # War Golem, 7 Attack
+    assert longneck.powered_up
+
+
+def test_powered_up_nesting_roc():
+    game = prepare_empty_game(CardClass.MAGE, CardClass.WARRIOR)
+    roc = game.player1.give("UNG_801")
+    assert not roc.powered_up
+    game.player1.summon(WISP)
+    assert not roc.powered_up
+    game.player1.summon(WISP)
+    assert roc.powered_up

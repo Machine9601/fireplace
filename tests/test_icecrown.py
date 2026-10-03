@@ -492,6 +492,29 @@ def test_valeera_the_hollow_cannot_be_attacked_while_stealthed():
     assert game.player1.hero in boar.attack_targets
 
 
+def test_valeera_the_hollow_stealthed_hero_is_not_targeted_by_enemy_spells_or_powers():
+    # WP-214 (regle 805) : ni sort, ni pouvoir, ni attaque adverse ne le prend pour cible.
+    game = prepare_empty_game(CardClass.MAGE, CardClass.MAGE)
+    game.player1.give("ICC_827").play()
+    assert game.player1.hero.stealthed
+    game.end_turn()
+    fireball = game.player2.give(FIREBALL)
+    assert game.player1.hero not in fireball.targets
+    assert game.player2.hero in fireball.targets
+    assert game.player1.hero not in game.player2.hero.power.targets
+    with pytest.raises(InvalidAction):
+        fireball.play(target=game.player1.hero)
+    # its own side may still target it
+    game.end_turn()
+    heal = game.player1.give("CS2_007")
+    assert game.player1.hero in heal.targets
+    game.end_turn()
+    game.end_turn()
+    assert not game.player1.hero.stealthed
+    game.end_turn()
+    assert game.player1.hero in game.player2.give(FIREBALL).targets
+
+
 def test_shadow_reflection_leaves_the_hand_at_end_of_turn():
     game = prepare_empty_game()
     game.player1.give("ICC_827").play()
@@ -513,3 +536,53 @@ def test_valeera_the_hollow_reflection_stays_under_mindbreaker():
     assert [c.id for c in game.player1.hand] == ["ICC_827t"]
     game.player1.give(WISP).play()
     assert [c.id for c in game.player1.hand] == [WISP]
+
+
+def test_snowfury_giant_counts_overloaded_crystals_not_cards():
+    # WP-214 (regle 816) : "Costs (1) less for each Mana Crystal you've Overloaded this game".
+    # Feral Spirit is Overload (1) in this patch; Lava Burst is Overload (2).
+    game = prepare_empty_game()
+    giant = game.player1.give("ICC_090")
+    assert giant.cost == 11
+    game.player1.give("EX1_248").play()
+    assert giant.cost == 10
+    game.player1.give("EX1_241").play(target=game.player2.hero)
+    assert game.player1.overloaded_this_game == 3
+    assert giant.cost == 8
+
+
+def test_powered_up_icecrown_conditions():
+    # WP-214 : Coldwraith and the three Princes glow in the hand.
+    game = prepare_empty_game(CardClass.MAGE, CardClass.WARRIOR)
+    cold = game.player1.give("ICC_252")
+    keleseth = game.player1.give("ICC_851")
+    taldaram = game.player1.give("ICC_852")
+    valanar = game.player1.give("ICC_853")
+    assert not cold.powered_up
+    assert keleseth.powered_up and taldaram.powered_up and valanar.powered_up
+    _deck(game.player1, "CS2_189")  # Elven Archer, 1 Cost
+    assert keleseth.powered_up and taldaram.powered_up and valanar.powered_up
+    _deck(game.player1, "CS2_179")  # Sen'jin Shieldmasta, 4 Cost
+    assert not valanar.powered_up
+    assert keleseth.powered_up and taldaram.powered_up
+    _deck(game.player1, "CS2_172")  # Bloodfen Raptor, 2 Cost
+    assert not keleseth.powered_up
+    _deck(game.player1, "CS2_118")  # Magma Rager, 3 Cost
+    assert not taldaram.powered_up
+    game.player2.summon(WISP).frozen = True
+    assert cold.powered_up
+
+
+def test_necrotic_geist_summons_a_ghoul_when_another_friendly_minion_dies():
+    # WP-214 (regle 812) : "Whenever another friendly minion dies, summon a 2/2 Ghoul".
+    game = prepare_empty_game()
+    game.player1.give("ICC_900").play()
+    wisp = game.player1.give(WISP).play()
+    assert [m.id for m in game.player1.field] == ["ICC_900", WISP]
+    game.player1.give(MOONFIRE).play(target=wisp)
+    assert [m.id for m in game.player1.field] == ["ICC_900", "ICC_900t"]
+    # an enemy minion's death does not trigger it
+    game.end_turn()
+    enemy = game.player2.give(WISP).play()
+    enemy.destroy()
+    assert [m.id for m in game.player1.field] == ["ICC_900", "ICC_900t"]

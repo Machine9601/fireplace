@@ -648,3 +648,38 @@ def test_lotus_assassin_has_stealth():
     assassin.attack(wisp)
     assert wisp.dead
     assert assassin.stealthed
+
+
+def test_powered_up_reads_the_negation_of_its_condition():
+    # WP-214 : "if your deck has no duplicates" glows when it has none (check() alone
+    # answered the bare condition, so it glowed the wrong way round).
+    game = prepare_empty_game()
+    kazakus = game.player1.give("CFM_621")
+    assert kazakus.powered_up
+    _to_deck(game.player1, WISP)
+    assert kazakus.powered_up
+    _to_deck(game.player1, WISP)
+    assert not kazakus.powered_up
+
+
+def test_powered_up_gangs_conditions():
+    # WP-214 : the Battlecry conditions that glow in the hand.
+    game = prepare_empty_game(CardClass.MAGE, CardClass.WARRIOR)
+    game.player2.discard_hand()
+    cryo = game.player1.give("CFM_671")
+    promoter = game.player1.give("CFM_328")
+    chopper = game.player1.give("CFM_809")
+    hogleader = game.player1.give("CFM_810")
+    assert not cryo.powered_up
+    assert not promoter.powered_up
+    assert not hogleader.powered_up
+    assert chopper.powered_up  # the opponent's hand is empty
+    game.player2.give(WISP)
+    assert not chopper.powered_up
+    for _ in range(5):
+        game.player2.give(WISP)
+    assert hogleader.powered_up
+    game.player1.summon("CS2_186")  # War Golem, 7 Health
+    assert promoter.powered_up
+    game.player2.summon(WISP).frozen = True
+    assert cryo.powered_up

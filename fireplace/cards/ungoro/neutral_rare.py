@@ -13,7 +13,8 @@ class UNG_002:
 class UNG_070:
     """Tol'vir Stoneshaper"""
 
-    play = ELEMENTAL_PLAYED_LAST_TURN & (Buff(SELF, "UNG_070e"), GiveDivineShield(SELF))
+    powered_up = ELEMENTAL_PLAYED_LAST_TURN
+    play = powered_up & (Buff(SELF, "UNG_070e"), GiveDivineShield(SELF))
 
 
 UNG_070e = buff(taunt=True)

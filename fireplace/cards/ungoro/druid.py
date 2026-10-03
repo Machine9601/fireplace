@@ -42,7 +42,8 @@ class UNG_109:
     """Elder Longneck"""
 
     # "If you're holding a minion with 5 or more Attack": the hand, not the board.
-    play = Find(FRIENDLY_HAND + MINION + (ATK >= 5)) & Adapt(SELF)
+    powered_up = Find(FRIENDLY_HAND + MINION + (ATK >= 5) - SELF)
+    play = powered_up & Adapt(SELF)
 
 
 ##
